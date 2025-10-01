@@ -1,0 +1,176 @@
+# Business File (Seed v1)
+Contains all hypothetical business ideas, validation playbooks, onboarding flows, and growth strategies.
+
+---
+
+## Core Business Ideas (High-Impact Candidates)
+
+### 1. Multi-LLM Broker
+- **What**: Routes prompts to cheapest/fastest LLMs with fallback logic.
+- **Why**: Saves teams 30–70% on API costs.
+- **Monetization**: SaaS ($25–500/mo), freemium model.
+- **MVP**: Python + FastAPI, cost/speed tradeoff dashboard.
+
+### 2. Prompt Policy Linter
+- **What**: Scans prompts for risky phrasing (bias, PII leaks, jailbreaks).
+- **Why**: Compliance teams need guardrails.
+- **Monetization**: GitHub Sponsors ($20–100/mo) → Enterprise ($1K–5K/yr).
+- **MVP**: Python + regex + semantic checks, VS Code extension.
+
+### 3. Session Recorder/Replayer
+- **What**: Logs all LLM interactions with replay timeline.
+- **Why**: Debugging + compliance.
+- **Monetization**: $500/yr self-hosted; $50–200/mo SaaS.
+- **MVP**: Python + SQLite + web UI.
+
+### 4. Red-Team Harness
+- **What**: Auto-attacks agents with adversarial prompts, outputs risk reports.
+- **Why**: Security audits are expensive.
+- **Monetization**: $100–500/report; $1K/mo subscription.
+- **MVP**: Attack prompt dataset + PDF report generator.
+
+### 5. Vector-Store Diff Tool
+- **What**: Detects drift, duplicates, stale embeddings in vector DBs.
+- **Why**: Directly impacts accuracy.
+- **Monetization**: $200–1K license; $500 cleanup scripts.
+- **MVP**: Python + numpy similarity check.
+
+### Additional "Stealth Wealth" & Consumer Plays
+- SaaS Metrics Calculator (Stripe → MRR, churn, LTV).
+- Bank/Stripe Reconciler (fraud detection + reconciliation).
+- Meeting Autopilot (agenda, transcription, action items).
+- Price-Drop SMS Bot (Amazon/Target alerts).
+- Warranty Tracker (OCR receipts → expiry alerts).
+
+---
+
+## Validation Framework
+
+### Funnel Benchmarks (7-Day Sprint)
+- **Outreach**: 50 messages → 10–15 replies (20–30% is exceptional).
+- **Engaged Leads**: ≥5 say “yes” to trial.
+- **Pre-Pays**: ≥3 pre-pays = greenlight to build.
+- **Waitlist**: ≥30 signups (≥20% work emails).
+- **Dead Funnel**: <5 replies, 0 pre-pays, vague praise only.
+
+### Key Questions to Filter Real Leads
+- "Would you **pre-pay $X** to use this in 2 weeks?"
+- "What’s the **cost of NOT solving** this problem?"
+- "Can you introduce me to the person who controls the budget?"
+
+### False Positive Red Flags
+- "This is cool!" but no commitment.
+- "We’d use it if free."
+- "Maybe later."
+- "We already built this internally."
+
+---
+
+## Outreach Scripts
+
+### LinkedIn Cold Message (Pain-First)
+> Hi [Name],  
+> Most teams are **overpaying 30–70%** on LLM APIs by not routing prompts optimally.  
+> We’re testing a **Multi-LLM Broker** that auto-sends prompts to the cheapest/fastest model.  
+> Two quick Qs:  
+> 1. Would you try it with a **free 7-day trial**?  
+> 2. What’s your biggest pain with LLM costs right now?  
+> —Josh  
+
+### Twitter Reply
+> We’re building a tool that **cuts LLM costs by 50%** by routing prompts to the cheapest model.  
+> Want a **free 7-day trial**? DM me ‘SAVE’. 🚀  
+
+### Slack/Discord Post
+> Hey folks 👋 We’re testing a **Multi-LLM Broker** that saves 30–70% on API costs by routing to cheaper models.  
+> Looking for **5 teams** to try it free for 7 days in exchange for feedback.  
+> Interested? Reply here or DM me! 🚀  
+
+---
+
+## Follow-Up Sequences
+
+### "Yes, I’m interested!"
+1. Pre-pay ask: "Lock in 50% off forever ($25/mo). Want me to reserve your spot?"  
+2. Risk reversal: "If it doesn’t save $50+, I’ll refund you."  
+3. Downgrade: Offer free 7-day trial.
+
+### "Tell me more."
+1. Extract pain.  
+2. Quantify savings + pre-pay ask.  
+3. Disqualify if vague.
+
+### "We use [Tool X]."
+1. Ask what Tool X doesn’t do.  
+2. Position broker as complementary.  
+3. Disqualify if satisfied.
+
+### "Maybe later."
+1. Probe for timeline.  
+2. Offer to schedule demo in Q3/etc.  
+3. Disqualify if vague.
+
+---
+
+## Onboarding Flow
+
+### Step 1: Confirmation
+- Lock in 50% forever discount.  
+- Request top 3 use cases + monthly spend.  
+- Book 15-min setup call.
+
+### Step 2: First Use
+- Configure routing rules.  
+- Provide cost savings report.  
+- Default fallback rule if no info given.
+
+### Step 3: Feedback Loop (Days 3–7)
+- Day 3: Ask for testimonial.  
+- Day 5: Upsell + referral.  
+- Day 7: Celebrate savings report, lock testimonial.
+
+---
+
+## Savings Report Template
+
+**Sections**:  
+1. Baseline Monthly Spend.  
+2. Routed Usage Breakdown.  
+3. Savings Summary.  
+4. Testimonial Quote Box.  
+5. Next Steps / CTA (Upgrade, Refer, Book Tune-Up).  
+
+**Design**:  
+- Dark blue headers, light gray testimonial boxes, green highlights for savings.  
+- Fonts: Montserrat (headings), Open Sans (body).  
+- Export as PDF for LinkedIn sharing.  
+
+---
+
+## Marketing Amplification
+
+### Founder Amplification Reply (LinkedIn)
+> 🔥 This is why we built Multi-LLM Broker!  
+> [Customer] just saved **$X/month** by routing prompts to cheaper models.  
+> If you’re spending >$1K/mo on GPT-4, DM me ‘SAVE’ for a free analysis.  
+
+### Drip Sequence (3 Emails)
+1. Awareness → Custom savings report + free trial.  
+2. Urgency → “3 spots left this week.”  
+3. Close → “Last chance to lock $25/mo forever.”  
++ Breakup gift: Free cost-savings cheat sheet.
+
+---
+
+## Cheat Sheet (Breakup Gift)
+
+**Title**: 3 Biggest LLM Cost Mistakes (and Fixes)  
+1. Using GPT-4 for everything → Right-size workloads.  
+2. No fallback logic → Auto-reroute saves wasted prompts.  
+3. No usage tracking → Dashboard + ledger.  
+
+Checklist: Audit bills, assign models, set fallback rules, track CL%.  
+CTA: Reply with bill for free cost analysis.  
+
+---
+

@@ -1,0 +1,55 @@
+# Skills.txt — Rewritten (2025-09-24)
+
+## Purpose
+Catalog of Josh’s capabilities, artifacts, and transferable expertise for job search, governance work, and portfolio proof.
+
+---
+
+## Core Skills
+
+### AI Governance & Prompt Engineering
+- Builds governance-grade prompting frameworks (schema locks, adversarial inoculation, evaluation harnesses).  
+- Designs PromptOps pipelines for prompt lifecycle management: linting, regression, drift detection, versioning.  
+- Expertise in frontier prompting techniques: Chain-of-Verification, Atom-of-Thought, Least-to-Most, Reflexion, PAL, MAPO, etc.  
+- Runs multi-agent orchestration with role clarity (GPT Audit, Gemini Synthesis, Copilot Implementation, Perplexity Research).  
+
+---
+
+### Security Research
+- ChevronGhost exploit: surfaced invisible Unicode payloads corrupting iOS rendering (U+2060, U+200B, U+200D, U+FEFF).  
+- Proficient in adversarial testing, failure mode mapping, contradiction metabolism applied to security contexts.  
+- Experienced in responsible disclosure pathways and risk communication.  
+
+---
+
+### Governance Systems
+- Creator of Tessrax Stack: contradiction metabolism architecture with Core Engines (Memory, Metabolism, Governance, Trust).  
+- Proficient in scarpath logging, runtime law design, and continuity safeguards (SIG-LOCK-001, PERM-STATE-LOCK-001).  
+- Designs protocols for memory management (MFP-001), state locks, handoff checklists, and ledger-based auditability.  
+
+---
+
+### Research & Writing
+- Synthesizes complex technical, philosophical, and governance material into clear artifacts (Research notes, Protocols, Path logs).  
+- Experienced in producing resumes, governance playbooks, case studies, and public-facing website copy.  
+- Skilled at contradiction analysis, stress-testing narratives, and translating technical insights into accessible language.  
+
+---
+
+### Technical
+- Comfortable with Python (simulation kernels, JSON validators, evaluation scripts).  
+- Familiar with API workflows (tool calling, schema validation, integration into CI/CD pipelines).  
+- Knowledge of security testing environments, system design principles, and prompt-driven application prototyping.  
+
+---
+
+### Communication & Collaboration
+- Practices explicit authorship protocols and provenance discipline (signature locks, NSAV-001).  
+- Skilled in collaborative agent workflows, version control of prompts/files, and audit-trail documentation.  
+- Effective at bridging technical detail with governance framing for diverse audiences (technical peers, employers, public).  
+
+## Jira Advanced Ops Dossier
+- Audit advanced Jira features often under-documented.
+- Map failure points: automation misfires, custom workflow corruption.
+- Edge workflows: cross-project boards, Confluence integration.
+- Governance opportunity: receipts for triage, Rovo integration for AI-assisted ops.

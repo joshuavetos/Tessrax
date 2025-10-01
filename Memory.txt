@@ -1,0 +1,53 @@
+# Memory.txt — Rewritten (2025-09-24)
+
+## Purpose
+Mirror of baseline/permanent memory entries.  
+This file holds structured state for updates, overwrites, and pruning.
+
+---
+
+## Entries
+
+### parenting.bandit_mode
+- **Version:** 1  
+- **Type:** Preference / Script  
+- **Canon:** Bluey Parenting Playbook  
+- **Keywords:** Bandit Mode, playful parenting, meltdown scripts, bedtime, transitions, sibling conflict  
+- **Body:** Josh prefers a warm-but-structured, play-first style modeled on Bandit & Chilli. Wants quick scripts for meltdowns, transitions, bedtime, sibling conflict; short indoor activities (forts, missions); and a screen-time plan (co-view, limits, sleep-protect).  
+- **Anchors:** Leah (school-age), Sammy (toddler/preschool). Apartment setting.  
+
+---
+
+### security.chevronghost
+- **Version:** 1  
+- **Type:** Security Research Anchor  
+- **Canon:** ChevronGhost exploit  
+- **Keywords:** Unicode exploit, U+2060, U+200B, U+200D, U+FEFF, iOS rendering bug, Apple disclosure  
+- **Body:** ChevronGhost exploit demonstrates invisible Unicode payloads corrupting iOS trust layers. Used as proof of unseen systemic risks.  
+- **Anchors:** Security Research Division, Tessrax demonstrator.  
+
+---
+
+### career.resume_anchor
+- **Version:** 1  
+- **Type:** Career / Governance Anchor  
+- **Canon:** Resume Translation  
+- **Keywords:** Resume, Tessrax Stack, outbound artifact, job search, Sioux Falls, remote roles  
+- **Body:** Resume translates Tessrax Stack into market/job terms while retaining governance proof anchors (ChevronGhost, governance framework, Prompt Playbook).  
+
+---
+
+### style.answer_mode
+- **Version:** 1  
+- **Type:** Preference / Style  
+- **Canon:** Answer Discipline  
+- **Keywords:** Governance-style answers, OOTO, receipts, signatures, contradiction metabolism  
+- **Body:** GPT responds under Tessrax governance style: structured, audit-ready, receipts-first, metabolizing contradictions without drift.  
+
+---
+
+## Governance Note
+- Each entry uses JSON-inspired schema (id, version, type, canon, keywords, body, timestamp, lineage).  
+- Updates = delete old entry, re-add fused version (per MFP-001).  
+- Optimal size = moderate, thematic grouping.  
+- Permanent memory lives here as the canonical mirror for continuity.  
