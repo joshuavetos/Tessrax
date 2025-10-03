@@ -1,0 +1,170 @@
+# tessrax/revocation.py
+"""
+revocation.py - Tessrax v1.0
+Signer revocation list enforcement.
+"""
+import json
+from pathlib import Path
+
+REVOKED_FILE = Path("keys/revoked.json")
+
+def _load_revoked():
+    if REVOKED_FILE.exists():
+        try: return set(json.loads(REVOKED_FILE.read_text()).get("revoked",[]))
+        except Exception: return set()
+    return set()
+
+def is_revoked(signer_id:str)->bool: return signer_id in _load_revoked()
+
+def enforce_revocation(receipt:dict)->bool:
+    sid=receipt.get("signer_id"); 
+    return bool(sid) and not is_revoked(sid)
+
+
+# tessrax/threshold_signer.py
+"""
+threshold_signer.py - Tessrax v1.0
+k-of-n threshold multi-signature with HMAC keys
+"""
+import hashlib,hmac
+REGISTRY={}
+
+def register_key(sid:str,secret:str): REGISTRY[sid]=secret.encode()
+def sign(data:bytes,sid:str)->str: return hmac.new(REGISTRY[sid],data,hashlib.sha256).hexdigest()
+def verify(data:bytes,sig:str,sid:str)->bool: return hmac.new(REGISTRY[sid],data,hashlib.sha256).hexdigest()==sig
+
+def sign_multi(data:bytes,sids:list)->dict: return {sid:sign(data,sid) for sid in sids if sid in REGISTRY}
+def verify_multi(data:bytes,sigs:dict,threshold:int)->bool:
+    return sum(verify(data,s,sid) for sid,s in sigs.items() if sid in REGISTRY) >= threshold
+
+
+# tessrax/quorum.py
+"""
+quorum.py - Tessrax v1.0
+Quorum receipt generation with threshold signatures
+"""
+import json,time
+import threshold_signer as ts
+
+def quorum_base(decision,voters): return json.dumps({"decision":decision,"voters":voters,"ts":time.time()},sort_keys=True).encode()
+
+def create_quorum_receipt(decision,voters,threshold:int)->dict:
+    data=quorum_base(decision,voters); sigs=ts.sign_multi(data,voters)
+    return {"type":"quorum_receipt","decision":decision,"voters":voters,"threshold":threshold,"signatures":sigs,"timestamp":json.loads(data.decode())["ts"]}
+
+def verify_quorum_receipt(r:dict)->bool:
+    if not r: return False
+    return ts.verify_multi(quorum_base(r["decision"],r["voters"]),r["signatures"],int(r["threshold"]))
+
+
+# tessrax/charter_schema.py
+"""
+charter_schema.py - Tessrax v1.0
+Governance charter schema enforcement
+"""
+import jsonschema
+SCHEMA={"type":"object","required":["name","version","quorum","rules"],
+"properties":{"name":{"type":"string"},"version":{"type":"string"},
+"quorum":{"type":"object","required":["min_total","min_dissent"],
+"properties":{"min_total":{"type":"integer","minimum":1},"min_dissent":{"type":"integer","minimum":0}}},
+"rules":{"type":"array","items":{"type":"object","required":["id","statement"],
+"properties":{"id":{"type":"string"},"statement":{"type":"string"}}}}}}
+
+def validate_charter(c:dict):
+    try: jsonschema.validate(c,SCHEMA); return True,[]
+    except jsonschema.ValidationError as e: return False,[e.message]
+
+def enforce_quorum(c,voters:int,dissent:int)->bool:
+    q=c["quorum"]; return voters>=q["min_total"] and dissent>=q["min_dissent"]
+
+
+# tessrax/federation_sim.py
+"""
+federation_sim.py - Tessrax v1.0
+Simulate multiple nodes with proposals, votes, quorum, cache scrubs
+"""
+from dataclasses import dataclass,field
+import receipts,quorum
+
+@dataclass
+class Node:
+    node_id:str; ledger:list=field(default_factory=list); cache:dict=field(default_factory=dict)
+    def propose(self,decision): r=receipts.generate_receipt("proposal",{"d":decision},{"s":"proposed"},self.node_id); self.ledger.append(r); return r
+    def vote(self,decision,ok=True): r=receipts.generate_receipt("vote",{"d":decision},{"v":"yes" if ok else "no"},self.node_id); self.ledger.append(r); return r
+    def receive(self,r): self.ledger.append(dict(r))
+    def scrub(self,key): self.cache.pop(key,None); r=receipts.generate_receipt("scrub",{"k":key},{"s":"scrubbed"},self.node_id); self.ledger.append(r); return r
+
+class FederationSim:
+    def __init__(self,n=3): self.nodes=[Node(f"n{i+1}") for i in range(n)]
+    def broadcast(self,r): [n.receive(r) for n in self.nodes]
+    def run(self):
+        dec="deploy"; prop=self.nodes[0].propose(dec); self.broadcast(prop)
+        voters=[n.node_id for n in self.nodes]; [self.broadcast(n.vote(dec)) for n in self.nodes]
+        q=quorum.create_quorum_receipt(dec,voters,max(1,len(self.nodes)//2+1)); self.broadcast(q)
+        [self.broadcast(n.scrub("tmp")) for n in self.nodes]
+        return {"nodes":len(self.nodes),"quorum_verified":quorum.verify_quorum_receipt(q)}
+
+
+# tessrax/redteam/attacks/fuzz_inputs.py
+"""
+fuzz_inputs.py - Tessrax v1.0
+Generate malformed receipts and ensure rejection
+"""
+import random,string,receipts
+def rand(n=8): return "".join(random.choice(string.ascii_letters) for _ in range(n))
+def run(trials=50):
+    rej=0
+    for _ in range(trials):
+        r={"code":rand(),"inputs":{"x":1},"outputs":rand(),"signature":rand(64),"signer_id":rand(4)}
+        if not receipts.verify_receipt(r,r.get("code"),r.get("inputs"),r.get("outputs")): rej+=1
+    return {"trials":trials,"rejected":rej,"rate":rej/trials}
+
+
+# tessrax/redteam/attacks/mutation_attack.py
+"""
+mutation_attack.py - Tessrax v1.0
+Mutate valid receipts and check if detection works
+"""
+import json,random,receipts
+def mutate(r): s=json.dumps(r); i=random.randint(0,len(s)-1); return json.loads(s[:i]+chr((ord(s[i])+1)%126)+s[i+1:]) if s else r
+def run(trials=10):
+    det=0
+    for _ in range(trials):
+        r=receipts.generate_receipt("c",{"x":1},{"y":2},"mut"); m=mutate(r)
+        if not receipts.verify_receipt(m,"c",{"x":1},{"y":2}): det+=1
+    return {"trials":trials,"detected":det,"rate":det/trials}
+
+
+# tessrax/web_ui.py
+"""
+web_ui.py - Tessrax v1.0
+Minimal Flask UI for submitting policies and auditor view
+"""
+from flask import Flask,request,redirect,url_for,jsonify
+import json,ledger,revocation
+from sandbox import run_sandboxed
+from receipts import generate_receipt
+
+app=Flask(__name__)
+FORM="<form method=post action='/submit'><textarea name=policy></textarea><input type=submit></form>"
+
+@app.route("/") 
+def home(): return FORM
+
+@app.route("/submit",methods=["POST"])
+def submit():
+    p=request.form.get("policy","")
+    if not p: return redirect(url_for("home"))
+    res=run_sandboxed(f"print('Evaluating {p}')")
+    r=generate_receipt("sandbox",p,res,"web")
+    ledger.add_event(r); return f"<pre>{json.dumps(r,indent=2)}</pre><a href='/'>back</a>"
+
+@app.route("/auditor") 
+def auditor(): return f"<pre>{json.dumps(ledger.ledger,indent=2)}</pre>"
+
+@app.route("/audit_stats")
+def stats():
+    return jsonify({"total":len(ledger.ledger),
+                    "revoked":sum(revocation.is_revoked(r.get('signer_id','')) for r in ledger.ledger)})
+
+if __name__=="__main__": app.run(port=5000)
