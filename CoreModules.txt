@@ -1,0 +1,169 @@
+# tessrax/receipts.py
+"""
+receipts.py - Tessrax v0.1
+Tamper-evident computational receipts
+"""
+
+import hashlib, json, time, hmac, secrets
+
+def _hash_obj(obj) -> str:
+    return hashlib.sha256(json.dumps(obj, sort_keys=True).encode()).hexdigest()
+
+def _sign(data: bytes, key: str) -> str:
+    return hmac.new(key.encode(), data, hashlib.sha256).hexdigest()
+
+SECRET = "local-secret"
+
+def generate_receipt(code_str, inputs, outputs, executor_id="unknown"):
+    base = {
+        "code_hash": _hash_obj(code_str),
+        "inputs_hash": _hash_obj(inputs),
+        "outputs_hash": _hash_obj(outputs),
+        "timestamp": time.time(),
+        "executor_id": executor_id,
+    }
+    base_bytes = json.dumps(base, sort_keys=True).encode()
+    return {**base, "signature": _sign(base_bytes, SECRET)}
+
+def verify_receipt(receipt, code_str, inputs, outputs) -> bool:
+    base = {
+        "code_hash": _hash_obj(code_str),
+        "inputs_hash": _hash_obj(inputs),
+        "outputs_hash": _hash_obj(outputs),
+        "timestamp": receipt.get("timestamp"),
+        "executor_id": receipt.get("executor_id"),
+    }
+    base_bytes = json.dumps(base, sort_keys=True).encode()
+    sig = receipt.get("signature")
+    return sig == _sign(base_bytes, SECRET)
+
+
+# tessrax/memory.py
+"""
+memory.py - Tessrax v0.1
+Contradiction-aware memory store
+"""
+
+import json
+
+class Memory:
+    def __init__(self):
+        self.store = {}
+
+    def add(self, key, value, provenance):
+        if key not in self.store:
+            self.store[key] = {"value": value, "provenance": provenance, "contradiction": False}
+        else:
+            entry = self.store[key]
+            if entry["value"] != value:
+                entry["contradiction"] = True
+            entry["provenance"] = provenance
+        return self.store[key]
+
+    def get(self, key):
+        return self.store.get(key)
+
+    def export(self):
+        return json.dumps(self.store, indent=2)
+
+
+# tessrax/csv.py
+"""
+csv.py - Tessrax v0.1
+Contrastive Scar Verification (CSV)
+"""
+
+import random
+
+def candidate_output(x: int) -> int:
+    return 2 * x
+
+def contrast_output(x: int) -> int:
+    return 2 * x + random.choice([-1, 0, 1])
+
+def verify(x: int) -> bool:
+    return candidate_output(x) == contrast_output(x)
+
+
+# tessrax/ledger.py
+"""
+ledger.py - Tessrax v0.1
+Append-only governance ledger with Merkle root
+"""
+
+import hashlib, json
+
+ledger = []
+
+def add_event(event: dict):
+    ledger.append(event)
+
+def merkle_root():
+    if not ledger: return None
+    hashes = [hashlib.sha256(json.dumps(e, sort_keys=True).encode()).hexdigest() for e in ledger]
+    while len(hashes) > 1:
+        if len(hashes) % 2: hashes.append(hashes[-1])
+        hashes = [hashlib.sha256((hashes[i] + hashes[i+1]).encode()).hexdigest() for i in range(0,len(hashes),2)]
+    return hashes[0]
+
+
+# tessrax/quorum.py
+"""
+quorum.py - Tessrax v0.1
+Basic quorum checks
+"""
+
+def check_quorum(votes: dict, min_total=7, min_dissent=2) -> bool:
+    total, dissent = len(votes), sum(1 for v in votes.values() if v == "no")
+    return total >= min_total and dissent >= min_dissent
+
+
+# tessrax/dissent.py
+"""
+dissent.py - Tessrax v0.1
+Record dissent logs
+"""
+
+dissent_log = []
+
+def record_dissent(agent_id: str, reason: str):
+    entry = {"agent_id": agent_id, "reason": reason}
+    dissent_log.append(entry)
+    return entry
+
+
+# tessrax/agent_base.py
+"""
+agent_base.py - Tessrax v0.1
+Minimal autonomous agent
+"""
+
+class Agent:
+    def __init__(self, name: str):
+        self.name = name
+
+    def act(self, data: str) -> dict:
+        return {"agent": self.name, "decision": f"processed({data})"}
+
+
+# tessrax/human_in_loop.py
+"""
+human_in_loop.py - Tessrax v0.1
+Human-in-the-loop approval
+"""
+
+def human_in_loop(decision: str) -> str:
+    resp = input(f"Approve decision '{decision}'? (Approve/Reject): ")
+    return resp.strip()
+
+
+# tessrax/crypto.py
+"""
+crypto.py - Tessrax v0.1
+Basic cryptographic utilities
+"""
+
+import hashlib
+
+def sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
