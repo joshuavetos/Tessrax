@@ -1,0 +1,166 @@
+# tessrax/sandbox_safe.py
+"""
+sandbox_safe.py - Tessrax v0.1
+Safe wrappers blocking dangerous syscalls
+"""
+
+class SandboxViolation(Exception):
+    pass
+
+class SafeOS:
+    def system(self, *args, **kwargs):
+        raise SandboxViolation("os.system blocked by sandbox")
+    def urandom(self, *args, **kwargs):
+        raise SandboxViolation("os.urandom blocked by sandbox")
+
+class SafeSubprocess:
+    def __getattr__(self, name):
+        def _blocked(*args, **kwargs):
+            raise SandboxViolation(f"subprocess.{name} blocked by sandbox")
+        return _blocked
+
+
+# tessrax/sandbox.py
+"""
+sandbox.py - Tessrax v0.1
+Sandboxed execution with resource limits and syscall filtering
+"""
+
+import signal, resource, sys, io, time, builtins
+from sandbox_safe import SafeOS, SafeSubprocess, SandboxViolation
+
+class TimeoutException(Exception): pass
+
+def _timeout_handler(signum, frame): raise TimeoutException("CPU time exceeded")
+
+def _safe_builtins():
+    safe = {}
+    for name in ("abs","all","any","bool","dict","float","int","list","len","max","min","range","sum","enumerate","zip","print"):
+        safe[name] = getattr(builtins, name)
+    def _blocked_open(*a, **k): raise SandboxViolation("open() blocked")
+    def _blocked_import(*a, **k): raise SandboxViolation("__import__ blocked")
+    safe["open"], safe["__import__"] = _blocked_open, _blocked_import
+    return safe
+
+def run_sandboxed(code_str: str, inputs=None, cpu_time=1, mem_limit_mb=50) -> dict:
+    start = time.time()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
+    try:
+        resource.setrlimit(resource.RLIMIT_AS, (mem_limit_mb*1024*1024,)*2)
+    except Exception: pass
+    signal.signal(signal.SIGXCPU, _timeout_handler)
+    try: signal.alarm(cpu_time)
+    except Exception: pass
+    success, error = True, ""
+    try:
+        exec(code_str, {"__builtins__": _safe_builtins(), "inputs": inputs, "os": SafeOS(), "subprocess": SafeSubprocess()}, {})
+    except Exception as e:
+        success, error = False, str(e)
+    finally:
+        try: signal.alarm(0)
+        except Exception: pass
+        output, errout = sys.stdout.getvalue(), sys.stderr.getvalue()
+        sys.stdout, sys.stderr = old_out, old_err
+    return {"success": success, "output": output.strip(), "error": (error or errout.strip()), "time": round(time.time()-start,4)}
+
+
+# tessrax/anchoring.py
+"""
+anchoring.py - Tessrax v0.1
+Anchors ledger state to anchors.txt and optional git
+"""
+
+import datetime, subprocess
+import ledger
+
+ANCHOR_FILE = "anchors.txt"
+
+def anchor_now():
+    root = ledger.merkle_root()
+    if not root:
+        print("Nothing to anchor."); return None
+    ts = datetime.datetime.utcnow().isoformat()+"Z"
+    line = f"{ts} {root}\n"
+    with open(ANCHOR_FILE,"a",encoding="utf-8") as f: f.write(line)
+    print("Anchored:", root)
+    try:
+        subprocess.run(["git","add",ANCHOR_FILE],check=True)
+        subprocess.run(["git","commit","-m",f"Anchor {ts}"],check=True)
+    except Exception as e:
+        print("Git commit skipped:",e)
+    return root
+
+
+# tessrax/demo_flow.py
+"""
+demo_flow.py - Tessrax v0.1
+Interactive demo wiring primitives
+"""
+
+import json, ledger, quorum, dissent
+from agent_base import Agent
+from human_in_loop import human_in_loop
+from sandbox import run_sandboxed
+from receipts import generate_receipt
+
+def main():
+    print("=== Tessrax v0.1 Demo ===")
+    agent = Agent("alpha")
+    d = agent.act("deploy")
+    print("Agent:",d)
+    resp = human_in_loop(d["decision"])
+    if resp.lower()!="approve":
+        print("Rejected."); dissent.record_dissent("human","reject"); return
+    res = run_sandboxed("print('executed')", inputs={"x":1})
+    print("Sandbox:",res)
+    r = generate_receipt("sandbox",{"x":1},res,"alpha")
+    print("Receipt:",json.dumps(r,indent=2)); ledger.add_event(r)
+    print("Ledger root:",ledger.merkle_root())
+    votes={"a1":"yes","a2":"no","a3":"yes"}
+    print("Quorum ok?",quorum.check_quorum(votes,3,1))
+
+if __name__=="__main__": main()
+
+
+# tessrax/cache_scrub.py
+"""
+cache_scrub.py - Tessrax v0.1
+Federated cache scrubbing with confirmations
+"""
+
+import time, json
+nodes, scrub_receipts, pending_scrubs = {}, [], {}
+
+def add_node(node_id,data): nodes[node_id]=dict(data)
+
+def scrub(node_id,key):
+    r={"node":node_id,"key":key,"timestamp":time.time(),"status":"pending"}
+    scrub_receipts.append(r); pending_scrubs[(node_id,key)]={"confirm":set(),"total":len(nodes),"receipt":r}; return r
+
+def confirm_scrub(cid,node_id,key):
+    if (node_id,key) not in pending_scrubs: return False
+    e=pending_scrubs[(node_id,key)]; e["confirm"].add(cid)
+    if len(e["confirm"])>=e["total"]:
+        nodes[node_id].pop(key,None); e["receipt"]["status"]="finalized"; pending_scrubs.pop((node_id,key)); return True
+    return False
+
+def export_receipts(): return json.dumps(scrub_receipts,indent=2)
+
+
+# tessrax/svi.py
+"""
+svi.py - Tessrax v0.1
+Scar Volatility Index
+"""
+
+import json, statistics, time
+
+def compute_svi(receipts):
+    if not receipts: return {"timestamp":time.time(),"svi":None,"count":0,"receipt_ids":[],"details":{}}
+    scores=[r["volatility_score"] for r in receipts]; ids=[r["receipt_id"] for r in receipts]
+    return {"timestamp":time.time(),"svi":round(statistics.mean(scores),4),"count":len(scores),"receipt_ids":ids,"details":{"min":min(scores),"max":max(scores),"stdev":round(statistics.pstdev(scores),4) if len(scores)>1 else 0.0}}
+
+if __name__=="__main__":
+    fake=[{"receipt_id":"r1","volatility_score":0.2},{"receipt_id":"r2","volatility_score":0.5}]
+    print(json.dumps(compute_svi(fake),indent=2))
