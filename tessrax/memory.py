@@ -1,5 +1,5 @@
 """
-memory.py - Enhanced Tessrax Memory v2.0
+memory.py - Tessrax v2.0
 Contradiction-aware, provenance-tracking, thread-safe memory with optional persistent JSONL storage.
 """
 
