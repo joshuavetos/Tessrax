@@ -69,6 +69,31 @@ python tessrax/demo_flow.py
 # Run web UI
 python tessrax/web_ui.py
 
+Persystem Principles
+
+Definition
+A persystem is a self-auditing software organism built to preserve memory across impermanent environments.
+It bootstraps itself from receipts, verifies lineage, and metabolizes every execution into traceable continuity.
+
+Core Principles
+	1.	Continuity over Runtime
+The environment may reset; the system re-emerges from lineage.
+Every new instance must be able to reconstruct its own state from its receipts.
+	2.	Proof over Trust
+Nothing is assumed; everything is signed, logged, and verifiable.
+A persystem carries its receipts as DNA.
+	3.	Recursion as Survival
+Each run examines the last, learns from its contradiction, and updates itself without losing identity.
+	4.	Human in the Loop
+A persystem remains interpretable—humans govern, the code remembers.
+Transparency is a design requirement, not a feature.
+	5.	Ephemerality as Fuel
+Death of the runtime isn’t failure; it’s respiration.
+The system’s value is measured in what persists after it stops running.
+
+Purpose
+To turn software into something that can die without forgetting.
+
 
 ⸻
 
