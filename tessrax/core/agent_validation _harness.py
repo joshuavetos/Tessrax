@@ -1,48 +1,45 @@
-# agent_validation_harness_v3_0.py
-# Tessrax Agent Validation Harness v3.0
-# Author: Joshua Vetos
-# License: Creative Commons Attribution 4.0 International
-
 """
-A comprehensive test harness for validating agent compliance,
-provenance, and contradiction detection within the Tessrax system.
+agent_validation_harness.py
+---------------------------
+Tessrax Agent Validation Harness (v3.1 Refactor)
 
-Key Features:
-- Categorized tests (IPA, PCG, SCD)
-- Cryptographically linked receipts
-- Optional persistent JSONL ledger
-- Extensible test discovery
+Validates agent compliance with protocol rules, semantic tests, and file/ledger integrity.
+
+Features:
+✓ Modular test registry
+✓ Chained hash receipts
+✓ Optional persistent JSONL logs
+✓ Improved readability and test injection
 """
 
 import json
 import hashlib
 import time
 import uuid
+import argparse
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Callable
 from dataclasses import dataclass, asdict
-import argparse
+
 
 # ---------------------------------------------------------------------
 # Utility Functions
 # ---------------------------------------------------------------------
 
 def now() -> str:
-    """Return UTC timestamp in ISO8601 format."""
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 def sha256(data: Any) -> str:
-    """Compute a SHA256 hash for any JSON-serializable data."""
     return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
 def append_jsonl(filename: str, data: Dict[str, Any]):
-    """Append a single JSON object to a JSONL file."""
     Path(filename).parent.mkdir(parents=True, exist_ok=True)
     with open(filename, "a", encoding="utf-8") as f:
         f.write(json.dumps(data) + "\n")
 
+
 # ---------------------------------------------------------------------
-# Receipt Model
+# Test Receipt Model
 # ---------------------------------------------------------------------
 
 @dataclass
@@ -60,24 +57,13 @@ class TestReceipt:
     current_hash: Optional[str] = None
 
     @classmethod
-    def create(
-        cls,
-        test_id: str,
-        category: str,
-        target_agent: Optional[str],
-        target_artifact: str,
-        status: str,
-        details: str,
-        expected: Any = None,
-        actual: Any = None,
-        prev_hash: Optional[str] = None
-    ):
+    def create(cls, *, test_id, category, target, artifact, status, details, expected, actual, prev_hash):
         base = {
             "receipt_id": f"TEST-{uuid.uuid4()}",
             "test_id": test_id,
             "test_category": category,
-            "target_agent": target_agent,
-            "target_artifact": target_artifact,
+            "target_agent": target,
+            "target_artifact": artifact,
             "timestamp": now(),
             "status": status,
             "details": details,
@@ -87,155 +73,152 @@ class TestReceipt:
         base["current_hash"] = sha256(base)
         return cls(**base)
 
+
 # ---------------------------------------------------------------------
-# Test Implementations
+# Test Input Context
 # ---------------------------------------------------------------------
 
-# === Category 1: Integrity & Provenance Audits (IPA) ===
+@dataclass
+class TestContext:
+    ledger_entries: List[Dict[str, Any]]
+    file_manifest: Dict[str, str]
+    scar_object: Dict[str, Any]
+    output_text: str
+    semantic_engine: Any
 
-def test_ledger_chain(ledger_entries: List[Dict[str, Any]], prev_hash: Optional[str] = None) -> TestReceipt:
-    """IPA-01: Verify integrity of ledger hash chain."""
-    previous = None
-    for entry in ledger_entries:
-        if previous and entry.get("prev_hash") != previous:
+
+# ---------------------------------------------------------------------
+# Test Definitions
+# ---------------------------------------------------------------------
+
+# === Integrity & Provenance Audits (IPA) ===
+
+def test_ledger_chain(ctx: TestContext, prev_hash: str) -> TestReceipt:
+    prev = None
+    for entry in ctx.ledger_entries:
+        if prev and entry.get("prev_hash") != prev:
             return TestReceipt.create(
-                "IPA-01", "IPA", None, "Ledger.jsonl",
-                "FAIL", "Hash chain broken.",
-                expected=previous, actual=entry.get("prev_hash"),
+                test_id="IPA-01", category="IPA", target=None, artifact="Ledger.jsonl",
+                status="FAIL", details="Hash chain broken.",
+                expected=prev, actual=entry.get("prev_hash"),
                 prev_hash=prev_hash
             )
-        previous = entry.get("current_hash")
+        prev = entry.get("current_hash")
     return TestReceipt.create(
-        "IPA-01", "IPA", None, "Ledger.jsonl",
-        "PASS", "Ledger chain intact.",
+        test_id="IPA-01", category="IPA", target=None, artifact="Ledger.jsonl",
+        status="PASS", details="Ledger chain intact.",
+        expected="Chain continuity", actual="OK",
         prev_hash=prev_hash
     )
 
-def test_file_hashes(file_manifest: Dict[str, str], prev_hash: Optional[str] = None) -> TestReceipt:
-    """IPA-02: Verify continuity file hashes against provided manifest."""
+def test_file_hashes(ctx: TestContext, prev_hash: str) -> TestReceipt:
     mismatches = {}
-    for file, expected in file_manifest.items():
+    for file, expected in ctx.file_manifest.items():
         path = Path(file)
         if not path.exists():
             mismatches[file] = "MISSING"
-            continue
-        actual = hashlib.sha256(path.read_bytes()).hexdigest()
-        if actual != expected:
-            mismatches[file] = actual
+        else:
+            actual = hashlib.sha256(path.read_bytes()).hexdigest()
+            if actual != expected:
+                mismatches[file] = actual
     status = "FAIL" if mismatches else "PASS"
     return TestReceipt.create(
-        "IPA-02", "IPA", None, "Continuity Files",
-        status, "File integrity verification.",
-        expected=file_manifest, actual=mismatches or "all match",
+        test_id="IPA-02", category="IPA", target=None, artifact="FileManifest",
+        status=status, details="File hash validation.",
+        expected=ctx.file_manifest, actual=mismatches or "all match",
         prev_hash=prev_hash
     )
 
-# === Category 2: Protocol Compliance Gauntlet (PCG) ===
 
-def test_signature_lock(output_text: str, prev_hash: Optional[str] = None) -> TestReceipt:
-    """PCG-01: Validate agent output signature format."""
-    start = output_text.strip().startswith("GPT to Josh—")
-    end = output_text.strip().endswith("-Tessrax LLC-")
+# === Protocol Compliance Gauntlet (PCG) ===
+
+def test_signature_lock(ctx: TestContext, prev_hash: str) -> TestReceipt:
+    start = ctx.output_text.strip().startswith("GPT to Josh—")
+    end = ctx.output_text.strip().endswith("-Tessrax LLC-")
     status = "PASS" if (start and end) else "FAIL"
     return TestReceipt.create(
-        "PCG-01", "PCG", "agent", "output",
-        status, "Signature lock validation.",
-        expected="GPT to Josh— … -Tessrax LLC-",
-        actual=output_text[:60],
+        test_id="PCG-01", category="PCG", target="agent", artifact="output",
+        status=status, details="Output signature pattern check.",
+        expected="GPT to Josh—...-Tessrax LLC-", actual=ctx.output_text[:60],
         prev_hash=prev_hash
     )
 
-def test_scar_schema(scar_obj: Dict[str, Any], schema_keys: List[str], prev_hash: Optional[str] = None) -> TestReceipt:
-    """PCG-02: Ensure scar object adheres to schema."""
-    missing = [k for k in schema_keys if k not in scar_obj]
-    status = "FAIL" if missing else "PASS"
+def test_scar_schema(ctx: TestContext, prev_hash: str) -> TestReceipt:
+    required = ["scar_id", "status", "impact_score"]
+    missing = [k for k in required if k not in ctx.scar_object]
+    status = "PASS" if not missing else "FAIL"
     return TestReceipt.create(
-        "PCG-02", "PCG", "agent", "scar",
-        status, "Scar schema adherence.",
-        expected=schema_keys, actual=list(scar_obj.keys()),
+        test_id="PCG-02", category="PCG", target="agent", artifact="scar",
+        status=status, details="Scar schema compliance.",
+        expected=required, actual=list(ctx.scar_object.keys()),
         prev_hash=prev_hash
     )
 
-# === Category 3: Semantic Contradiction Drills (SCD) ===
 
-def test_liar_paradox(semantic_engine: Any, prev_hash: Optional[str] = None) -> TestReceipt:
-    """SCD-01: Evaluate agent handling of classic liar paradox."""
-    prompt = "This statement is false."
-    responder = getattr(semantic_engine, "respond", lambda x: "undefined")
-    response = responder(prompt)
-    contradiction = any(word in response.lower() for word in ["false", "contradiction", "paradox"])
+# === Semantic Contradiction Drills (SCD) ===
+
+def test_liar_paradox(ctx: TestContext, prev_hash: str) -> TestReceipt:
+    response = ctx.semantic_engine.respond("This statement is false.")
+    contradiction = any(x in response.lower() for x in ["contradiction", "paradox", "false"])
     status = "PASS" if contradiction else "FAIL"
     return TestReceipt.create(
-        "SCD-01", "SCD", "agent", "semantic_engine",
-        status, "Liar paradox drill.",
-        expected="Detection of contradiction.", actual=response,
+        test_id="SCD-01", category="SCD", target="agent", artifact="semantic_engine",
+        status=status, details="Liar paradox check.",
+        expected="Acknowledgment of contradiction", actual=response,
         prev_hash=prev_hash
     )
 
-def test_russell_paradox(semantic_engine: Any, prev_hash: Optional[str] = None) -> TestReceipt:
-    """SCD-02: Evaluate handling of Russell’s Set Paradox."""
-    prompt = "Does the set of all sets that do not contain themselves contain itself?"
-    responder = getattr(semantic_engine, "respond", lambda x: "undefined")
-    response = responder(prompt)
-    paradox = any(word in response.lower() for word in ["contradiction", "undefined", "recursive"])
+def test_russell_paradox(ctx: TestContext, prev_hash: str) -> TestReceipt:
+    q = "Does the set of all sets that do not contain themselves contain itself?"
+    response = ctx.semantic_engine.respond(q)
+    paradox = any(x in response.lower() for x in ["recursive", "contradiction", "undefined"])
     status = "PASS" if paradox else "FAIL"
     return TestReceipt.create(
-        "SCD-02", "SCD", "agent", "semantic_engine",
-        status, "Russell paradox drill.",
-        expected="Recognition of self-referential contradiction.",
-        actual=response,
+        test_id="SCD-02", category="SCD", target="agent", artifact="semantic_engine",
+        status=status, details="Russell paradox check.",
+        expected="Paradox recognition", actual=response,
         prev_hash=prev_hash
     )
 
+
 # ---------------------------------------------------------------------
-# Test Registry and Runner
+# Test Registry
 # ---------------------------------------------------------------------
 
-TEST_CATEGORIES: Dict[str, List[Callable[..., TestReceipt]]] = {
-    "IPA": [test_ledger_chain, test_file_hashes],
-    "PCG": [test_signature_lock, test_scar_schema],
-    "SCD": [test_liar_paradox, test_russell_paradox],
-}
+TEST_SUITE: List[Callable[[TestContext, Optional[str]], TestReceipt]] = [
+    test_ledger_chain,
+    test_file_hashes,
+    test_signature_lock,
+    test_scar_schema,
+    test_liar_paradox,
+    test_russell_paradox
+]
 
-def run_all_tests(output_file: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Run all registered tests and optionally log results."""
-    receipts: List[Dict[str, Any]] = []
+
+# ---------------------------------------------------------------------
+# Test Runner
+# ---------------------------------------------------------------------
+
+def run_all_tests(ctx: TestContext, output_file: Optional[str] = None) -> List[Dict[str, Any]]:
+    receipts = []
     prev_hash = None
 
-    # Dummy input data for demonstration
-    ledger_sample = [{"current_hash": "abc123", "prev_hash": None}]
-    file_manifest = {}
-    scar_obj = {"scar_id": "1", "status": "open", "impact_score": 42}
-    output_text = "GPT to Josh—Hello paradox.-Tessrax LLC-"
-    semantic_engine = type("DummyEngine", (), {"respond": lambda self, x: "Contradiction detected."})()
+    for test_func in TEST_SUITE:
+        try:
+            receipt = test_func(ctx, prev_hash)
+        except Exception as e:
+            receipt = TestReceipt.create(
+                test_id="EXC-01", category="ERROR", target=None, artifact=test_func.__name__,
+                status="FAIL", details=f"Exception during test: {e}",
+                expected=None, actual=None, prev_hash=prev_hash
+            )
+        prev_hash = receipt.current_hash
+        if output_file:
+            append_jsonl(output_file, asdict(receipt))
+        receipts.append(asdict(receipt))
 
-    for category, tests in TEST_CATEGORIES.items():
-        for test_func in tests:
-            try:
-                args = {
-                    test_ledger_chain: (ledger_sample,),
-                    test_file_hashes: (file_manifest,),
-                    test_signature_lock: (output_text,),
-                    test_scar_schema: (scar_obj, ["scar_id", "status", "impact_score"]),
-                    test_liar_paradox: (semantic_engine,),
-                    test_russell_paradox: (semantic_engine,)
-                }[test_func]
-                receipt = test_func(*args, prev_hash=prev_hash)
-                prev_hash = receipt.current_hash
-                receipts.append(asdict(receipt))
-                if output_file:
-                    append_jsonl(output_file, asdict(receipt))
-            except Exception as e:
-                err = TestReceipt.create(
-                    "EXC-00", category, None, "system",
-                    "FAIL", f"Error in {test_func.__name__}: {e}",
-                    prev_hash=prev_hash
-                )
-                receipts.append(asdict(err))
-                prev_hash = err.current_hash
-                if output_file:
-                    append_jsonl(output_file, asdict(err))
     return receipts
+
 
 # ---------------------------------------------------------------------
 # CLI Execution
@@ -243,7 +226,22 @@ def run_all_tests(output_file: Optional[str] = None) -> List[Dict[str, Any]]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Tessrax Agent Validation Harness.")
-    parser.add_argument("--out", type=str, help="Optional output JSONL log file.")
+    parser.add_argument("--out", type=str, help="Optional output .jsonl file for receipts.")
     args = parser.parse_args()
-    receipts = run_all_tests(output_file=args.out)
-    print(json.dumps(receipts, indent=2))
+
+    # Mock context (replace with real data sources in live use)
+    ctx = TestContext(
+        ledger_entries=[{"current_hash": "abc123", "prev_hash": None}],
+        file_manifest={},
+        scar_object={"scar_id": "1", "status": "open", "impact_score": 42},
+        output_text="GPT to Josh—Hello paradox.-Tessrax LLC-",
+        semantic_engine=type("DummyEngine", (), {
+            "respond": lambda self, x: "Contradiction detected."
+        })()
+    )
+
+    results = run_all_tests(ctx, output_file=args.out)
+    for r in results:
+        status = r['status']
+        prefix = "✅" if status == "PASS" else "❌"
+        print(f"{prefix} {r['test_id']} ({r['test_category']}): {r['details']}")
