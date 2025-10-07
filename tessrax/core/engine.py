@@ -1,6 +1,6 @@
-# tessrax_engine_v3_0.py
-# Tessrax Engine v3.0 — Persistent Governance and Contradiction Metabolism System
-# Author: Joshua Vetos
+# tessrax_engine.py
+# Tessrax Engine v4.0 — Modern Rewrite for Governance & Contradiction Metabolism
+# Author: Joshua Vetos (rewritten by OpenAI GPT-4o)
 # License: Creative Commons Attribution 4.0 International
 
 import os
@@ -9,8 +9,8 @@ import uuid
 import hashlib
 import datetime
 import threading
-from typing import List, Dict, Any, Optional, Tuple
-from contextlib import contextmanager
+from dataclasses import dataclass, asdict
+from typing import List, Dict, Optional, Union, Literal
 
 try:
     from filelock import FileLock
@@ -19,32 +19,28 @@ except ImportError:
     HAS_FILELOCK = False
 
 
-# === Utility Functions ========================================================
+# ================================
+# Utility Functions
+# ================================
 
 def now() -> str:
-    """Return current UTC time in ISO8601 format (Z-suffixed)."""
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
-def sha256(data: Any) -> str:
-    """Compute SHA-256 hash of JSON-serializable data."""
-    return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+def sha256(data: Union[str, Dict]) -> str:
+    payload = data if isinstance(data, str) else json.dumps(data, sort_keys=True)
+    return hashlib.sha256(payload.encode()).hexdigest()
 
 def ensure_dir(path: str):
-    """Ensure directory exists for the given path."""
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
 
-def load_jsonl(path: str) -> List[dict]:
-    """Load all entries from a JSONL file."""
+def load_jsonl(path: str) -> List[Dict]:
     if not os.path.exists(path):
         return []
     with open(path, "r", encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]
 
-def atomic_write(path: str, entry: dict, lock_map: Dict[str, threading.Lock]):
-    """Thread- and process-safe append to JSONL file."""
+def atomic_append(path: str, entry: Dict, lock: threading.Lock):
     ensure_dir(path)
-    lock = lock_map.setdefault(path, threading.Lock())
-
     if HAS_FILELOCK:
         with FileLock(path + ".lock"):
             with open(path, "a", encoding="utf-8") as f:
@@ -55,104 +51,144 @@ def atomic_write(path: str, entry: dict, lock_map: Dict[str, threading.Lock]):
                 f.write(json.dumps(entry) + "\n")
 
 
-# === Core Engine ===============================================================
+# ================================
+# Entry Data Classes
+# ================================
+
+@dataclass
+class Claim:
+    id: str
+    agent: str
+    claim: str
+    timestamp: str
+    signature: str
+
+@dataclass
+class Scar:
+    scar_id: str
+    contradiction: Dict[str, str]
+    fuel: int
+    severity: str
+    status: Literal["open", "closed"]
+    source: str
+    timestamp: str
+
+@dataclass
+class Handoff:
+    handoff_id: str
+    from_agent: str
+    to_agent: str
+    topic: str
+    timestamp: str
+
+@dataclass
+class IntegrityLink:
+    timestamp: str
+    entry_type: str
+    prev_hash: Optional[str]
+    current_hash: str
+
+
+# ================================
+# File-backed Append Store
+# ================================
+
+class LogStore:
+    def __init__(self, path: str):
+        self.path = path
+        self.lock = threading.Lock()
+        ensure_dir(path)
+
+    def append(self, entry: Dict):
+        atomic_append(self.path, entry, self.lock)
+
+    def load_all(self) -> List[Dict]:
+        return load_jsonl(self.path)
+
+    def overwrite_all(self, entries: List[Dict]):
+        ensure_dir(self.path)
+        with open(self.path, "w", encoding="utf-8") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+
+
+# ================================
+# Tessrax Engine
+# ================================
 
 class TessraxEngine:
-    """
-    Tessrax Engine v3.0
-    A self-persisting, contradiction-metabolizing governance kernel.
-
-    - Handles claims (assertions)
-    - Handles scars (contradictions)
-    - Supports auditability and resilience
-    """
-
-    def __init__(
-        self,
-        base_dir: str = ".",
-        verbose: bool = False
-    ):
-        self.version = "3.0"
-        self.author = "Joshua Vetos"
+    def __init__(self, base_dir: str = "data", verbose: bool = False):
+        self.version = "4.0"
         self.verbose = verbose
-        self.paths = {
-            "claims": os.path.join(base_dir, "claims.jsonl"),
-            "handoffs": os.path.join(base_dir, "handoffs.jsonl"),
-            "scars": os.path.join(base_dir, "scars.jsonl"),
-            "integrity": os.path.join(base_dir, "integrity_chain.jsonl")
+        self.stores = {
+            "claims": LogStore(os.path.join(base_dir, "claims.jsonl")),
+            "scars": LogStore(os.path.join(base_dir, "scars.jsonl")),
+            "handoffs": LogStore(os.path.join(base_dir, "handoffs.jsonl")),
+            "integrity": LogStore(os.path.join(base_dir, "integrity_chain.jsonl")),
         }
-        for p in self.paths.values():
-            ensure_dir(p)
-        self._locks = {p: threading.Lock() for p in self.paths.values()}
 
-    # --------------------------------------------------------------------------
-    # Logging and Status
-    # --------------------------------------------------------------------------
-    def log(self, msg: str):
+    def log(self, message: str):
         if self.verbose:
-            print(f"[Tessrax v{self.version}] {now()} — {msg}")
+            print(f"[Tessrax v{self.version}] {now()} — {message}")
 
-    # --------------------------------------------------------------------------
-    # Claim System
-    # --------------------------------------------------------------------------
-    def sign_claim(self, agent: str, claim: str) -> Dict[str, Any]:
-        """Sign and timestamp a claim."""
+    # -----------------------
+    # Claims
+    # -----------------------
+    def sign_claim(self, agent: str, claim_text: str) -> Dict:
         timestamp = now()
-        signature = hashlib.sha256(f"{agent}:{claim}:{timestamp}".encode()).hexdigest()
-        entry = {
-            "id": str(uuid.uuid4()),
-            "agent": agent,
-            "claim": claim,
-            "timestamp": timestamp,
-            "signature": signature
-        }
-        self._persist("claims", entry)
-        self._update_integrity(entry)
-        self.log(f"Signed claim: {agent} → '{claim[:40]}'")
-        return entry
+        signature = sha256(f"{agent}:{claim_text}:{timestamp}")
+        entry = Claim(
+            id=str(uuid.uuid4()),
+            agent=agent,
+            claim=claim_text,
+            timestamp=timestamp,
+            signature=signature
+        )
+        self._commit("claims", entry)
+        self.log(f"Signed claim from '{agent}': {claim_text[:50]}")
+        return asdict(entry)
 
-    def verify_claim(self, entry: Dict[str, Any]) -> bool:
-        """Verify claim integrity."""
-        expected = hashlib.sha256(
-            f"{entry['agent']}:{entry['claim']}:{entry['timestamp']}".encode()
-        ).hexdigest()
-        valid = expected == entry["signature"]
-        if not valid:
-            self.log(f"❌ Claim verification failed for agent '{entry['agent']}'")
-        return valid
+    def verify_claim(self, entry: Dict) -> bool:
+        expected_sig = sha256(f"{entry['agent']}:{entry['claim']}:{entry['timestamp']}")
+        return expected_sig == entry.get("signature")
 
-    def claims_by_agent(self, agent: str) -> List[Dict[str, Any]]:
-        """Retrieve all claims by a specific agent."""
-        return [c for c in load_jsonl(self.paths["claims"]) if c.get("agent") == agent]
+    def get_claims_by_agent(self, agent: str) -> List[Dict]:
+        return [c for c in self.stores["claims"].load_all() if c.get("agent") == agent]
 
-    def latest_claim(self) -> Optional[Dict[str, Any]]:
-        """Return the most recent claim by timestamp."""
-        claims = load_jsonl(self.paths["claims"])
-        return max(claims, key=lambda c: c["timestamp"], default=None)
-
-    # --------------------------------------------------------------------------
-    # Scar (Contradiction) System
-    # --------------------------------------------------------------------------
-    def metabolize(self, contradictions: List[Tuple[str, str]], source: str) -> List[Dict[str, Any]]:
-        """Transform contradictions into persistent scars."""
+    # -----------------------
+    # Scars
+    # -----------------------
+    def metabolize(self, contradictions: List[tuple], source: str) -> List[Dict]:
         scars = []
-        for a, b in contradictions:
-            fuel = int(hashlib.sha256(f"{a}::{b}".encode()).hexdigest(), 16) % 100000
-            entry = {
-                "scar_id": str(uuid.uuid4()),
-                "contradiction": {"side_a": a, "side_b": b},
-                "fuel": fuel,
-                "status": "open",
-                "severity": self._determine_severity(fuel),
-                "source": source,
-                "timestamp": now()
-            }
-            scars.append(entry)
-            self._persist("scars", entry)
-        self.log(f"Metabolized {len(scars)} contradictions from '{source}'.")
+        for side_a, side_b in contradictions:
+            fuel = int(sha256(f"{side_a}::{side_b}"), 16) % 100_000
+            scar = Scar(
+                scar_id=str(uuid.uuid4()),
+                contradiction={"side_a": side_a, "side_b": side_b},
+                fuel=fuel,
+                severity=self._severity_level(fuel),
+                status="open",
+                source=source,
+                timestamp=now()
+            )
+            self._commit("scars", scar)
+            scars.append(asdict(scar))
+        self.log(f"Metabolized {len(scars)} contradictions from '{source}'")
         return scars
 
-    def _determine_severity(self, fuel: int) -> str:
+    def scars_summary(self) -> Dict:
+        scars = self.stores["scars"].load_all()
+        if not scars:
+            return {"count": 0, "avg_fuel": 0, "volatility": 0, "severities": []}
+        fuels = [s["fuel"] for s in scars]
+        return {
+            "count": len(scars),
+            "avg_fuel": round(sum(fuels) / len(fuels), 2),
+            "volatility": max(fuels) - min(fuels),
+            "severities": sorted({s["severity"] for s in scars}),
+        }
+
+    def _severity_level(self, fuel: int) -> str:
         if fuel > 80000:
             return "critical"
         elif fuel > 50000:
@@ -161,103 +197,78 @@ class TessraxEngine:
             return "medium"
         return "low"
 
-    def scars_summary(self) -> Dict[str, Any]:
-        """Compute volatility metrics and averages for scars."""
-        scars = load_jsonl(self.paths["scars"])
-        count = len(scars)
-        if not scars:
-            return {"count": 0, "avg_fuel": 0, "volatility": 0}
-        fuels = [s["fuel"] for s in scars]
-        volatility = max(fuels) - min(fuels)
-        avg_fuel = sum(fuels) / count
-        severities = {s["severity"] for s in scars}
-        return {
-            "count": count,
-            "avg_fuel": round(avg_fuel, 2),
-            "volatility": volatility,
-            "severities": list(severities)
-        }
+    # -----------------------
+    # Handoffs
+    # -----------------------
+    def handoff(self, from_agent: str, to_agent: str, topic: str) -> Dict:
+        entry = Handoff(
+            handoff_id=str(uuid.uuid4()),
+            from_agent=from_agent,
+            to_agent=to_agent,
+            topic=topic,
+            timestamp=now()
+        )
+        self._commit("handoffs", entry)
+        self.log(f"Handoff recorded: {from_agent} → {to_agent} on '{topic}'")
+        return asdict(entry)
 
-    # --------------------------------------------------------------------------
-    # Handoffs (Delegations / Transfers)
-    # --------------------------------------------------------------------------
-    def handoff(self, from_agent: str, to_agent: str, topic: str) -> Dict[str, Any]:
-        """Record a responsibility handoff event."""
-        entry = {
-            "handoff_id": str(uuid.uuid4()),
-            "from": from_agent,
-            "to": to_agent,
-            "topic": topic,
-            "timestamp": now()
-        }
-        self._persist("handoffs", entry)
-        self._update_integrity(entry)
-        self.log(f"Handoff: {from_agent} → {to_agent} ({topic})")
-        return entry
+    # -----------------------
+    # Integrity Chain
+    # -----------------------
+    def _commit(self, kind: str, entry_obj: Any):
+        entry_dict = asdict(entry_obj)
+        self.stores[kind].append(entry_dict)
+        self._update_integrity(entry_obj)
 
-    # --------------------------------------------------------------------------
-    # State & Integrity
-    # --------------------------------------------------------------------------
-    def export_state(self) -> Dict[str, Any]:
-        """Export complete state snapshot."""
-        return {k: load_jsonl(v) for k, v in self.paths.items() if k != "integrity"}
-
-    def import_state(self, state: Dict[str, Any]):
-        """Replace all persistent files with provided state."""
-        for name, entries in state.items():
-            if name not in self.paths:
-                continue
-            with open(self.paths[name], "w", encoding="utf-8") as f:
-                for e in entries:
-                    f.write(json.dumps(e) + "\n")
-        self.log("State imported successfully.")
-
-    def _update_integrity(self, entry: dict):
-        """Update rolling integrity chain for tamper detection."""
-        chain = load_jsonl(self.paths["integrity"])
+    def _update_integrity(self, entry_obj: Any):
+        chain = self.stores["integrity"].load_all()
         prev_hash = chain[-1]["current_hash"] if chain else None
-        current_hash = sha256(entry)
-        link = {
-            "timestamp": now(),
-            "entry_type": self._infer_type(entry),
-            "prev_hash": prev_hash,
-            "current_hash": current_hash
-        }
-        atomic_write(self.paths["integrity"], link, self._locks)
+        current_hash = sha256(asdict(entry_obj))
+        link = IntegrityLink(
+            timestamp=now(),
+            entry_type=self._entry_type(entry_obj),
+            prev_hash=prev_hash,
+            current_hash=current_hash
+        )
+        self.stores["integrity"].append(asdict(link))
 
-    def verify_integrity_chain(self) -> bool:
-        """Check hash-chain continuity."""
-        chain = load_jsonl(self.paths["integrity"])
-        for i in range(1, len(chain)):
-            if chain[i]["prev_hash"] != chain[i - 1]["current_hash"]:
-                self.log("Integrity chain broken.")
-                return False
-        return True
-
-    def _infer_type(self, entry: dict) -> str:
-        if "claim" in entry:
+    def _entry_type(self, entry: Any) -> str:
+        if isinstance(entry, Claim):
             return "claim"
-        if "scar_id" in entry:
+        elif isinstance(entry, Scar):
             return "scar"
-        if "handoff_id" in entry:
+        elif isinstance(entry, Handoff):
             return "handoff"
         return "unknown"
 
-    # --------------------------------------------------------------------------
-    # Internal Helpers
-    # --------------------------------------------------------------------------
-    def _persist(self, kind: str, entry: dict):
-        path = self.paths[kind]
-        atomic_write(path, entry, self._locks)
+    def verify_integrity_chain(self) -> bool:
+        chain = self.stores["integrity"].load_all()
+        for i in range(1, len(chain)):
+            if chain[i]["prev_hash"] != chain[i - 1]["current_hash"]:
+                self.log("⚠️ Integrity chain broken at index {i}")
+                return False
+        return True
 
-# ------------------------------------------------------------------------------
-# Example usage (if run directly)
-# ------------------------------------------------------------------------------
+    # -----------------------
+    # State Snapshot
+    # -----------------------
+    def export_state(self) -> Dict[str, List[Dict]]:
+        return {k: store.load_all() for k, store in self.stores.items() if k != "integrity"}
+
+    def import_state(self, state: Dict[str, List[Dict]]):
+        for kind, entries in state.items():
+            if kind in self.stores:
+                self.stores[kind].overwrite_all(entries)
+        self.log("State successfully imported.")
+
+# ================================
+# Example Usage
+# ================================
 
 if __name__ == "__main__":
     engine = TessraxEngine(verbose=True)
-    engine.sign_claim("AgentX", "Truth emerges from contradiction.")
-    engine.metabolize([("A is true", "A is false")], source="test")
-    engine.handoff("AgentX", "AgentY", "Mediation of paradox")
+    engine.sign_claim("Alice", "The Earth orbits the Sun.")
+    engine.handoff("Alice", "Bob", "Solar responsibility")
+    engine.metabolize([("The Earth orbits the Sun", "The Sun orbits the Earth")], source="demo")
     print(engine.scars_summary())
-    print("Integrity verified:", engine.verify_integrity_chain())
+    print("Integrity chain valid:", engine.verify_integrity_chain())
