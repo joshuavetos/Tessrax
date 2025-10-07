@@ -1,14 +1,7 @@
-"""
-tessrax/core/ledger.py
------------------------
-SQLiteLedger — Append-only, tamper-evident ledger implementing ILedger.
-
-Core Guarantees:
-✓ Tamper-evident (Merkle-linked)
-✓ Thread-safe with atomic inserts
-✓ Compatible with ILedger contract
-✓ Auditable: full verify_chain() and merkle_root()
-"""
+# tessrax/core/ledger.py
+# Rewritten SQLiteLedger for Tessrax — v2.0
+# Author: Joshua Vetos / Rewritten by OpenAI GPT-4o
+# License: CC BY 4.0
 
 import sqlite3
 import json
@@ -16,41 +9,52 @@ import hashlib
 import threading
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+from dataclasses import dataclass, asdict
 
-from tessrax.core.interfaces import ILedger
 from prometheus_client import Counter, Histogram
 
+from tessrax.core.interfaces import ILedger
 
-# ------------------------------------------------------------
-# Metrics
-# ------------------------------------------------------------
+# ----------------------------------------
+# Prometheus Metrics
+# ----------------------------------------
 LEDGER_WRITES = Counter("tessrax_ledger_writes_total", "Number of events appended to the ledger")
 LEDGER_VERIFY_LATENCY = Histogram("tessrax_ledger_verify_seconds", "Time spent verifying ledger integrity")
 
 
-# ------------------------------------------------------------
+# ----------------------------------------
+# Data Structure
+# ----------------------------------------
+@dataclass
+class LedgerEntry:
+    timestamp: str
+    entry_hash: str
+    prev_hash: Optional[str]
+    payload: str  # JSON string
+
+    def to_tuple(self):
+        return (self.timestamp, self.entry_hash, self.prev_hash, self.payload)
+
+
+# ----------------------------------------
 # SQLiteLedger Implementation
-# ------------------------------------------------------------
+# ----------------------------------------
 class SQLiteLedger(ILedger):
     """
-    Thread-safe, append-only, tamper-evident ledger backed by SQLite.
-    Implements the ILedger API contract.
+    Append-only, Merkle-linked, thread-safe ledger backed by SQLite.
+    Implements ILedger contract for Tessrax systems.
     """
 
     def __init__(self, db_path: Path):
         self.db_path = Path(db_path)
         self._lock = threading.Lock()
 
-        # Ensure directory exists
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(self.db_path, check_same_thread=False, isolation_level=None)
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._init_schema()
 
-    # --------------------------------------------------------
-    # Schema Initialization
-    # --------------------------------------------------------
     def _init_schema(self):
-        """Create table if missing."""
+        """Ensure the ledger table exists."""
         with self.conn:
             self.conn.execute("""
                 CREATE TABLE IF NOT EXISTS ledger (
@@ -62,80 +66,105 @@ class SQLiteLedger(ILedger):
                 )
             """)
 
-    # --------------------------------------------------------
-    # Core Interface Methods
-    # --------------------------------------------------------
+    # ----------------------------------------
+    # ILedger Methods
+    # ----------------------------------------
+
     def add_event(self, event: Dict[str, Any]) -> str:
         """
-        Adds an event to the ledger.
-        Computes its entry_hash linked to the previous entry.
+        Add a new event to the ledger.
+        Computes linked entry_hash using the payload + previous hash.
         """
         with self._lock:
-            last_hash = self._get_last_hash()
+            prev_hash = self._get_last_hash()
             payload_str = json.dumps(event, sort_keys=True)
-            combined = (payload_str + (last_hash or "")).encode()
-            entry_hash = hashlib.sha256(combined).hexdigest()
+            entry_hash = self._compute_hash(payload_str, prev_hash)
 
-            record = {
-                "timestamp": event.get("timestamp"),
-                "entry_hash": entry_hash,
-                "prev_hash": last_hash,
-                "payload": payload_str,
-            }
+            entry = LedgerEntry(
+                timestamp=event.get("timestamp"),
+                entry_hash=entry_hash,
+                prev_hash=prev_hash,
+                payload=payload_str
+            )
 
             with self.conn:
                 self.conn.execute(
                     "INSERT INTO ledger (timestamp, entry_hash, prev_hash, payload) VALUES (?, ?, ?, ?)",
-                    (record["timestamp"], record["entry_hash"], record["prev_hash"], record["payload"]),
+                    entry.to_tuple()
                 )
+
             LEDGER_WRITES.inc()
             return entry_hash
 
     def get_all_events(self, verify: bool = True) -> List[Dict[str, Any]]:
-        """Retrieve all ledger events in order."""
-        cursor = self.conn.execute("SELECT payload FROM ledger ORDER BY id ASC")
-        rows = cursor.fetchall()
+        """Return all events from the ledger, verifying chain if requested."""
+        rows = self.conn.execute("SELECT payload FROM ledger ORDER BY id ASC").fetchall()
         events = [json.loads(r[0]) for r in rows]
+
         if verify:
             self.verify_chain()
+
         return events
 
     @LEDGER_VERIFY_LATENCY.time()
     def verify_chain(self) -> bool:
-        """Verify hash linkage for all entries."""
-        cursor = self.conn.execute("SELECT entry_hash, prev_hash, payload FROM ledger ORDER BY id ASC")
-        rows = cursor.fetchall()
+        """Ensure every entry's hash chain is intact."""
+        rows = self.conn.execute(
+            "SELECT entry_hash, prev_hash, payload FROM ledger ORDER BY id ASC"
+        ).fetchall()
+
         last_hash = None
         for i, (entry_hash, prev_hash, payload) in enumerate(rows):
-            expected_hash = hashlib.sha256((payload + (last_hash or "")).encode()).hexdigest()
-            if expected_hash != entry_hash or prev_hash != last_hash:
-                raise ValueError(f"Ledger corruption detected at index {i}")
+            expected = self._compute_hash(payload, last_hash)
+
+            if entry_hash != expected:
+                raise ValueError(f"[Ledger Verify] Invalid hash at index {i}: expected {expected}, got {entry_hash}")
+            if prev_hash != last_hash:
+                raise ValueError(f"[Ledger Verify] Invalid chain link at index {i}: expected {last_hash}, got {prev_hash}")
+
             last_hash = entry_hash
+
         return True
 
     def merkle_root(self) -> Optional[str]:
-        """Compute Merkle root of all entries."""
-        cursor = self.conn.execute("SELECT entry_hash FROM ledger ORDER BY id ASC")
-        hashes = [r[0] for r in cursor.fetchall()]
+        """Compute the Merkle root from all entry hashes."""
+        hashes = [
+            row[0]
+            for row in self.conn.execute("SELECT entry_hash FROM ledger ORDER BY id ASC").fetchall()
+        ]
+
         if not hashes:
             return None
-        while len(hashes) > 1:
-            it = iter(hashes)
-            new_level = [
-                hashlib.sha256((a + (next(it, a))).encode()).hexdigest()
-                for a in it
-            ]
-            hashes = new_level
-        return hashes[0]
 
-    # --------------------------------------------------------
-    # Helpers
-    # --------------------------------------------------------
-    def _get_last_hash(self) -> Optional[str]:
-        cursor = self.conn.execute("SELECT entry_hash FROM ledger ORDER BY id DESC LIMIT 1")
-        row = cursor.fetchone()
-        return row[0] if row else None
+        return self._compute_merkle_root(hashes)
 
     def close(self):
-        """Close database connection."""
+        """Close the database connection."""
         self.conn.close()
+
+    # ----------------------------------------
+    # Internal Utilities
+    # ----------------------------------------
+
+    def _get_last_hash(self) -> Optional[str]:
+        row = self.conn.execute("SELECT entry_hash FROM ledger ORDER BY id DESC LIMIT 1").fetchone()
+        return row[0] if row else None
+
+    def _compute_hash(self, payload: str, prev_hash: Optional[str]) -> str:
+        combined = (payload + (prev_hash or "")).encode("utf-8")
+        return hashlib.sha256(combined).hexdigest()
+
+    def _compute_merkle_root(self, hashes: List[str]) -> str:
+        """
+        Compute Merkle root from a list of hashes.
+        Handles uneven trees by duplicating last hash in each round.
+        """
+        current = hashes[:]
+        while len(current) > 1:
+            if len(current) % 2 != 0:
+                current.append(current[-1])  # duplicate last
+            current = [
+                hashlib.sha256((current[i] + current[i + 1]).encode()).hexdigest()
+                for i in range(0, len(current), 2)
+            ]
+        return current[0]
