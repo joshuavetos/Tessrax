@@ -1,8 +1,10 @@
 """
 interfaces.py — Tessrax Core Interface Definitions
 
-Defines base abstract interfaces for core modules (ILedger, IMemory, IReceipt).
-These interfaces establish formal contracts for interchangeable implementations.
+Defines abstract base interfaces for core Tessrax modules:
+- ILedger: Append-only, verifiable event store
+- IMemory: Provenance-tracking memory system
+- IReceipt: Cryptographic receipt generator/verifier
 """
 
 from abc import ABC, abstractmethod
@@ -10,76 +12,99 @@ from typing import Any, Dict, List, Optional
 
 
 # ============================================================
-# Ledger Interface
+# ILedger — Event Ledger Interface
 # ============================================================
+
 class ILedger(ABC):
-    """Interface contract for all Tessrax ledger implementations."""
+    """
+    Abstract interface for append-only, tamper-evident event ledgers.
+    Implementations must ensure integrity, verification, and auditability.
+    """
 
     @abstractmethod
     def add_event(self, event: Dict[str, Any]) -> str:
-        """Append an event and return its hash."""
+        """Append a single event to the ledger and return its hash."""
         pass
 
     @abstractmethod
     def get_all_events(self, verify: bool = True) -> List[Dict[str, Any]]:
-        """Return all events, optionally verifying the chain."""
+        """Retrieve all events in ledger order. Optionally verify hash-chain integrity."""
         pass
 
     @abstractmethod
     def verify_chain(self) -> bool:
-        """Verify chain integrity."""
+        """Verify continuity and validity of the event hash chain."""
         pass
 
     @abstractmethod
     def merkle_root(self) -> Optional[str]:
-        """Return the current Merkle root hash."""
+        """Return the Merkle root of all current entries, or None if empty."""
         pass
 
     @abstractmethod
     def close(self) -> None:
-        """Close any resources or connections."""
+        """Close any persistent resources (e.g., database handles)."""
         pass
 
 
 # ============================================================
-# Memory Interface
+# IMemory — Provenance-Aware Memory Interface
 # ============================================================
+
 class IMemory(ABC):
-    """Interface for contradiction-aware, provenance-tracking memory systems."""
+    """
+    Interface for contradiction-aware, provenance-tracking memory modules.
+    Supports key-value storage with embedded origin metadata.
+    """
 
     @abstractmethod
     def add(self, key: str, value: Any, provenance: str) -> None:
-        """Add a key/value entry with provenance tracking."""
+        """Store a key-value pair along with its provenance (e.g., source agent)."""
         pass
 
     @abstractmethod
     def get(self, key: str) -> Dict[str, Any]:
-        """Retrieve a memory entry."""
+        """Retrieve the full memory entry, including provenance."""
         pass
 
     @abstractmethod
     def export(self) -> str:
-        """Export memory contents as JSON."""
+        """Export the full memory contents as a JSON string."""
         pass
 
     @abstractmethod
     def all_keys(self) -> List[str]:
-        """Return list of all stored keys."""
+        """Return a list of all keys currently stored in memory."""
         pass
 
 
 # ============================================================
-# Receipt Interface
+# IReceipt — Cryptographic Receipt Interface
 # ============================================================
+
 class IReceipt(ABC):
-    """Interface defining creation and verification of cryptographic receipts."""
+    """
+    Interface for generating and verifying tamper-evident receipts.
+    Receipts are signed, timestamped proofs of structured actions or claims.
+    """
 
     @abstractmethod
-    def create_receipt(self, private_key_hex: str, event_payload: Dict[str, Any], executor_id: str = "unknown") -> Dict[str, Any]:
-        """Create a signed receipt from an event payload."""
+    def create_receipt(
+        self,
+        private_key_hex: str,
+        event_payload: Dict[str, Any],
+        executor_id: str = "unknown"
+    ) -> Dict[str, Any]:
+        """
+        Create a cryptographically signed receipt for an event payload.
+        Returns the full receipt object (with hashes, signature, etc.).
+        """
         pass
 
     @abstractmethod
     def verify_receipt(self, receipt: Dict[str, Any]) -> bool:
-        """Verify authenticity and integrity of a receipt."""
+        """
+        Verify the authenticity, integrity, and signature of a receipt.
+        Returns True if valid, False or exception if tampered.
+        """
         pass
