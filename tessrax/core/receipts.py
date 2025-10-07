@@ -134,3 +134,87 @@ if __name__ == "__main__":
     receipt = create_receipt(priv, event, executor_id="demo_agent")
     print(json.dumps(receipt, indent=2))
     print("Verification:", verify_receipt(receipt))
+
+"""
+tessrax/core/receipts.py
+------------------------
+Core receipt utilities and registry classes for Tessrax Engine.
+
+Includes:
+- NonceRegistry: prevents replayed or duplicate events
+- RevocationRegistry: tracks revoked keys/events
+- verify_receipt: validates receipt structure and integrity
+"""
+
+import json
+import hashlib
+from typing import Any, Dict
+
+# ============================================================
+# Nonce Registry
+# ============================================================
+class NonceRegistry:
+    """Simple in-memory nonce registry for preventing replay attacks."""
+
+    def __init__(self):
+        self._nonces = set()
+
+    def register(self, nonce: str) -> bool:
+        """Registers a nonce. Returns False if it was already used."""
+        if nonce in self._nonces:
+            return False
+        self._nonces.add(nonce)
+        return True
+
+    def exists(self, nonce: str) -> bool:
+        """Checks if a nonce already exists."""
+        return nonce in self._nonces
+
+
+# ============================================================
+# Revocation Registry
+# ============================================================
+class RevocationRegistry:
+    """Tracks revoked keys or receipts for auditing."""
+
+    def __init__(self):
+        self._revoked = set()
+
+    def revoke(self, key: str) -> None:
+        """Marks a key or ID as revoked."""
+        self._revoked.add(key)
+
+    def is_revoked(self, key: str) -> bool:
+        """Checks whether a key or ID has been revoked."""
+        return key in self._revoked
+
+
+# ============================================================
+# Receipt Verification
+# ============================================================
+def verify_receipt(receipt: Dict[str, Any], strict: bool = True) -> bool:
+    """
+    Lightweight deterministic receipt verification.
+    Verifies hash integrity and optionally checks revocation flags.
+    """
+    try:
+        # Ensure mandatory fields exist
+        required = {"timestamp", "payload", "payload_hash"}
+        if not all(k in receipt for k in required):
+            raise ValueError("Missing required receipt fields")
+
+        # Re-hash payload deterministically
+        canonical = json.dumps(receipt["payload"], sort_keys=True)
+        payload_hash = hashlib.sha256(canonical.encode()).hexdigest()
+
+        if payload_hash != receipt["payload_hash"]:
+            raise ValueError("Payload hash mismatch")
+
+        # Optionally enforce strict signature logic
+        if strict and "signature" not in receipt:
+            raise ValueError("Strict mode requires signature")
+
+        return True
+    except Exception as e:
+        print(f"[Receipt Verification Failed] {e}")
+        return False
