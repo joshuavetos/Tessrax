@@ -112,3 +112,194 @@ Goal: Establish Tessrax as global standard for institutional accountability.
 So the immediate move:
 Open-source the core + publish the manifesto + secure the first pilot.
 That’s the triad that makes Tessrax LLC a living company instead of a brilliant artifact.
+
+Here’s what Tessrax “use” looks like in practice — not in philosophy or theory, but as something a company, auditor, or developer would actually do with it.
+
+⸻
+
+⚙️ TESSRAX IN USE
+
+1. Installation
+
+pip install tessrax
+
+This installs:
+   •   governance_kernel.py → the enforcement & ledger backbone
+   •   scaffolding_engine.py → logs all design or decision interactions
+   •   policy_rules.py → defines what “compliance” means
+   •   visualize_scaffolding.py → renders governance & contradiction timelines
+   •   tessrax.agent → lightweight AI or human agents that analyze contradictions
+
+⸻
+
+2. Initialization (one-time setup)
+
+from tessrax import GovernanceKernel, ScaffoldingEngine
+
+kernel = GovernanceKernel()
+scaffold = ScaffoldingEngine(kernel=kernel)
+
+This creates your governance environment — an auditable ledger that automatically tracks:
+   •   design decisions,
+   •   policy violations,
+   •   contradiction analyses, and
+   •   governance responses.
+
+You’ll see two files appear in ./data/:
+
+ledger.jsonl          # append-only governance log
+scaffolding_log.jsonl # design conversation log
+
+
+⸻
+
+3. Define Your Governance Policies
+
+Edit policy_rules.py in your project repo:
+
+POLICY_RULES = {
+    "data_privacy_required": {
+        "pattern": r".*personal_data.*",
+        "required_tags": ["privacy", "compliance"],
+        "enforcement": "reject"
+    },
+    "key_change_requires_quorum": {
+        "pattern": r".*key.*",
+        "required_tags": ["security"],
+        "enforcement": "quorum"
+    }
+}
+
+These rules define your governance law — anything that violates them automatically triggers:
+   •   a warning (warn),
+   •   a democratic vote (quorum), or
+   •   an immediate block (reject).
+
+⸻
+
+4. Add Tessrax to Your Workflow
+
+Developers or agents record design actions:
+
+from tessrax import record_interaction
+
+record_interaction(
+    prompt="Refactored encryption key manager",
+    response="Rotated keys and updated access control",
+    tags=["security"],
+    file_changed="key_manager.py"
+)
+
+Governance immediately reacts:
+
+🪶 DESIGN_DECISION_RECORDED → 
+⚖️  POLICY CHECK: key_change_requires_quorum → 
+🗳️  QUORUM_VOTE_RESULT (approved)
+✅  DESIGN_DECISION_ACK
+
+Everything above gets hash-chained and timestamped in the ledger.
+
+⸻
+
+5. Use Agents for Automated Contradiction Detection
+
+from tessrax.agent import TessraxAgent
+
+agent = TessraxAgent("GovernanceBot")
+agent.run_analysis("Company claims: '100% renewable energy' vs actual fuel data")
+
+The agent:
+	1.	Runs semantic contradiction analysis (using the SimpleSemanticEngine).
+	2.	Writes:
+
+{
+  "event": "AGENT_ANALYSIS_REPORT",
+  "agent_id": "GovernanceBot",
+  "summary": "Detected contradiction between claim and data."
+}
+
+
+	3.	The governance kernel logs and acknowledges it automatically.
+
+⸻
+
+6. View the Results
+
+Run the dashboard:
+
+python visualize_scaffolding.py
+
+Opens an HTML page showing:
+   •   🟢 Design decisions
+   •   🔵 Governance votes
+   •   🔴 Policy violations
+   •   🟡 Contradiction detections
+
+Each entry is clickable to expand full JSON receipts.
+
+Example snapshot:
+
+Time	Event	File	Tags	Result
+10:45	DESIGN_DECISION	key_manager.py	security	Approved
+10:46	POLICY_VIOLATION	fork_reconciliation_engine.py	governance	Blocked
+10:49	AGENT_ANALYSIS_REPORT	energy_audit.csv	audit	Contradiction Detected
+
+
+⸻
+
+7. Generate an Accountability Report
+
+python tessrax/reporting.py --since "2025-10-01"
+
+Outputs:
+
+Summary of Governance Events:
+- 42 design decisions recorded
+- 3 policy violations (2 resolved, 1 pending)
+- 5 contradiction reports (liar, Russell, ESG conflicts)
+- 100% ledger integrity verified (Merkle root hash)
+
+You can export it to PDF or JSON for audits or compliance filings.
+
+⸻
+
+8. Integrate Into CI/CD
+
+Add a step to your pipeline:
+
+# .github/workflows/governance.yml
+- name: Run Tessrax Governance Checks
+  run: python -m tessrax.ci_check
+
+If a change violates policy (reject), the CI job fails automatically.
+If a change requires quorum, Tessrax opens a governance vote via the kernel.
+
+⸻
+
+9. Enterprise Use Example
+
+Company: GreenCorp
+Use case: Prove ESG statements match real emissions data.
+
+They connect:
+   •   Tessrax semantic engine to financial & environmental reports,
+   •   Policy rules enforcing “no public claim without supporting metric,”
+   •   Visualization dashboard for compliance officers.
+
+Outcome:
+   •   All marketing statements auto-audited for contradictions.
+   •   Discrepancies logged cryptographically.
+   •   Weekly dashboards show “promise vs performance gap.”
+
+⸻
+
+🧭 In Plain English
+
+Tessrax “use” feels like:
+   •   Git + Audit + Governance + AI in one package.
+   •   Every design decision or claim gets logged, checked, and visualized.
+   •   The system doesn’t just catch contradictions — it turns them into institutional memory.
+
+⸻
+
+Would you like me to show the SaaS version (how a non-technical company would use it through a web dashboard)? That’s the next natural layer after this local/CLI use pattern.
