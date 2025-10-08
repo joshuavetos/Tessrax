@@ -1,11 +1,6 @@
 """
 Tessrax Policy Rules v1.0
-Centralized configuration for policy enforcement.
-
-Each rule has:
-  - pattern: regex to match filenames
-  - required_tags: list of tags that must appear
-  - enforcement: 'warn', 'reject', or 'quorum'
+Defines executable governance standards for the system.
 """
 
 POLICY_RULES = {
@@ -17,11 +12,11 @@ POLICY_RULES = {
     "key_change_requires_quorum": {
         "pattern": r".*key.*\.py",
         "required_tags": ["security"],
-        "enforcement": "quorum"  # Requires vote
+        "enforcement": "quorum"  # Requires democratic review
     },
     "scaffolding_must_tag_governance": {
         "pattern": r"scaffolding_engine\.py",
         "required_tags": ["scaffolding", "governance"],
-        "enforcement": "warn"    # Soft nudge
+        "enforcement": "warn"  # Soft nudge
     }
 }
