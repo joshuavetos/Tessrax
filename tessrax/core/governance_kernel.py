@@ -1,53 +1,30 @@
 """
-Tessrax Governance Kernel v2.0
-Central coordination service for enforcement, quorum voting, and event routing.
-Now includes native handling for DESIGN_DECISION_RECORDED and POLICY_VIOLATION events.
+Tessrax Governance Kernel v3.0
+Now dynamically enforces POLICY_RULES from policy_rules.py.
 
 Author: Joshua Vetos / Tessrax LLC
 License: CC BY 4.0
 """
 
 import json
+import re
 import hashlib
 from datetime import datetime
 from pathlib import Path
-
-# ============================================================
-# Setup
-# ============================================================
+from policy_rules import POLICY_RULES
 
 LEDGER_PATH = Path("data/ledger.jsonl")
 LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-# ============================================================
-# Utility
-# ============================================================
-
 def _sha256(obj):
     return hashlib.sha256(json.dumps(obj, sort_keys=True).encode()).hexdigest()
 
-# ============================================================
-# GovernanceKernel Class
-# ============================================================
-
 class GovernanceKernel:
-    """
-    Core governance orchestrator.
-    - Hash-chained ledger
-    - Event publishing & subscription
-    - Quorum voting
-    - Policy enforcement hooks
-    """
+    """Central orchestrator for Tessrax governance events and enforcement."""
 
     def __init__(self):
-        self.quorum_rules = {
-            "merge_vote": {"required": 2, "total": 3},
-            "policy_violation_vote": {"required": 2, "total": 3},
-        }
         self.subscribers = []
         self.ledger = []
-
-        # Load existing ledger if present
         if LEDGER_PATH.exists():
             with open(LEDGER_PATH) as f:
                 for line in f:
@@ -55,26 +32,23 @@ class GovernanceKernel:
                         self.ledger.append(json.loads(line))
                     except:
                         pass
+        self.quorum_rules = {"default": {"required": 2, "total": 3}}
 
-    # ------------------------ Ledger -------------------------
-    def append_event(self, event: dict):
-        """Append event with hash chaining and persistence."""
+    # --------------- Core Append -----------------
+    def append_event(self, event):
         prev = self.ledger[-1]["hash"] if self.ledger else None
         event["prev_hash"] = prev
         event["timestamp"] = event.get("timestamp") or datetime.utcnow().isoformat()
         event["hash"] = "sha256:" + _sha256(event)
         self.ledger.append(event)
-
         with open(LEDGER_PATH, "a") as f:
             f.write(json.dumps(event) + "\n")
-
         self._notify_subscribers(event)
         self._auto_reactions(event)
         return event["hash"]
 
-    # --------------------- Notifications ---------------------
+    # --------------- Notifications -----------------
     def register_subscriber(self, callback):
-        """Register callback for all new events."""
         self.subscribers.append(callback)
 
     def _notify_subscribers(self, event):
@@ -84,71 +58,66 @@ class GovernanceKernel:
             except Exception as e:
                 print("Subscriber error:", e)
 
-    # ---------------------- Quorum Logic ---------------------
-    def quorum_vote(self, proposal_id: str, votes: list, vote_type: str = "merge_vote"):
-        """
-        votes = [{"peer":name, "decision":bool}, ...]
-        Returns True if quorum achieved under rule.
-        """
-        rule = self.quorum_rules.get(vote_type, {"required": 1, "total": len(votes)})
-        required = rule["required"]
-        total = rule["total"]
-
-        approvals = sum(1 for v in votes if v["decision"])
-        passed = approvals >= required
-
-        result = {
-            "event": "QUORUM_VOTE_RESULT",
-            "proposal_id": proposal_id,
-            "vote_type": vote_type,
-            "votes": votes,
-            "passed": passed,
-            "approved": approvals,
-            "required": required,
-            "total": total,
-        }
-        self.append_event(result)
-        return passed
-
-    # ============================================================
-    # Built-in Auto-Reactions
-    # ============================================================
-
+    # --------------- Policy + Reaction Engine -----------------
     def _auto_reactions(self, event):
-        """Handle known event types with built-in governance behavior."""
-
-        # DESIGN_DECISION_RECORDED → automatically acknowledge & log
+        """Handle known event types and enforce policies."""
         if event["event"] == "DESIGN_DECISION_RECORDED":
+            self._check_policies(event)
             ack = {
                 "event": "DESIGN_DECISION_ACK",
                 "ack_of": event["hash"],
                 "file_changed": event.get("file_changed"),
                 "tags": event.get("tags", []),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.utcnow().isoformat()
             }
             self._append_internal(ack)
-            print(f"🧱 Logged design decision for {event.get('file_changed')}")
+            print(f"🧱 Acknowledged design decision for {event.get('file_changed')}")
 
-        # POLICY_VIOLATION → trigger automatic quorum review
         elif event["event"] == "POLICY_VIOLATION":
-            print("🚨 Policy violation detected, starting quorum review…")
+            print("🚨 Policy violation detected — triggering quorum vote")
             proposal_id = f"PV-{event['hash'][:8]}"
             votes = [
-                {"peer": "governor_1", "decision": True},
-                {"peer": "governor_2", "decision": True},
-                {"peer": "governor_3", "decision": False},
+                {"peer": "gov1", "decision": True},
+                {"peer": "gov2", "decision": True},
+                {"peer": "gov3", "decision": False},
             ]
-            result = self.quorum_vote(proposal_id, votes, vote_type="policy_violation_vote")
+            result = self._quorum_vote(proposal_id, votes)
             reaction = {
                 "event": "POLICY_VIOLATION_REVIEWED",
                 "proposal_id": proposal_id,
                 "passed": result,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.utcnow().isoformat()
             }
             self._append_internal(reaction)
 
+    def _check_policies(self, event):
+        """Evaluate POLICY_RULES for each DESIGN_DECISION_RECORDED event."""
+        file_changed = event.get("file_changed", "")
+        tags = set(event.get("tags", []))
+
+        for rule_name, rule in POLICY_RULES.items():
+            if re.match(rule["pattern"], file_changed):
+                missing = [t for t in rule["required_tags"] if t not in tags]
+                if missing:
+                    violation = {
+                        "event": "POLICY_VIOLATION",
+                        "policy": rule_name,
+                        "missing_tags": missing,
+                        "file_changed": file_changed,
+                        "enforcement": rule["enforcement"],
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
+                    self._append_internal(violation)
+                    print(f"⚠️ {rule_name}: Missing tags {missing} in {file_changed}")
+
+                    # optional escalation
+                    if rule["enforcement"] == "reject":
+                        raise Exception(f"Rejected by policy: {rule_name}")
+                    elif rule["enforcement"] == "quorum":
+                        self.append_event(violation)
+
     def _append_internal(self, event):
-        """Helper to append internal system events without triggering recursion."""
+        """Internal append without recursive reactions."""
         prev = self.ledger[-1]["hash"] if self.ledger else None
         event["prev_hash"] = prev
         event["hash"] = "sha256:" + _sha256(event)
@@ -156,41 +125,27 @@ class GovernanceKernel:
         with open(LEDGER_PATH, "a") as f:
             f.write(json.dumps(event) + "\n")
 
-# ============================================================
-# Demo Harness
-# ============================================================
+    # --------------- Quorum Voting -----------------
+    def _quorum_vote(self, proposal_id, votes):
+        required = self.quorum_rules["default"]["required"]
+        approvals = sum(1 for v in votes if v["decision"])
+        passed = approvals >= required
+        vote_event = {
+            "event": "QUORUM_VOTE_RESULT",
+            "proposal_id": proposal_id,
+            "approved": approvals,
+            "required": required,
+            "passed": passed,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        self._append_internal(vote_event)
+        return passed
 
+# --------------- Demo Harness -----------------
 if __name__ == "__main__":
     kernel = GovernanceKernel()
-
-    def printer(e): print("EVENT:", e["event"])
-    kernel.register_subscriber(printer)
-
-    # Demo 1 — normal proposal and vote
-    kernel.append_event({
-        "event": "PROPOSAL_SUBMITTED",
-        "proposal_id": "P001",
-        "details": "Merge branches A+B"
-    })
-
-    votes = [
-        {"peer": "node1", "decision": True},
-        {"peer": "node2", "decision": True},
-        {"peer": "node3", "decision": False},
-    ]
-    kernel.quorum_vote("P001", votes)
-
-    # Demo 2 — design decision from scaffolding engine
     kernel.append_event({
         "event": "DESIGN_DECISION_RECORDED",
-        "file_changed": "scaffolding_engine.py",
-        "tags": ["meta", "governance"],
-    })
-
-    # Demo 3 — trigger policy violation
-    kernel.append_event({
-        "event": "POLICY_VIOLATION",
         "file_changed": "fork_reconciliation_engine.py",
-        "tags": ["fork", "governance"],
-        "policy": "Simulated test of policy enforcement"
+        "tags": ["governance"],
     })
