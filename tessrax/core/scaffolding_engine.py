@@ -1,9 +1,6 @@
 """
 Tessrax Scaffolding Engine v2.1
-Logs design sessions and feeds them into Governance Kernel.
-
-Author: Joshua Vetos / Tessrax LLC
-License: CC BY 4.0
+Logs design sessions, emits governance events, and maintains design provenance.
 """
 
 import json, hashlib
@@ -18,7 +15,6 @@ kernel = GovernanceKernel()
 def _sha256(obj): return hashlib.sha256(json.dumps(obj, sort_keys=True).encode()).hexdigest()
 
 def record_interaction(prompt, response, tags=None, file_changed=None):
-    """Record design conversation and send to governance."""
     rec = {
         "timestamp": datetime.utcnow().isoformat(),
         "prompt": prompt.strip(),
@@ -30,7 +26,6 @@ def record_interaction(prompt, response, tags=None, file_changed=None):
 
     with open(LOG_PATH, "a") as f: f.write(json.dumps(rec) + "\n")
 
-    # Notify governance
     kernel.append_event({
         "event": "DESIGN_DECISION_RECORDED",
         "file_changed": file_changed,
@@ -38,11 +33,9 @@ def record_interaction(prompt, response, tags=None, file_changed=None):
         "decision_hash": rec["hash"],
         "timestamp": rec["timestamp"]
     })
-
     return rec["hash"]
 
 def summarize_session():
-    """Quick summary of session log."""
     if not LOG_PATH.exists(): return {"records": 0, "tags": [], "last_file": None}
     tags, last_file = set(), None
     with open(LOG_PATH) as f:
