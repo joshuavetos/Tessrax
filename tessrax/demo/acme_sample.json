@@ -1,0 +1,56 @@
+[
+  {
+    "text": "In 2020, Acme Corp pledged to cut CO2 emissions 50% by 2030.",
+    "source": "Press Release"
+  },
+  {
+    "text": "In 2024, Acme Corp reported emissions down only 5%.",
+    "source": "Annual Report"
+  },
+  {
+    "text": "Acme Corp achieved record revenue growth of 40% in 2024.",
+    "source": "Investor Call"
+  },
+  {
+    "text": "Acme Corp will eliminate all carbon emissions by 2035.",
+    "source": "CEO Interview"
+  },
+  {
+    "text": "Acme Corp has not reduced carbon emissions significantly.",
+    "source": "Audit Report"
+  }
+]
+
+
+⸻
+
+🏃‍♂️ How to Run the Demo
+
+Inside your repo or code folder:
+
+python conflict_graph.py acme_sample.json
+
+If the script doesn’t yet support CLI arguments, you can do this instead:
+	1.	Replace the sample_texts = [...] block in the script with:
+
+import json
+with open("acme_sample.json", "r") as f:
+    sample_texts = json.load(f)
+
+
+	2.	Then re-run the script:
+
+python conflict_graph.py
+
+
+
+⸻
+
+📤 Output (What You’ll See)
+   •   Console prints contradiction edges with scores (0.0–1.0)
+   •   Breakdown of logical, numeric, temporal, categorical metrics
+   •   Node count, edge count
+   •   Optional ledger.records data (if printed or exported)
+
+⸻
+
