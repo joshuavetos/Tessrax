@@ -3,6 +3,8 @@ Tessrax Fork Reconciliation Engine
 Implements fork-tolerant ledger merging, relativistic trust windows,
 and unobserved-compromise handling.
 
+Upgraded version with hash chaining, timestamp validation, and persistent logging.
+
 Author: Joshua Vetos / Tessrax LLC
 License: CC BY 4.0
 """
@@ -10,18 +12,46 @@ License: CC BY 4.0
 import hashlib
 import json
 from datetime import datetime
+from dateutil.parser import parse
 
 # ============================================================
 # Utility Functions
 # ============================================================
 
 def sha256(data):
+    """Compute a stable SHA-256 hash for any JSON-serializable object."""
     return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+
+def safe_parse_time(ts):
+    """Parse timestamps safely; fallback to UTC now if invalid."""
+    try:
+        return parse(ts)
+    except Exception:
+        return datetime.utcnow()
 
 def hash_manifest_union(manifests):
     """Compute hash representing merged manifest state."""
     concat = "".join(sorted(manifests.keys()))
     return "sha256:" + hashlib.sha256(concat.encode()).hexdigest()
+
+# ============================================================
+# Ledger Persistence + Hash Chaining
+# ============================================================
+
+def append_with_chain(ledger, entry):
+    """Append entry to ledger with hash chaining for immutability."""
+    prev = ledger[-1]["hash"] if ledger else None
+    entry["prev_hash"] = prev
+    entry["hash"] = "sha256:" + sha256(entry)
+    ledger.append(entry)
+    return ledger
+
+def commit_ledger(ledger, path="data/ledger.jsonl"):
+    """Persist ledger entries to disk in append-only mode."""
+    with open(path, "a") as f:
+        for rec in ledger:
+            f.write(json.dumps(rec) + "\n")
+    print(f"Ledger committed to {path} ({len(ledger)} records)")
 
 # ============================================================
 # Relativistic Trust Window
@@ -89,9 +119,10 @@ def handle_unobserved_compromise(branch, key_id, global_revocation_time):
     Tag receipts signed by keys that were later revoked, but the branch never observed it.
     """
     for r in branch:
+        ts = safe_parse_time(r.get("timestamp"))
         if (
             r.get("manifest_ref") == key_id
-            and datetime.fromisoformat(r["timestamp"]) < global_revocation_time
+            and ts < global_revocation_time
         ):
             r["conflicted"] = True
             r["reason"] = "unobserved_compromise"
@@ -102,21 +133,21 @@ def handle_unobserved_compromise(branch, key_id, global_revocation_time):
 # Governance Merge Commit
 # ============================================================
 
-def merge_and_commit(branch_a, branch_b, manifests, ledger):
+def merge_and_commit(branch_a, branch_b, manifests, ledger, path="data/ledger.jsonl"):
     """
-    Combine two ledger branches, reconcile manifests, and append merge record.
+    Combine two ledger branches, reconcile manifests, append merge record, and persist.
     """
     merged_receipts, merged_manifest = reconcile_branches(branch_a, branch_b, manifests)
     merge_event = {
         "event": "BRANCH_MERGE_EVENT",
         "merged_manifest": merged_manifest,
         "timestamp": datetime.utcnow().isoformat(),
-        "receipts_merged": len(merged_receipts),
-        "hash": "sha256:" + sha256(merged_receipts),
+        "receipts_merged": len(merged_receipts)
     }
-    ledger.append(merge_event)
+    append_with_chain(ledger, merge_event)
     for r in merged_receipts:
-        ledger.append(r)
+        append_with_chain(ledger, r)
+    commit_ledger(ledger, path)
     return ledger
 
 # ============================================================
@@ -124,7 +155,6 @@ def merge_and_commit(branch_a, branch_b, manifests, ledger):
 # ============================================================
 
 if __name__ == "__main__":
-    # Example manifests and branches
     manifests = {
         "sha256:manif_2025Q4-001": {"keys": ["key_001"]},
         "sha256:manif_2025Q4-002": {"keys": ["key_002"]},
@@ -141,5 +171,4 @@ if __name__ == "__main__":
 
     ledger = []
     ledger = merge_and_commit(branch_a, branch_b, manifests, ledger)
-
     print(json.dumps(ledger, indent=2))
