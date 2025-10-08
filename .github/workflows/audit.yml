@@ -1,0 +1,9 @@
+name: Tessrax Governance Audit
+on: [push, pull_request]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Tessrax Audit
+        run: python3 conflict_graph.py --check .
