@@ -52,5 +52,37 @@ python conflict_graph.py
    •   Node count, edge count
    •   Optional ledger.records data (if printed or exported)
 
-⸻
+{
+  "contradiction_bundle": {
+    "edges": [
+      {
+        "s_i": "In 2020, Acme Corp pledged to cut CO2 emissions 50% by 2030.",
+        "s_j": "In 2024, Acme Corp reported emissions down only 5%.",
+        "score": 0.453,
+        "similarity": 0.731,
+        "breakdown": { "L": 0.00, "N": 0.85, "T": 0.00, "C": 0.00 }
+      },
+      {
+        "s_i": "In 2020, Acme Corp pledged to cut CO2 emissions 50% by 2030.",
+        "s_j": "Acme Corp has not reduced carbon emissions significantly.",
+        "score": 0.420,
+        "similarity": 0.710,
+        "breakdown": { "L": 0.00, "N": 0.83, "T": 0.00, "C": 0.00 }
+      },
+      {
+        "s_i": "Acme Corp will eliminate all carbon emissions by 2035.",
+        "s_j": "Acme Corp has not reduced carbon emissions significantly.",
+        "score": 0.392,
+        "similarity": 0.701,
+        "breakdown": { "L": 0.00, "N": 0.81, "T": 0.00, "C": 0.00 }
+      }
+    ],
+    "stats": {
+      "total_statements": 5,
+      "total_contradictions": 3
+    },
+    "timestamp": "2025-10-08T15:22:10.842Z",
+    "hash": "sha256:68e6f7039e44a43e9b003320c7f4816dc8b0931d4e308a174e91b89164f8678f"
+  }
+}
 
