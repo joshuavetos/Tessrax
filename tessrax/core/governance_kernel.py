@@ -1,9 +1,6 @@
 """
-Tessrax Governance Kernel v3.0
-Autonomous event bus, ledger, and policy-enforcement core.
-
-Author: Joshua Vetos / Tessrax LLC
-License: CC BY 4.0
+Tessrax Governance Kernel v3.1
+Autonomous event bus and policy enforcement engine.
 """
 
 import json, re, hashlib
@@ -17,8 +14,6 @@ LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
 def _sha256(obj): return hashlib.sha256(json.dumps(obj, sort_keys=True).encode()).hexdigest()
 
 class GovernanceKernel:
-    """Central orchestrator for Tessrax governance events and enforcement."""
-
     def __init__(self):
         self.subscribers = []
         self.ledger = []
@@ -29,9 +24,11 @@ class GovernanceKernel:
                     except: pass
         self.quorum_rules = {"default": {"required": 2, "total": 3}}
 
-    # ----------------------------------------------------------
+    # ============================================================
+    # Append + Notifications
+    # ============================================================
+
     def append_event(self, event):
-        """Append event with hash chaining, persistence, and auto-reactions."""
         prev = self.ledger[-1]["hash"] if self.ledger else None
         event["prev_hash"] = prev
         event["timestamp"] = event.get("timestamp") or datetime.utcnow().isoformat()
@@ -42,16 +39,17 @@ class GovernanceKernel:
         self._auto_reactions(event)
         return event["hash"]
 
-    # ----------------------------------------------------------
     def register_subscriber(self, callback): self.subscribers.append(callback)
     def _notify_subscribers(self, event):
         for cb in self.subscribers:
             try: cb(event)
             except Exception as e: print("Subscriber error:", e)
 
-    # ----------------------------------------------------------
+    # ============================================================
+    # Auto-Reactions
+    # ============================================================
+
     def _auto_reactions(self, event):
-        """Automatic responses for known events."""
         if event["event"] == "DESIGN_DECISION_RECORDED":
             self._check_policies(event)
             ack = {
@@ -65,7 +63,7 @@ class GovernanceKernel:
             print(f"🧱 Acknowledged design decision for {event.get('file_changed')}")
 
         elif event["event"] == "POLICY_VIOLATION":
-            print("🚨 Policy violation detected → starting quorum vote")
+            print("🚨 Policy violation detected → initiating quorum review")
             proposal_id = f"PV-{event['hash'][:8]}"
             votes = [
                 {"peer": "gov1", "decision": True},
@@ -81,9 +79,11 @@ class GovernanceKernel:
             }
             self._append_internal(review)
 
-    # ----------------------------------------------------------
+    # ============================================================
+    # Policy Evaluation
+    # ============================================================
+
     def _check_policies(self, event):
-        """Run all POLICY_RULES against a design decision."""
         file_changed = event.get("file_changed", "")
         tags = set(event.get("tags", []))
 
@@ -107,7 +107,10 @@ class GovernanceKernel:
                     elif rule["enforcement"] == "quorum":
                         self.append_event(violation)
 
-    # ----------------------------------------------------------
+    # ============================================================
+    # Ledger Utilities
+    # ============================================================
+
     def _append_internal(self, event):
         prev = self.ledger[-1]["hash"] if self.ledger else None
         event["prev_hash"] = prev
@@ -131,11 +134,14 @@ class GovernanceKernel:
         self._append_internal(vote)
         return passed
 
-# ----------------------------------------------------------
+# ============================================================
+# Demo Harness
+# ============================================================
+
 if __name__ == "__main__":
     kernel = GovernanceKernel()
     kernel.append_event({
         "event": "DESIGN_DECISION_RECORDED",
         "file_changed": "fork_reconciliation_engine.py",
-        "tags": ["governance"],
+        "tags": ["governance"]
     })
