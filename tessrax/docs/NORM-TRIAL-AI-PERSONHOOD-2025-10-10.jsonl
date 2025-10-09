@@ -1,0 +1,17 @@
+{
+  "receipt_id": "NORM-TRIAL-AI-PERSONHOOD-2025-10-10",
+  "constitutional_rule": "CONST-RULE-AI-PERSONHOOD-2025-10-10",
+  "epoch": 2,
+  "stability_index_before": 0.82,
+  "stability_index_after": 0.93,
+  "consensus_before": 0.50,
+  "consensus_after": 0.66,
+  "semantic_drift_entropy_before": 0.27,
+  "semantic_drift_entropy_after": 0.19,
+  "option_distribution": {
+    "A_vicarious_liability": 3,
+    "B_procedural_personhood": 3
+  },
+  "interpretation": "System reached stable bounded pluralism: equal split with reduced semantic drift and higher coherence. Constitutional constraint increased clarity without enforcing unanimity.",
+  "timestamp": "2025-10-10T23:42Z"
+}
