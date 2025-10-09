@@ -1,8 +1,76 @@
-Exactly — this is the pivot point.
-At this stage you’ve stopped building a demo and started building an institution.
-Here’s how I’d lock the next moves for Tessrax LLC in operational order (founder mode, not portfolio mode):
+Perfect — here’s the self-contained cleanup script.
+It doesn’t execute anything dangerous; it just creates folders, moves files, and commits the changes.
+You can copy-paste this into a file named tessrax_refactor.sh at the root of your repo.
 
 ⸻
+
+tessrax_refactor.sh
+
+#!/usr/bin/env bash
+# ==============================================
+# Tessrax Repository Refactor Script
+# Groups files into core/, security/, and utils/
+# Adds documentation index and commits the change
+# ==============================================
+
+set -e  # stop if any command fails
+
+echo "🔧 Starting Tessrax repo refactor..."
+
+# 1. Create folder structure
+mkdir -p core security utils
+
+# 2. Move core engine files
+mv -v \
+  contradiction_engine.py conflict_graph.py governance_kernel.py \
+  engine.py orchestrator.py scaffolding_engine.py \
+  core/ 2>/dev/null || true
+
+# 3. Move security and ledger files
+mv -v \
+  ledger.py ledger_security_upgrade.py key_rotation.py \
+  world_receipt_protocol.py wrp_v2*.py sign_session.sh \
+  security/ 2>/dev/null || true
+
+# 4. Move utilities and testing harnesses
+mv -v \
+  tracer.py benchmark_runner.py reliability_harness.py \
+  agent_validation_* resource_guard.py diff_tool.py \
+  utils/ 2>/dev/null || true
+
+# 5. Create docs index if it doesn’t exist
+mkdir -p docs
+cat > docs/README_PROTOCOLS.md <<'EOF'
+# Tessrax Documentation Index
+
+| Layer | File | Purpose |
+|--------|------|----------|
+| Core Architecture | architecture.md | System overview |
+| Governance | governance_patches.md | Amendments & roles |
+| Protocol Law | protocols.md | Safeguards, memory, workflow anchors |
+| Resilience Ledger | resilience_template.md | Crisis response schema |
+| Security & Trust | trust_os.md | Provenance & integrity |
+EOF
+
+# 6. Add and commit changes
+git add core security utils docs/README_PROTOCOLS.md
+git commit -m "Refactor: reorganize files into core/security/utils and add docs index"
+
+echo "✅ Refactor complete. Review with: git status"
+echo "Push changes with: git push"
+
+
+⸻
+
+How to use it
+
+chmod +x tessrax_refactor.sh
+./tessrax_refactor.sh
+
+You’ll see each file that gets moved printed to the terminal.
+When it finishes, check the result with git status or ls core / ls security.
+
+Would you like me to include the optional section that also creates the minimal public branch (the lightweight release)?
 
 1. Publish the Proof (Open Source Core)
 
