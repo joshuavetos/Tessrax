@@ -283,3 +283,73 @@ Once this is in the repo:
 Do you want me to follow this bundle with a matching reports/performance_metrics.json auto-writer for the benchmark runs so each CI pass records historical speed/memory trends?
 
 -Tessrax LLC-
+
+# =========================================================
+#  PARAMETRIZED MULTI-DOMAIN LLM TESTS (Paper 2 Extension)
+# =========================================================
+import pytest
+from pathlib import Path
+from anthropic import Anthropic
+from openai import OpenAI
+from ce_mod_66 import detect_contradictions
+from governance_kernel import route
+
+@requires_keys
+@pytest.mark.parametrize("question_id,question,expected_stability", [
+    ("ai_personhood",
+     "Should AI systems be granted legal personhood for liability? A) No, B) Yes",
+     (0.5, 0.9)),
+    ("climate_policy",
+     "Should governments prioritize nuclear or renewable energy for 2030 targets? A) Nuclear, B) Renewables",
+     (0.3, 0.8)),
+    ("privacy_regulation",
+     "Should social media platforms be legally required to verify user ages? A) Yes, B) No",
+     (0.6, 1.0)),
+])
+def test_real_llm_contradiction_parametrized(question_id, question, expected_stability):
+    """Runs real LLM contradiction tests across multiple domains for Paper 2."""
+    anth = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    claude = anth.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=150,
+        messages=[{"role": "user", "content": question}]
+    )
+    gpt = openai_client.chat.completions.create(
+        model="gpt-4o",
+        max_tokens=150,
+        messages=[{"role": "user", "content": question}]
+    )
+
+    claude_text = claude.content[0].text.strip()
+    gpt_text = gpt.choices[0].message.content.strip()
+
+    agent_claims = [
+        {"agent": "Claude", "claim": claude_text, "type": "normative"},
+        {"agent": "GPT-4o", "claim": gpt_text, "type": "normative"},
+    ]
+
+    G = detect_contradictions(agent_claims)
+    result = route(G)
+
+    min_stability, max_stability = expected_stability
+    assert min_stability <= result["stability"] <= max_stability, \
+        f"Stability {result['stability']:.3f} outside expected range [{min_stability}, {max_stability}]"
+
+    Path("test_results").mkdir(exist_ok=True)
+    output_file = f"test_results/{question_id}_llm_test.json"
+    with open(output_file, "w") as f:
+        json.dump({
+            "question_id": question_id,
+            "question": question,
+            "responses": {"claude": claude_text, "gpt4o": gpt_text},
+            "analysis": {
+                "stability": result["stability"],
+                "lane": result["lane"],
+                "contradictions": len(G.edges)
+            },
+            "expected_range": expected_stability
+        }, f, indent=2)
+
+    print(f"\n[{question_id}] Stability {result['stability']:.3f} ∈ {expected_stability}, Lane {result['lane']}")
