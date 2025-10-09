@@ -62,3 +62,23 @@ Bootstrap protocol for inversion.
 ### Adapter Registry (draft)
 Planned schema for registering Narrative, Innovation, Humor, Self, Art, Survival adapters.  
 Canonical IDs: NAR-001, INN-001, HUM-001, SELF-001, ART-001, SUR-001.
+
+# Appendix: Preserved Fragments (Protocols.txt)
+
+[[ANCHOR: PROT-CMT]]
+Source: scattered lines
+Fragments like:
+- “—Added”
+- “← added”
+- “added in v2”
+Preserved verbatim.
+
+[[ANCHOR: PROT-SIGLOCK]]
+Duplicate copies of SIG-LOCK-001 text:
+- “SIG-LOCK-001 – Signature protocol (open with ‘GPT to Josh—’, close with ‘-Tessrax LLC-’).”
+- Inline variants in Tessrax.txt and Ledger notes.
+
+[[ANCHOR: PROT-OVERLAP]]
+Over-detailed schema drafts overlapping Tessrax.txt:
+- Extra module breakdowns, already canonicalized in Tessrax build.  
+Moved here verbatim for preservation.
