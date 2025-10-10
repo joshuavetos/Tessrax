@@ -1,95 +1,166 @@
-import logging
-from typing import Any, Dict, List, Optional
-# Removed: from J73PLwUWSWF1 import SimpleSemanticEngine # This is not needed as cell execution adds SimpleSemanticEngine to global scope
+#!/usr/bin/env python3
+"""
+Tessrax Ledger — Immutable Append-Only Governance Ledger
+---------------------------------------------------------
+Merged modules:
+  • contradiction_ledger.py
+  • contradiction_ledger_v4.json
+  • ledger_security_upgrade.py
 
-logger = logging.getLogger(__name__)
+Purpose:
+  Maintain a tamper-evident, cryptographically chained record of
+  governance events, contradiction analyses, and agent outcomes.
+"""
 
-class TessraxTestAgent:
+import json
+import hashlib
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Any, Tuple, List
+
+LEDGER_PATH = Path("data/ledger.jsonl")
+
+
+# ----------------------------------------------------------------------
+# Utility Functions
+# ----------------------------------------------------------------------
+
+def _sha256(data: str) -> str:
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
+
+
+def _timestamp() -> str:
+    return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+
+def _ensure_ledger_dir():
+    Path("data").mkdir(exist_ok=True)
+
+
+# ----------------------------------------------------------------------
+# Ledger Core
+# ----------------------------------------------------------------------
+
+def _get_last_entry() -> Tuple[str, str]:
+    """Return (prev_hash, last_line) of the ledger if exists."""
+    if not LEDGER_PATH.exists():
+        return ("0" * 64, None)
+
+    with open(LEDGER_PATH, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        if not lines:
+            return ("0" * 64, None)
+        last_entry = json.loads(lines[-1])
+        return (last_entry["hash"], lines[-1].strip())
+
+
+def append_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
     """
-    A basic test agent for the Tessrax project.
-    It can process events and generate output, integrating with a semantic engine.
+    Append an entry to the ledger with cryptographic chaining.
+
+    Args:
+        entry: dict of governance or contradiction data.
+
+    Returns:
+        The finalized ledger entry with hash + prev_hash fields.
     """
-    def __init__(self, agent_id: str, semantic_engine: SimpleSemanticEngine): # SimpleSemanticEngine will be resolved from global scope
-        """
-        Initializes the TessraxTestAgent.
+    _ensure_ledger_dir()
+    prev_hash, _ = _get_last_entry()
 
-        Args:
-            agent_id (str): A unique identifier for the agent.
-            semantic_engine (SimpleSemanticEngine): An instance of the semantic engine to use for analysis.
-        """
-        self.agent_id = agent_id
-        self.semantic_engine = semantic_engine
-        self._processed_events: List[Dict[str, Any]] = []
-        self._analysis_reports: List[Dict[str, Any]] = []
-        logger.info(f"TessraxTestAgent '{self.agent_id}' initialized with Semantic Engine.")
+    # Add standard ledger metadata
+    entry["timestamp"] = _timestamp()
+    entry["prev_hash"] = prev_hash
+    entry_str = json.dumps(entry, sort_keys=True)
+    entry_hash = _sha256(entry_str)
 
-    def process_event(self, event: Dict[str, Any]) -> None:
-        """
-        Processes an incoming event using the semantic engine.
+    entry["hash"] = entry_hash
 
-        Args:
-            event (Dict[str, Any]): The event data to process.
-        """
-        logger.info(f"Agent '{self.agent_id}' processing event: {event.get('id', 'N/A')}")
-        self._processed_events.append(event)
+    # Append to ledger
+    with open(LEDGER_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
 
-        # Use the semantic engine to analyze the event payload
-        event_payload_text = json.dumps(event.get('payload', {}), sort_keys=True)
-        if self.semantic_engine and hasattr(self.semantic_engine, 'analyze_for_contradictions') and callable(self.semantic_engine.analyze_for_contradictions):
-            try:
-                analysis_report = self.semantic_engine.analyze_for_contradictions(event_payload_text)
-                self._analysis_reports.append(analysis_report)
-                logger.info(f"Agent '{self.agent_id}' analyzed event {event.get('id', 'N/A')}. Analysis ID: {analysis_report.get('analysis_id', 'N/A')}")
-            except Exception as e:
-                logger.error(f"Agent '{self.agent_id}' failed to analyze event {event.get('id', 'N/A')} using semantic engine: {e}", exc_info=True)
-        else:
-            logger.warning(f"Agent '{self.agent_id}': Semantic engine or analyze_for_contradictions method not available.")
+    return entry
 
 
-    def generate_output(self) -> str:
-        """
-        Generates a summary output based on processed events and analysis.
+# ----------------------------------------------------------------------
+# Verification + Audit
+# ----------------------------------------------------------------------
 
-        Returns:
-            str: The generated output string, including analysis summary.
-        """
-        logger.info(f"Agent '{self.agent_id}' generating output.")
-        output_parts = [f"GPT to Josh—Agent '{self.agent_id}' Report—"]
+def verify_chain(filepath: Path = LEDGER_PATH) -> Tuple[bool, int]:
+    """
+    Verify integrity of the ledger chain.
+    Returns (True, -1) if valid; (False, line_number) if corrupted.
+    """
+    if not filepath.exists():
+        return True, -1
 
-        output_parts.append(f"Processed {len(self._processed_events)} events.")
+    with open(filepath, "r", encoding="utf-8") as f:
+        prev_hash = "0" * 64
+        for i, line in enumerate(f, start=1):
+            entry = json.loads(line)
+            data_copy = dict(entry)
+            actual_hash = data_copy.pop("hash", None)
+            expected_hash = _sha256(json.dumps(data_copy, sort_keys=True))
 
-        if self._analysis_reports:
-            output_parts.append(f"Conducted {len(self._analysis_reports)} semantic analyses.")
-            # Add a summary of findings from analysis reports
-            total_findings = sum(len(r.get('findings', [])) for r in self._analysis_reports)
-            if total_findings > 0:
-                 output_parts.append(f"Total potential inconsistencies found: {total_findings}.")
-                 # You could add more detailed summary here based on report content
-            else:
-                 output_parts.append("No potential inconsistencies detected in analyses.")
-        else:
-             output_parts.append("No semantic analysis performed.")
+            if expected_hash != actual_hash or entry.get("prev_hash") != prev_hash:
+                return False, i
+            prev_hash = actual_hash
+    return True, -1
 
 
-        output_parts.append("-Tessrax LLC-") # Add the required end pattern
+# ----------------------------------------------------------------------
+# Query Interface
+# ----------------------------------------------------------------------
 
-        generated_output = "".join(output_parts)
-        logger.info(f"Agent '{self.agent_id}' output generated: {generated_output[:100]}...") # Log snippet
-        return generated_output
+def load_all_entries() -> List[Dict[str, Any]]:
+    """Load the entire ledger into memory."""
+    if not LEDGER_PATH.exists():
+        return []
+    with open(LEDGER_PATH, "r", encoding="utf-8") as f:
+        return [json.loads(line) for line in f]
 
-# Example of how to instantiate and use the agent (can be run in a separate cell)
-# Check if SimpleSemanticEngine is defined in the global scope before using it
-# if 'SimpleSemanticEngine' in globals() and isinstance(SimpleSemanticEngine, type):
-#      semantic_engine_instance = SimpleSemanticEngine()
-#      test_agent = TessraxTestAgent("Agent-Alpha", semantic_engine_instance)
 
-#      # Simulate processing some events
-#      test_agent.process_event({"id": "event-A", "type": "claim", "payload": {"text": "The sky is blue and also red."}})
-#      test_agent.process_event({"id": "event-B", "type": "report", "payload": {"data": "Some data."}})
+def find_entries_by_agent(agent_name: str) -> List[Dict[str, Any]]:
+    """Return all entries mentioning a given agent."""
+    entries = load_all_entries()
+    return [e for e in entries if agent_name in str(e)]
 
-#      # Generate and print the agent's output
-#      agent_output = test_agent.generate_output()
-#      print("\nAgent Generated Output:")
-#      print(agent_output)
-# else:
-#      print("SimpleSemanticEngine class not found in global scope. Please ensure cell J73PLwUWSWF1 has been run successfully.")
+
+def summarize_ledger() -> Dict[str, Any]:
+    """Produce a quick health summary."""
+    valid, break_line = verify_chain()
+    entries = load_all_entries()
+    return {
+        "valid_chain": valid,
+        "break_line": break_line if not valid else None,
+        "entry_count": len(entries),
+        "latest_entry": entries[-1] if entries else None,
+    }
+
+
+# ----------------------------------------------------------------------
+# Demo CLI
+# ----------------------------------------------------------------------
+
+if __name__ == "__main__":
+    print("\n--- Tessrax Ledger Demo ---")
+
+    # Append example entries
+    entry = {
+        "agents": ["PolicyAI", "AuditBot"],
+        "stability_index": 0.82,
+        "governance_lane": "Autonomic",
+        "note": "Consensus reached on bias testing protocols; auto-adopted."
+    }
+
+    new_entry = append_entry(entry)
+    print("Appended:", json.dumps(new_entry, indent=2))
+
+    # Verify integrity
+    ok, break_line = verify_chain()
+    print(f"Ledger integrity: {'OK' if ok else f'Corrupted at line {break_line}'}")
+
+    # Summarize
+    summary = summarize_ledger()
+    print(json.dumps(summary, indent=2))
