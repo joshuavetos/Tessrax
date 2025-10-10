@@ -1,36 +1,27 @@
 """
-Tessrax Governance Kernel (GK-MOD-01)
--------------------------------------
-
-Core routing layer for Tessrax contradiction metabolism.
-Consumes contradiction graphs from CE-MOD-66 and produces
-structured governance events for the ledger.
-
-Implements the four-lane governance model:
-
-    • Autonomic       — Consensus stable (>0.75)
-    • Deliberative    — Moderate disagreement (0.40–0.75)
-    • Constitutional  — Foundational contradiction (<0.40)
-    • BehavioralAudit — Semantic or definitional manipulation detected
-
-Each decision is logged immutably with hash chaining for auditability.
-
-Version: GK-MOD-01-R2
-Author: Tessrax LLC
+Tessrax Governance Kernel (GK-MOD-01-R3)
+----------------------------------------
+Adds optional Redis-based distributed locking for scalable consensus.
+If REDIS_URL env var is set, uses Redis; otherwise falls back to file locks.
 """
 
-from __future__ import annotations
-import json
-import hashlib
-from dataclasses import dataclass, asdict
+import os, json, hashlib
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
+from datetime import datetime
 
 import networkx as nx
+from filelock import FileLock
+
+try:
+    from redis import Redis
+except ImportError:
+    Redis = None
 
 
-# === ENUM DEFINITIONS ========================================================
+# === ENUMS ==================================================================
 
 class GovernanceLane(str, Enum):
     AUTONOMIC = "Autonomic"
@@ -38,8 +29,6 @@ class GovernanceLane(str, Enum):
     CONSTITUTIONAL = "Constitutional"
     BEHAVIORAL_AUDIT = "Behavioral Audit"
 
-
-# === DATA CLASSES ============================================================
 
 @dataclass
 class GovernanceEvent:
@@ -53,66 +42,61 @@ class GovernanceEvent:
     hash: str
 
 
-# === KERNEL LOGIC ============================================================
+# === DISTRIBUTED LOCK ========================================================
+
+def get_lock(domain: str):
+    """Return either a Redis or file-based lock depending on environment."""
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url and Redis:
+        r = Redis.from_url(redis_url)
+        return r.lock(f"tessrax:{domain}", timeout=10)
+    return FileLock(f"/tmp/{domain}.lock")
+
+
+# === CLASSIFICATION ==========================================================
 
 def classify_lane(G: nx.Graph, stability_index: float) -> GovernanceLane:
-    """
-    Classify the contradiction graph into a governance lane.
-    """
-    # Case 1: Detect semantic manipulation
     for _, _, data in G.edges(data=True):
         if data.get("type", "").lower() == "semantic":
             return GovernanceLane.BEHAVIORAL_AUDIT
-
-    # Case 2: Threshold-based routing
     if stability_index >= 0.75:
         return GovernanceLane.AUTONOMIC
     elif 0.40 <= stability_index < 0.75:
         return GovernanceLane.DELIBERATIVE
-    else:
-        return GovernanceLane.CONSTITUTIONAL
+    return GovernanceLane.CONSTITUTIONAL
 
 
-def summarize(G: nx.Graph, stability_index: float) -> Dict[str, str]:
-    """
-    Generate a short diagnostic summary note.
-    """
-    contradictions = G.number_of_edges()
-
-    if contradictions == 0:
-        return {"note": "No contradictions detected; consensus stable."}
-    elif stability_index < 0.40:
-        return {"note": "Severe contradiction density detected; potential rule drift."}
-    elif stability_index < 0.75:
-        return {"note": "Moderate disagreement; deliberation recommended."}
-    else:
-        return {"note": "High stability; safe for auto-adoption."}
+def summarize(G: nx.Graph, stability_index: float) -> str:
+    c = G.number_of_edges()
+    if c == 0:
+        return "No contradictions detected; consensus stable."
+    if stability_index < 0.40:
+        return "Severe contradiction density; potential rule drift."
+    if stability_index < 0.75:
+        return "Moderate disagreement; deliberation recommended."
+    return "High stability; safe for auto-adoption."
 
 
-# === LEDGER CHAIN ============================================================
+# === LEDGER =================================================================
 
 def _get_last_hash(path: str) -> str:
-    """Retrieve last ledger hash."""
     if not Path(path).exists():
-        return "0" * 64
+        return "0"*64
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
         if not lines:
-            return "0" * 64
+            return "0"*64
         try:
             return json.loads(lines[-1])["hash"]
         except Exception:
-            return "0" * 64
+            return "0"*64
 
 
-def record_event(G: nx.Graph, stability_index: float, path: str = "data/governance_ledger.jsonl") -> GovernanceEvent:
-    """
-    Record a new governance event to the ledger.
-    """
-    from datetime import datetime
+def record_event(G: nx.Graph, stability_index: float,
+                 path: str = "data/governance_ledger.jsonl") -> GovernanceEvent:
     prev_hash = _get_last_hash(path)
     lane = classify_lane(G, stability_index)
-    summary = summarize(G, stability_index)["note"]
+    summary = summarize(G, stability_index)
 
     event = {
         "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -125,41 +109,18 @@ def record_event(G: nx.Graph, stability_index: float, path: str = "data/governan
     }
 
     event_str = json.dumps(event, sort_keys=True)
-    new_hash = hashlib.sha256(event_str.encode()).hexdigest()
-    event["hash"] = new_hash
+    event["hash"] = hashlib.sha256(event_str.encode()).hexdigest()
 
     Path(path).parent.mkdir(exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(json.dumps(event) + "\n")
+    with get_lock("governance_ledger"):
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(event) + "\n")
 
     return GovernanceEvent(**event)
 
 
-# === KERNEL INTERFACE ========================================================
-
-def route(G: nx.Graph, stability_index: float, ledger_path: str = "data/governance_ledger.jsonl") -> GovernanceEvent:
-    """
-    High-level routing wrapper.
-
-    Args:
-        G: Contradiction graph
-        stability_index: Stability value from CE-MOD-66
-        ledger_path: File path for governance ledger
-
-    Returns:
-        GovernanceEvent dataclass
-    """
-    return record_event(G, stability_index, ledger_path)
-
-
-def analyze_and_route(agent_claims: List[Dict[str, str]], contradiction_engine) -> GovernanceEvent:
-    """
-    End-to-end route:
-        1. Detect contradictions
-        2. Score stability
-        3. Classify governance lane
-        4. Append event to ledger
-    """
-    G, stability = contradiction_engine.run_contradiction_cycle(agent_claims)
-    event = route(G, stability)
-    return event
+def route(G: nx.Graph, stability_index: float,
+          ledger_path: str = "data/governance_ledger.jsonl") -> GovernanceEvent:
+    """Public entry point with automatic locking."""
+    with get_lock("governance_route"):
+        return record_event(G, stability_index, ledger_path)
