@@ -8,3 +8,11 @@ def test_regex_timeout():
 
 def test_regex_safe_pattern():
     assert safe_match(r"\bnow\b", "now or later")
+    
+    if __name__ == "__main__":
+    try:
+        test_regex_timeout()
+        test_regex_safe_pattern()
+        print("✅ Regex safety tests passed.")
+    except Exception as e:
+        print("❌ Regex safety test failed:", e)
