@@ -1,203 +1,165 @@
-#!/usr/bin/env python3
 """
-Tessrax Governance Kernel — Unified Orchestration + Policy Layer
-----------------------------------------------------------------
-Merged modules:
-  • policy_rules.py
-  • orchestrator.py
-  • resource_guard.py
+Tessrax Governance Kernel (GK-MOD-01)
+-------------------------------------
 
-Purpose:
-  Central coordination point for the Tessrax system.
-  Routes contradiction results into appropriate governance lanes,
-  enforces policy constraints, and guards key runtime resources.
+Core routing layer for Tessrax contradiction metabolism.
+Consumes contradiction graphs from CE-MOD-66 and produces
+structured governance events for the ledger.
+
+Implements the four-lane governance model:
+
+    • Autonomic       — Consensus stable (>0.75)
+    • Deliberative    — Moderate disagreement (0.40–0.75)
+    • Constitutional  — Foundational contradiction (<0.40)
+    • BehavioralAudit — Semantic or definitional manipulation detected
+
+Each decision is logged immutably with hash chaining for auditability.
+
+Version: GK-MOD-01-R2
+Author: Tessrax LLC
 """
 
+from __future__ import annotations
 import json
-import os
-from datetime import datetime
+import hashlib
+from dataclasses import dataclass, asdict
+from enum import Enum
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
+from typing import Dict, List, Tuple
 
-from tessrax.core.engine import detect_contradictions, export_governance_case
-from tessrax.core.ledger import append_entry, summarize_ledger, verify_chain
+import networkx as nx
 
 
-# ----------------------------------------------------------------------
-# Core Constants
-# ----------------------------------------------------------------------
+# === ENUM DEFINITIONS ========================================================
 
-LANE_DESCRIPTIONS = {
-    "Autonomic": "Low-risk consensus — system may self-correct or auto-adopt.",
-    "Deliberative": "Moderate conflict — requires human or quorum review.",
-    "Constitutional": "High conflict — challenges base rules or principles.",
-    "Behavioral Audit": "Critical — indicates drift, manipulation, or malice.",
-}
+class GovernanceLane(str, Enum):
+    AUTONOMIC = "Autonomic"
+    DELIBERATIVE = "Deliberative"
+    CONSTITUTIONAL = "Constitutional"
+    BEHAVIORAL_AUDIT = "Behavioral Audit"
 
-POLICY_REGISTRY = {
-    "max_conflict_ratio": 0.25,
-    "auto_commit_threshold": 0.8,
-    "require_quorum_for": ["Deliberative", "Constitutional", "Behavioral Audit"],
-    "guarded_resources": ["ledger.jsonl", "tessrax/core/memory.py"],
-}
 
-# ----------------------------------------------------------------------
-# Governance Orchestration
-# ----------------------------------------------------------------------
+# === DATA CLASSES ============================================================
 
-def route(agent_claims: List[Dict[str, Any]]) -> Dict[str, Any]:
+@dataclass
+class GovernanceEvent:
+    timestamp: str
+    agents: List[str]
+    stability_index: float
+    governance_lane: GovernanceLane
+    contradictions: int
+    note: str
+    prev_hash: str
+    hash: str
+
+
+# === KERNEL LOGIC ============================================================
+
+def classify_lane(G: nx.Graph, stability_index: float) -> GovernanceLane:
     """
-    Full governance pipeline: detect contradictions → classify → log to ledger.
+    Classify the contradiction graph into a governance lane.
     """
-    graph = detect_contradictions(agent_claims)
-    case = export_governance_case(graph)
-    lane = case["lane"]
-    stability = case["stability_index"]
+    # Case 1: Detect semantic manipulation
+    for _, _, data in G.edges(data=True):
+        if data.get("type", "").lower() == "semantic":
+            return GovernanceLane.BEHAVIORAL_AUDIT
 
-    print(f"\n[GovernanceKernel] Case {case['case_id']} routed to lane: {lane} (stability={stability})")
-
-    # Policy enforcement
-    if lane == "Autonomic" and stability >= POLICY_REGISTRY["auto_commit_threshold"]:
-        action = "auto-commit"
-    elif lane in POLICY_REGISTRY["require_quorum_for"]:
-        action = "human-review"
+    # Case 2: Threshold-based routing
+    if stability_index >= 0.75:
+        return GovernanceLane.AUTONOMIC
+    elif 0.40 <= stability_index < 0.75:
+        return GovernanceLane.DELIBERATIVE
     else:
-        action = "queue"
+        return GovernanceLane.CONSTITUTIONAL
 
-    entry = {
-        "case_id": case["case_id"],
-        "lane": lane,
-        "stability_index": stability,
-        "agents": case["agents"],
-        "action": action,
+
+def summarize(G: nx.Graph, stability_index: float) -> Dict[str, str]:
+    """
+    Generate a short diagnostic summary note.
+    """
+    contradictions = G.number_of_edges()
+
+    if contradictions == 0:
+        return {"note": "No contradictions detected; consensus stable."}
+    elif stability_index < 0.40:
+        return {"note": "Severe contradiction density detected; potential rule drift."}
+    elif stability_index < 0.75:
+        return {"note": "Moderate disagreement; deliberation recommended."}
+    else:
+        return {"note": "High stability; safe for auto-adoption."}
+
+
+# === LEDGER CHAIN ============================================================
+
+def _get_last_hash(path: str) -> str:
+    """Retrieve last ledger hash."""
+    if not Path(path).exists():
+        return "0" * 64
+    with open(path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        if not lines:
+            return "0" * 64
+        try:
+            return json.loads(lines[-1])["hash"]
+        except Exception:
+            return "0" * 64
+
+
+def record_event(G: nx.Graph, stability_index: float, path: str = "data/governance_ledger.jsonl") -> GovernanceEvent:
+    """
+    Record a new governance event to the ledger.
+    """
+    from datetime import datetime
+    prev_hash = _get_last_hash(path)
+    lane = classify_lane(G, stability_index)
+    summary = summarize(G, stability_index)["note"]
+
+    event = {
         "timestamp": datetime.utcnow().isoformat() + "Z",
-        "reason": case["reason"],
+        "agents": list(G.nodes()),
+        "stability_index": stability_index,
+        "governance_lane": lane.value,
+        "contradictions": G.number_of_edges(),
+        "note": summary,
+        "prev_hash": prev_hash,
     }
 
-    append_entry(entry)
-    return entry
+    event_str = json.dumps(event, sort_keys=True)
+    new_hash = hashlib.sha256(event_str.encode()).hexdigest()
+    event["hash"] = new_hash
+
+    Path(path).parent.mkdir(exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(event) + "\n")
+
+    return GovernanceEvent(**event)
 
 
-# ----------------------------------------------------------------------
-# Policy Evaluation
-# ----------------------------------------------------------------------
+# === KERNEL INTERFACE ========================================================
 
-def evaluate_policy_conflicts(policies: Dict[str, Any]) -> Tuple[bool, List[str]]:
+def route(G: nx.Graph, stability_index: float, ledger_path: str = "data/governance_ledger.jsonl") -> GovernanceEvent:
     """
-    Check a given policy set for contradictions or violations of core principles.
+    High-level routing wrapper.
+
+    Args:
+        G: Contradiction graph
+        stability_index: Stability value from CE-MOD-66
+        ledger_path: File path for governance ledger
+
+    Returns:
+        GovernanceEvent dataclass
     """
-    violations = []
-
-    if policies.get("auto_commit_threshold", 1.0) > 1.0:
-        violations.append("auto_commit_threshold cannot exceed 1.0")
-
-    if "max_conflict_ratio" not in policies or policies["max_conflict_ratio"] <= 0:
-        violations.append("max_conflict_ratio must be positive and defined")
-
-    # Reserved keyword protection
-    for key in policies:
-        if key.startswith("_") or key.lower() in ["delete", "drop", "overwrite"]:
-            violations.append(f"Invalid or dangerous policy key: {key}")
-
-    return (len(violations) == 0, violations)
+    return record_event(G, stability_index, ledger_path)
 
 
-# ----------------------------------------------------------------------
-# Resource Guard (formerly resource_guard.py)
-# ----------------------------------------------------------------------
-
-def guard_resources() -> List[str]:
+def analyze_and_route(agent_claims: List[Dict[str, str]], contradiction_engine) -> GovernanceEvent:
     """
-    Ensure critical resources exist and are unmodified.
-    Returns list of warnings (if any).
+    End-to-end route:
+        1. Detect contradictions
+        2. Score stability
+        3. Classify governance lane
+        4. Append event to ledger
     """
-    warnings = []
-
-    # Verify ledger chain integrity
-    ok, line = verify_chain()
-    if not ok:
-        warnings.append(f"Ledger chain broken at line {line}")
-
-    # Verify guarded files exist
-    for res in POLICY_REGISTRY["guarded_resources"]:
-        path = Path(res)
-        if not path.exists():
-            warnings.append(f"Missing guarded resource: {res}")
-        else:
-            size = path.stat().st_size
-            if size < 10:
-                warnings.append(f"Resource {res} appears empty or corrupted.")
-
-    return warnings
-
-
-# ----------------------------------------------------------------------
-# Quorum Simulation
-# ----------------------------------------------------------------------
-
-def simulate_quorum_review(case_entry: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Simulate a quorum review decision for higher-risk lanes.
-    """
-    lane = case_entry["lane"]
-    decision = "approved" if lane == "Deliberative" else "escalated"
-    confidence = 0.7 if lane == "Deliberative" else 0.4
-
-    quorum_result = {
-        "case_id": case_entry["case_id"],
-        "lane": lane,
-        "decision": decision,
-        "confidence": confidence,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-    }
-
-    append_entry(quorum_result)
-    return quorum_result
-
-
-# ----------------------------------------------------------------------
-# System Status
-# ----------------------------------------------------------------------
-
-def system_health_summary() -> Dict[str, Any]:
-    """
-    Compile a full snapshot of governance system health.
-    """
-    warnings = guard_resources()
-    ledger_status = summarize_ledger()
-
-    return {
-        "system": "Tessrax Governance Kernel",
-        "warnings": warnings,
-        "ledger_summary": ledger_status,
-        "active_policies": POLICY_REGISTRY,
-    }
-
-
-# ----------------------------------------------------------------------
-# Demo Entry
-# ----------------------------------------------------------------------
-
-if __name__ == "__main__":
-    print("\n--- Tessrax Governance Kernel Demo ---")
-
-    # Example claims for demo
-    claims = [
-        {"agent": "GPT", "claim": "A"},
-        {"agent": "Claude", "claim": "B"},
-        {"agent": "Gemini", "claim": "A"},
-    ]
-
-    # Run through kernel
-    case = route(claims)
-    print(json.dumps(case, indent=2))
-
-    # Simulate quorum
-    if case["lane"] != "Autonomic":
-        quorum = simulate_quorum_review(case)
-        print("\n[Quorum Result]")
-        print(json.dumps(quorum, indent=2))
-
-    # Show health
-    print("\n[System Health Summary]")
-    print(json.dumps(system_health_summary(), indent=2))
+    G, stability = contradiction_engine.run_contradiction_cycle(agent_claims)
+    event = route(G, stability)
+    return event
