@@ -1,0 +1,13 @@
+{
+  "schema": "Tessrax Housing Contradiction Ledger v0.1",
+  "entries": [
+    {
+      "location": "Travis County, TX",
+      "velocity": 3.8,
+      "durability_index": 0.6,
+      "contradiction_score": 0.76,
+      "timestamp": 1739215200,
+      "source_hash": "sha256(...example...)"
+    }
+  ]
+}
