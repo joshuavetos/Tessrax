@@ -1,0 +1,19 @@
+Sources
+   •   Digital Wellbeing / Screen-Time exports (CSV)
+   •   Apple Screen Time API (private frameworks)
+   •   Reddit Pushshift or CrowdTangle metrics for engagement time
+   •   WHO well-being indices
+
+# domains/attention_economy/data_pipeline.py
+import pandas as pd
+from core.pipeline.base_pipeline import normalize
+
+WELLBEING_URL="https://storage.googleapis.com/tessrax/public/wellbeing_index.csv"
+ENGAGEMENT_URL="https://storage.googleapis.com/tessrax/public/session_minutes.csv"
+
+def get_attention_data():
+    df1=pd.read_csv(ENGAGEMENT_URL)
+    df2=pd.read_csv(WELLBEING_URL)
+    df=df1.merge(df2,on="platform")
+    mappings={"platform":"platform","avg_session_min":"session_min","wellbeing_score":"score"}
+    return normalize(df,mappings)
