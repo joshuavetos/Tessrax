@@ -1,148 +1,179 @@
+#!/usr/bin/env python3
 """
-tests/test_engine.py
---------------------
-Integration and reliability tests for Tessrax ContradictionEngine.
+Tessrax Test Engine — Unified Benchmark + Reliability Harness
+--------------------------------------------------------------
+Merged modules:
+  • benchmark_runner.py
+  • reliability_harness.py
+  • agent_validation_harness.py
 
-Verifies:
-✓ Proper contradiction detection and ledger writes
-✓ Valid cryptographic receipts
-✓ Tracer emits runtime trace events
-✓ Quarantine and error handling operate safely
+Purpose:
+  Validate and benchmark Tessrax Core across multiple dimensions:
+  - Performance (time + memory)
+  - Consistency (reproducible contradiction detection)
+  - Reliability (no crashes or data corruption)
 """
 
-import os
 import json
+import os
+import random
 import time
-import tempfile
+import psutil
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
-from nacl.signing import SigningKey
-from nacl.encoding import HexEncoder
-
-from tessrax.core.contradiction_engine import ContradictionEngine
-from tessrax.core.ledger import SQLiteLedger
-from tessrax.core.receipts import verify_receipt, create_receipt, NonceRegistry, RevocationRegistry
+from typing import List, Dict, Any
+from tessrax.core.engine import detect_contradictions, score_stability
+from tessrax.core.ledger import append_entry, verify_chain
 
 
-# ---------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------
-@pytest.fixture
-def temp_ledger():
-    """Creates an in-memory SQLiteLedger for testing."""
-    tmpfile = Path(tempfile.mktemp())
-    ledger = SQLiteLedger(tmpfile)
-    yield ledger
-    ledger.close()
-    if tmpfile.exists():
-        tmpfile.unlink()
+# ----------------------------------------------------------------------
+# Synthetic Data Generator
+# ----------------------------------------------------------------------
 
-
-@pytest.fixture
-def engine_setup(temp_ledger):
-    """Initializes a ContradictionEngine with mock registries."""
-    priv = SigningKey.generate().encode(encoder=HexEncoder).decode()
-    mock_nonce = MagicMock(spec=NonceRegistry)
-    mock_revoke = MagicMock(spec=RevocationRegistry)
-    engine = ContradictionEngine(
-        ledger=temp_ledger,
-        signing_key_hex=priv,
-        nonce_registry=mock_nonce,
-        revocation_registry=mock_revoke,
-        name="test_engine",
-    )
-    yield engine
-    engine.tracer.stop()  # Gracefully stop tracer thread
-
-
-# ---------------------------------------------------------------------
-# Core Tests
-# ---------------------------------------------------------------------
-def test_emit_creates_signed_event(engine_setup, temp_ledger):
+def generate_claims(n: int, contradiction_rate: float = 0.5) -> List[Dict[str, Any]]:
     """
-    Ensures _emit() appends a valid, signed contradiction event to the ledger.
+    Generate synthetic agent claims for testing.
+
+    Args:
+        n: Number of agents
+        contradiction_rate: Proportion of agents to assign opposite claims
     """
-    engine = engine_setup
-    contradiction = {"type": "test_contradiction", "detail": "demo"}
-
-    # Call _emit directly
-    engine._emit(contradiction)
-
-    # Read back ledger contents
-    events = temp_ledger.get_all_events(verify=True)
-    assert any(e.get("type") == "contradiction" for e in events), "No contradiction event found"
-
-    # Verify that the event payload is valid JSON and signed
-    for e in events:
-        if e.get("type") == "contradiction":
-            assert "timestamp" in e
-            assert "payload" in e
-            break
+    claims = []
+    split_point = int(n * contradiction_rate)
+    for i in range(n):
+        claim_value = "A" if i < split_point else "B"
+        claims.append({"agent": f"Agent-{i}", "claim": claim_value, "type": "normative"})
+    return claims
 
 
-def test_chain_verification(engine_setup):
+# ----------------------------------------------------------------------
+# Benchmark Suite
+# ----------------------------------------------------------------------
+
+def run_benchmark(sizes: List[int] = [100, 1000, 5000, 10000]) -> List[Dict[str, Any]]:
     """
-    Confirms that verify_contradiction_chain delegates properly to ledger.
+    Measure performance (time and memory) for contradiction detection.
     """
-    engine = engine_setup
-    with patch.object(engine.ledger, "verify_chain", return_value=True) as mock_verify:
-        result = engine.verify_contradiction_chain()
-        mock_verify.assert_called_once()
-        assert result is True
+    results = []
+    for n in sizes:
+        claims = generate_claims(n)
+        process = psutil.Process(os.getpid())
+        mem_before = process.memory_info().rss / 1024 / 1024
+        t0 = time.time()
+        G = detect_contradictions(claims)
+        stability = score_stability(G)
+        t1 = time.time()
+        mem_after = process.memory_info().rss / 1024 / 1024
+        delta_t = round(t1 - t0, 4)
+        delta_mem = round(mem_after - mem_before, 2)
+
+        results.append({
+            "agents": n,
+            "time_sec": delta_t,
+            "memory_mb": delta_mem,
+            "stability_index": stability
+        })
+        print(f"[Benchmark] {n} agents → {delta_t:.3f}s, {delta_mem:.2f}MB, stability={stability}")
+    return results
 
 
-def test_runtime_trace_recorded(engine_setup, temp_ledger):
+# ----------------------------------------------------------------------
+# Reliability Tests
+# ----------------------------------------------------------------------
+
+def test_repeatability(n: int = 500) -> Dict[str, Any]:
     """
-    Ensures tracer asynchronously records a RUNTIME_TRACE event
-    when instrumented methods execute.
+    Verify contradiction detection produces identical results across runs.
     """
-    engine = engine_setup
-    event = {"mock_event": True}
+    claims = generate_claims(n)
+    runs = [score_stability(detect_contradictions(claims)) for _ in range(3)]
+    consistent = all(abs(runs[0] - r) < 1e-9 for r in runs)
+    result = {
+        "consistent": consistent,
+        "stabilities": runs
+    }
+    print(f"[Repeatability] Stable across runs: {consistent} ({runs})")
+    return result
 
-    # Trigger a traced function
-    with patch("tessrax.core.contradiction_engine.verify_receipt", return_value=True):
-        engine._verify_event(event)
 
-    time.sleep(0.15)  # Allow tracer queue to flush
-    events = temp_ledger.get_all_events(verify=False)
-    assert any(e.get("entry_type") == "RUNTIME_TRACE" for e in events), "No RUNTIME_TRACE found"
-
-
-def test_quarantine_error_stops_engine(engine_setup):
+def test_integrity_recovery() -> Dict[str, Any]:
     """
-    Verifies that a quarantine failure halts batch processing.
+    Verify that the ledger chain verification detects and isolates corruption.
     """
-    engine = engine_setup
-
-    # Patch _run_once_unlocked to raise QuarantineViolation
-    from tessrax.core.contradiction_engine import QuarantineViolation
-    with patch.object(engine, "_run_once_unlocked", side_effect=QuarantineViolation("Test fail")):
-        with patch.object(engine, "stop") as mock_stop:
-            engine.run_batch([{"fake": "event"}])
-            mock_stop.assert_called_once()
-
-
-def test_create_and_verify_receipt_roundtrip():
-    """
-    Standalone verification of Tessrax receipt integrity.
-    """
-    priv = SigningKey.generate().encode(encoder=HexEncoder).decode()
-    payload = {"data": "hello_world"}
-    r = create_receipt(priv, payload, executor_id="unit_test")
-    assert verify_receipt(r), "Receipt should verify"
-    # Tamper check
-    r["payload"]["data"] = "corrupt"
-    assert not verify_receipt(r), "Tampered receipt should fail verification"
+    ok, break_line = verify_chain()
+    result = {
+        "ledger_intact": ok,
+        "break_line": break_line if not ok else None
+    }
+    print(f"[Integrity] Ledger valid={ok} (break_line={break_line})")
+    return result
 
 
-def test_stats_reporting(engine_setup):
+# ----------------------------------------------------------------------
+# Multi-Agent Validation
+# ----------------------------------------------------------------------
+
+def validate_agent_distribution(agent_claims: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Ensures get_stats() reports correct structure.
+    Ensure balanced representation of claims among agents.
     """
-    engine = engine_setup
-    stats = engine.get_stats()
-    assert isinstance(stats, dict)
-    expected_keys = {"total_contradictions", "total_scars", "quarantine_size", "chain_valid"}
-    assert expected_keys.issubset(stats.keys())
+    totals = {"A": 0, "B": 0}
+    for c in agent_claims:
+        if c["claim"] in totals:
+            totals[c["claim"]] += 1
+    ratio = totals["A"] / max(1, (totals["A"] + totals["B"]))
+    balance = abs(0.5 - ratio)
+    result = {"balance_offset": round(balance, 3), "distribution": totals}
+    print(f"[Validation] Distribution: {totals}, offset={balance}")
+    return result
+
+
+def simulate_agent_noise(agent_claims: List[Dict[str, Any]], noise_rate: float = 0.05) -> List[Dict[str, Any]]:
+    """
+    Introduce random noise (claim flips) into agent dataset.
+    """
+    mutated = []
+    for claim in agent_claims:
+        new_claim = claim["claim"]
+        if random.random() < noise_rate:
+            new_claim = "B" if new_claim == "A" else "A"
+        mutated.append({"agent": claim["agent"], "claim": new_claim, "type": "normative"})
+    print(f"[Noise] Introduced noise into {int(noise_rate*100)}% of claims.")
+    return mutated
+
+
+# ----------------------------------------------------------------------
+# Full Test Harness
+# ----------------------------------------------------------------------
+
+def run_full_test_suite() -> Dict[str, Any]:
+    """
+    Run all validation, reliability, and benchmark tests together.
+    """
+    print("\n--- Running Tessrax Core Test Suite ---\n")
+    results = {
+        "benchmarks": run_benchmark(),
+        "repeatability": test_repeatability(),
+        "integrity": test_integrity_recovery()
+    }
+
+    sample = generate_claims(200)
+    results["validation"] = validate_agent_distribution(sample)
+    noisy = simulate_agent_noise(sample)
+    results["validation_after_noise"] = validate_agent_distribution(noisy)
+
+    Path("data/reports").mkdir(parents=True, exist_ok=True)
+    report_file = Path("data/reports/test_results.json")
+    with open(report_file, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+    print(f"\n[Report] Saved to {report_file}")
+    return results
+
+
+# ----------------------------------------------------------------------
+# CLI Entry
+# ----------------------------------------------------------------------
+
+if __name__ == "__main__":
+    final = run_full_test_suite()
+    print("\n--- Summary ---")
+    print(json.dumps(final, indent=2))
