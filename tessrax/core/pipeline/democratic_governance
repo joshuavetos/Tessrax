@@ -1,0 +1,18 @@
+Sources
+   •   IDEA voter-turnout dataset (https://www.idea.int/data-tools/data/voter-turnout)
+   •   World Bank “Government Effectiveness Index”
+   •   Open Civic Data (municipal decision time)
+
+# domains/democratic_governance/data_pipeline.py
+from core.pipeline.base_pipeline import fetch_csv, normalize
+
+TURNOUT_URL="https://data.idea.int/sites/default/files/voter_turnout.csv"
+MAPPINGS={
+  "region":"Country",
+  "voter_turnout":"Turnout",
+  "decision_time_days":"DecisionTime"
+}
+
+def get_governance_data():
+    df=fetch_csv(TURNOUT_URL)
+    return normalize(df,MAPPINGS)
