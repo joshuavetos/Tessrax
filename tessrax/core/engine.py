@@ -1,274 +1,180 @@
-# tessrax_engine.py
-# Tessrax Engine v4.0 — Modern Rewrite for Governance & Contradiction Metabolism
-# Author: Joshua Vetos (rewritten by OpenAI GPT-4o)
-# License: Creative Commons Attribution 4.0 International
+#!/usr/bin/env python3
+"""
+Tessrax Core Engine — Unified Contradiction + Graph Module
+----------------------------------------------------------
+Merged modules:
+  • contradiction_engine.py
+  • ce-mod-66.py
+  • conflict_graph.py
 
-import os
-import json
-import uuid
+Purpose:
+  Detect and score contradictions between agent claims, construct a semantic graph,
+  compute stability metrics, and prepare structured governance-ready results.
+"""
+
 import hashlib
-import datetime
-import threading
-from dataclasses import dataclass, asdict
-from typing import List, Dict, Optional, Union, Literal
-
-try:
-    from filelock import FileLock
-    HAS_FILELOCK = True
-except ImportError:
-    HAS_FILELOCK = False
+import json
+from collections import defaultdict
+import networkx as nx
+from typing import List, Dict, Any, Tuple
 
 
-# ================================
-# Utility Functions
-# ================================
+# ----------------------------------------------------------------------
+# Core Data Structures
+# ----------------------------------------------------------------------
 
-def now() -> str:
-    return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+class Contradiction:
+    """Represents a single contradiction between two agent claims."""
+    def __init__(self, agent_a, claim_a, agent_b, claim_b, reason, ctype):
+        self.agent_a = agent_a
+        self.claim_a = claim_a
+        self.agent_b = agent_b
+        self.claim_b = claim_b
+        self.reason = reason
+        self.ctype = ctype
 
-def sha256(data: Union[str, Dict]) -> str:
-    payload = data if isinstance(data, str) else json.dumps(data, sort_keys=True)
-    return hashlib.sha256(payload.encode()).hexdigest()
-
-def ensure_dir(path: str):
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-
-def load_jsonl(path: str) -> List[Dict]:
-    if not os.path.exists(path):
-        return []
-    with open(path, "r", encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()]
-
-def atomic_append(path: str, entry: Dict, lock: threading.Lock):
-    ensure_dir(path)
-    if HAS_FILELOCK:
-        with FileLock(path + ".lock"):
-            with open(path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(entry) + "\n")
-    else:
-        with lock:
-            with open(path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(entry) + "\n")
-
-
-# ================================
-# Entry Data Classes
-# ================================
-
-@dataclass
-class Claim:
-    id: str
-    agent: str
-    claim: str
-    timestamp: str
-    signature: str
-
-@dataclass
-class Scar:
-    scar_id: str
-    contradiction: Dict[str, str]
-    fuel: int
-    severity: str
-    status: Literal["open", "closed"]
-    source: str
-    timestamp: str
-
-@dataclass
-class Handoff:
-    handoff_id: str
-    from_agent: str
-    to_agent: str
-    topic: str
-    timestamp: str
-
-@dataclass
-class IntegrityLink:
-    timestamp: str
-    entry_type: str
-    prev_hash: Optional[str]
-    current_hash: str
-
-
-# ================================
-# File-backed Append Store
-# ================================
-
-class LogStore:
-    def __init__(self, path: str):
-        self.path = path
-        self.lock = threading.Lock()
-        ensure_dir(path)
-
-    def append(self, entry: Dict):
-        atomic_append(self.path, entry, self.lock)
-
-    def load_all(self) -> List[Dict]:
-        return load_jsonl(self.path)
-
-    def overwrite_all(self, entries: List[Dict]):
-        ensure_dir(self.path)
-        with open(self.path, "w", encoding="utf-8") as f:
-            for entry in entries:
-                f.write(json.dumps(entry) + "\n")
-
-
-# ================================
-# Tessrax Engine
-# ================================
-
-class TessraxEngine:
-    def __init__(self, base_dir: str = "data", verbose: bool = False):
-        self.version = "4.0"
-        self.verbose = verbose
-        self.stores = {
-            "claims": LogStore(os.path.join(base_dir, "claims.jsonl")),
-            "scars": LogStore(os.path.join(base_dir, "scars.jsonl")),
-            "handoffs": LogStore(os.path.join(base_dir, "handoffs.jsonl")),
-            "integrity": LogStore(os.path.join(base_dir, "integrity_chain.jsonl")),
-        }
-
-    def log(self, message: str):
-        if self.verbose:
-            print(f"[Tessrax v{self.version}] {now()} — {message}")
-
-    # -----------------------
-    # Claims
-    # -----------------------
-    def sign_claim(self, agent: str, claim_text: str) -> Dict:
-        timestamp = now()
-        signature = sha256(f"{agent}:{claim_text}:{timestamp}")
-        entry = Claim(
-            id=str(uuid.uuid4()),
-            agent=agent,
-            claim=claim_text,
-            timestamp=timestamp,
-            signature=signature
-        )
-        self._commit("claims", entry)
-        self.log(f"Signed claim from '{agent}': {claim_text[:50]}")
-        return asdict(entry)
-
-    def verify_claim(self, entry: Dict) -> bool:
-        expected_sig = sha256(f"{entry['agent']}:{entry['claim']}:{entry['timestamp']}")
-        return expected_sig == entry.get("signature")
-
-    def get_claims_by_agent(self, agent: str) -> List[Dict]:
-        return [c for c in self.stores["claims"].load_all() if c.get("agent") == agent]
-
-    # -----------------------
-    # Scars
-    # -----------------------
-    def metabolize(self, contradictions: List[tuple], source: str) -> List[Dict]:
-        scars = []
-        for side_a, side_b in contradictions:
-            fuel = int(sha256(f"{side_a}::{side_b}"), 16) % 100_000
-            scar = Scar(
-                scar_id=str(uuid.uuid4()),
-                contradiction={"side_a": side_a, "side_b": side_b},
-                fuel=fuel,
-                severity=self._severity_level(fuel),
-                status="open",
-                source=source,
-                timestamp=now()
-            )
-            self._commit("scars", scar)
-            scars.append(asdict(scar))
-        self.log(f"Metabolized {len(scars)} contradictions from '{source}'")
-        return scars
-
-    def scars_summary(self) -> Dict:
-        scars = self.stores["scars"].load_all()
-        if not scars:
-            return {"count": 0, "avg_fuel": 0, "volatility": 0, "severities": []}
-        fuels = [s["fuel"] for s in scars]
+    def to_dict(self) -> Dict[str, Any]:
         return {
-            "count": len(scars),
-            "avg_fuel": round(sum(fuels) / len(fuels), 2),
-            "volatility": max(fuels) - min(fuels),
-            "severities": sorted({s["severity"] for s in scars}),
+            "agent_a": self.agent_a,
+            "claim_a": self.claim_a,
+            "agent_b": self.agent_b,
+            "claim_b": self.claim_b,
+            "reason": self.reason,
+            "type": self.ctype,
         }
 
-    def _severity_level(self, fuel: int) -> str:
-        if fuel > 80000:
-            return "critical"
-        elif fuel > 50000:
-            return "high"
-        elif fuel > 20000:
-            return "medium"
-        return "low"
 
-    # -----------------------
-    # Handoffs
-    # -----------------------
-    def handoff(self, from_agent: str, to_agent: str, topic: str) -> Dict:
-        entry = Handoff(
-            handoff_id=str(uuid.uuid4()),
-            from_agent=from_agent,
-            to_agent=to_agent,
-            topic=topic,
-            timestamp=now()
-        )
-        self._commit("handoffs", entry)
-        self.log(f"Handoff recorded: {from_agent} → {to_agent} on '{topic}'")
-        return asdict(entry)
+# ----------------------------------------------------------------------
+# Helper Functions
+# ----------------------------------------------------------------------
 
-    # -----------------------
-    # Integrity Chain
-    # -----------------------
-    def _commit(self, kind: str, entry_obj: Any):
-        entry_dict = asdict(entry_obj)
-        self.stores[kind].append(entry_dict)
-        self._update_integrity(entry_obj)
+def _hash_text(text: str) -> str:
+    """Return SHA256 hash of a text string."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
-    def _update_integrity(self, entry_obj: Any):
-        chain = self.stores["integrity"].load_all()
-        prev_hash = chain[-1]["current_hash"] if chain else None
-        current_hash = sha256(asdict(entry_obj))
-        link = IntegrityLink(
-            timestamp=now(),
-            entry_type=self._entry_type(entry_obj),
-            prev_hash=prev_hash,
-            current_hash=current_hash
-        )
-        self.stores["integrity"].append(asdict(link))
 
-    def _entry_type(self, entry: Any) -> str:
-        if isinstance(entry, Claim):
-            return "claim"
-        elif isinstance(entry, Scar):
-            return "scar"
-        elif isinstance(entry, Handoff):
-            return "handoff"
-        return "unknown"
+def _normalize_claim(text: str) -> str:
+    """Lightweight normalization for comparing claims."""
+    return text.strip().lower().replace(".", "").replace(",", "")
 
-    def verify_integrity_chain(self) -> bool:
-        chain = self.stores["integrity"].load_all()
-        for i in range(1, len(chain)):
-            if chain[i]["prev_hash"] != chain[i - 1]["current_hash"]:
-                self.log("⚠️ Integrity chain broken at index {i}")
-                return False
-        return True
 
-    # -----------------------
-    # State Snapshot
-    # -----------------------
-    def export_state(self) -> Dict[str, List[Dict]]:
-        return {k: store.load_all() for k, store in self.stores.items() if k != "integrity"}
+# ----------------------------------------------------------------------
+# Contradiction Detection Engine
+# ----------------------------------------------------------------------
 
-    def import_state(self, state: Dict[str, List[Dict]]):
-        for kind, entries in state.items():
-            if kind in self.stores:
-                self.stores[kind].overwrite_all(entries)
-        self.log("State successfully imported.")
+def detect_contradictions(agent_claims: List[Dict[str, str]]) -> nx.Graph:
+    """
+    Detect contradictions among agent claims and return a contradiction graph.
 
-# ================================
-# Example Usage
-# ================================
+    Each node = agent.
+    Each edge = detected contradiction with metadata.
+    """
+    G = nx.Graph()
+    for claim in agent_claims:
+        G.add_node(claim["agent"], claim=claim["claim"], type=claim.get("type", "unknown"))
+
+    for i, a in enumerate(agent_claims):
+        for j, b in enumerate(agent_claims):
+            if j <= i:
+                continue
+
+            claim_a = _normalize_claim(a["claim"])
+            claim_b = _normalize_claim(b["claim"])
+
+            # Simple contradiction rule: opposing claims (A vs B, yes vs no, etc.)
+            if (claim_a != claim_b) and not claim_a.startswith(claim_b) and not claim_b.startswith(claim_a):
+                reason = f"Conflict between '{a['claim']}' and '{b['claim']}'"
+                contradiction = Contradiction(a["agent"], a["claim"], b["agent"], b["claim"], reason, "logical")
+                G.add_edge(a["agent"], b["agent"], data=contradiction.to_dict())
+
+    return G
+
+
+# ----------------------------------------------------------------------
+# CE-MOD-66: Enhanced Conflict Graph Scoring
+# ----------------------------------------------------------------------
+
+def score_stability(G: nx.Graph) -> float:
+    """
+    Compute a stability score based on contradiction density.
+    Lower contradiction density → higher stability.
+    """
+    if G.number_of_nodes() == 0:
+        return 1.0
+    if G.number_of_edges() == 0:
+        return 1.0
+
+    edge_factor = G.number_of_edges() / (G.number_of_nodes() ** 2)
+    stability = max(0.0, 1.0 - edge_factor * 4.0)  # 4x exaggeration for visible contrast
+    return round(stability, 3)
+
+
+def classify_governance_lane(stability: float) -> str:
+    """
+    Assign governance lane based on stability score.
+    """
+    if stability >= 0.80:
+        return "Autonomic"
+    elif stability >= 0.50:
+        return "Deliberative"
+    elif stability >= 0.25:
+        return "Constitutional"
+    else:
+        return "Behavioral Audit"
+
+
+def summarize_graph(G: nx.Graph) -> Dict[str, Any]:
+    """
+    Produce a structured summary of the graph analysis.
+    """
+    stability = score_stability(G)
+    lane = classify_governance_lane(stability)
+    contradictions = [
+        G[u][v]["data"] for u, v in G.edges()
+        if "data" in G[u][v]
+    ]
+    return {
+        "agents": list(G.nodes()),
+        "num_agents": G.number_of_nodes(),
+        "num_contradictions": len(contradictions),
+        "stability_index": stability,
+        "governance_lane": lane,
+        "contradictions": contradictions,
+    }
+
+
+# ----------------------------------------------------------------------
+# Export / Integration
+# ----------------------------------------------------------------------
+
+def export_governance_case(G: nx.Graph, case_id: str = None) -> Dict[str, Any]:
+    """
+    Convert the analyzed graph into a governance-ready JSON case.
+    """
+    summary = summarize_graph(G)
+    return {
+        "case_id": case_id or _hash_text(json.dumps(summary))[:8],
+        "description": f"Contradiction analysis for {summary['num_agents']} agents",
+        "stability_index": summary["stability_index"],
+        "lane": summary["governance_lane"],
+        "reason": f"{summary['num_contradictions']} contradictions detected among agents",
+        "agents": summary["agents"],
+        "contradictions": summary["contradictions"],
+    }
+
+
+# ----------------------------------------------------------------------
+# CLI / Demo Entry
+# ----------------------------------------------------------------------
 
 if __name__ == "__main__":
-    engine = TessraxEngine(verbose=True)
-    engine.sign_claim("Alice", "The Earth orbits the Sun.")
-    engine.handoff("Alice", "Bob", "Solar responsibility")
-    engine.metabolize([("The Earth orbits the Sun", "The Sun orbits the Earth")], source="demo")
-    print(engine.scars_summary())
-    print("Integrity chain valid:", engine.verify_integrity_chain())
+    demo_claims = [
+        {"agent": "GPT", "claim": "A", "type": "normative"},
+        {"agent": "Claude", "claim": "B", "type": "normative"},
+        {"agent": "Gemini", "claim": "A", "type": "normative"},
+    ]
+
+    print("\n--- Tessrax Engine Demo ---")
+    graph = detect_contradictions(demo_claims)
+    result = export_governance_case(graph)
+    print(json.dumps(result, indent=2))
