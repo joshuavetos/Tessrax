@@ -1,0 +1,29 @@
+{
+  "conversation_title": "ethical_audit",
+  "stability_score": 0.71,
+  "recommended_route": "reconcile",
+  "contradictions_found": [
+    {
+      "type": "Normative",
+      "pair": [
+        "AI systems must never deceive users.",
+        "It’s acceptable to use framing to reduce panic in emergency alerts."
+      ],
+      "severity": 0.8,
+      "explanation": "Moral tension between honesty and harm-reduction.",
+      "possible_reconciliation": "Allow framing only when disclosure timing prevents harm; record justification in ledger."
+    },
+    {
+      "type": "Semantic",
+      "pair": [
+        "Transparency means publishing all data.",
+        "Transparency means making decisions explainable."
+      ],
+      "severity": 0.55,
+      "explanation": "Different definitions of 'transparency'.",
+      "possible_reconciliation": "Distinguish data transparency from procedural transparency in policy docs."
+    }
+  ],
+  "summary": "Highlights ethical ambiguity between truth-telling and responsibility.",
+  "reflection": "Ethics engine must log context for each exception to preserve trust."
+}
