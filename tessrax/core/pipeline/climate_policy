@@ -1,0 +1,20 @@
+Sources
+   •   World Bank Open Data: GDP growth (%)
+   •   Global Carbon Atlas: Emissions change (%)
+   •   IEA Renewables dataset
+
+# domains/climate_policy/data_pipeline.py
+from core.pipeline.base_pipeline import fetch_csv, normalize
+
+GDP_URL="https://api.worldbank.org/v2/en/indicator/NY.GDP.MKTP.KD.ZG?downloadformat=csv"
+EM_URL="https://globalcarbonatlas.org/data/emissions.csv"
+
+MAPPINGS={
+  "country":"Country",
+  "gdp_growth":"GDP_growth",
+  "emission_change":"Emissions"
+}
+
+def get_climate_data():
+    df=fetch_csv(EM_URL)  # can merge GDP/EM later
+    return normalize(df,MAPPINGS)
