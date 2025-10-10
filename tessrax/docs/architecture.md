@@ -1,136 +1,153 @@
-# Tessrax Architecture
+Tessrax Architecture
 
-_This document outlines the architecture of Tessrax, describing its primary components (“primitives”), their interactions, and the governance pipeline that orchestrates decision-making and auditability._
+This document describes the evolved architecture of Tessrax — a modular contradiction-metabolism framework that detects, records, and governs system contradictions across domains.
 
----
+⸻
 
-## 1. Architectural Primitives
+1. System Overview
 
-### 1.1 Receipts
-- **Purpose:** Tamper-evident, cryptographically signed proofs of computation.
-- **Structure:** Contains hashes of code, inputs, outputs, timestamp, executor ID, and signature.
-- **Core Functions:**
-  - `generate_receipt(code, inputs, outputs, executor_id)`
-  - `verify_receipt(receipt, code, inputs, outputs)`
-- **Role:** Anchors each computation in a verifiable, auditable record.
+Tessrax transforms contradictions into first-class data objects.
+It detects logical, semantic, temporal, and normative conflicts between agents or systems, routes them through governance logic, and records the process in a tamper-evident ledger.
 
-### 1.2 Memory
-- **Purpose:** Key/value store with provenance and contradiction detection.
-- **Features:**
-  - Supports provenance tracking for each entry.
-  - Detects contradictions (multiple values for the same key).
-- **Role:** Maintains evolving state and highlights inconsistencies.
+Core subsystems:
+   •   Core Engine (tessrax/core) — foundational logic for contradiction detection, governance, and reconciliation.
+   •   Domains (tessrax/domains) — plug-in detectors for specific contexts (e.g. housing, AI memory).
+   •   Data (data/) — append-only ledgers and reconciliation artifacts.
+   •   Docs & Demos (docs/, demo/) — documentation and runnable examples.
 
-### 1.3 CSV (Contrastive Scar Verification)
-- **Purpose:** Verification primitive for stress-testing reproducibility.
-- **Functions:**
-  - `candidate_output(x)`: Deterministic output.
-  - `contrast_output(x)`: Slightly perturbed output.
-  - `verify(x)`: Checks if candidate matches contrast.
-- **Role:** Ensures verification logic is robust against minor output drift.
+⸻
 
-### 1.4 Ledger
-- **Purpose:** Append-only, tamper-evident log of events.
-- **Features:**
-  - Each event appended is cryptographically linked (Merkle root).
-  - Supports integrity verification.
-- **Role:** Core audit log for governance and traceability.
+2. Core Primitives
 
-### 1.5 Agents
-- **Purpose:** Autonomous or human-supervised decision makers.
-- **Features:**
-  - Agents propose actions via `Agent.act()`.
-  - Human-in-the-loop can approve or reject decisions.
-- **Role:** Blends automation with human oversight.
+2.1 Contradiction Engine
+   •   Purpose: Detects and classifies contradictions between agent claims.
+   •   Types: Logical, Temporal, Semantic, Normative.
+   •   Outputs: A contradiction graph (networkx.Graph) with edges representing conflicts.
+   •   Key Functions:
+      •   detect_contradictions(agent_claims)
+      •   score_stability(graph)
+      •   log_to_ledger(graph, stability, path)
 
-### 1.6 Sandbox
-- **Purpose:** Secure, isolated code execution.
-- **Features:**
-  - Enforces CPU and memory limits.
-  - Captures all outputs (stdout/stderr).
-  - Returns structured results (success, output, error, timing).
-- **Role:** Prevents runaway or malicious code, provides auditable results.
+⸻
 
-### 1.7 Quorum & Dissent
-- **Quorum:** Multi-signature threshold for collective decision enforcement.
-- **Dissent:** Explicitly records disagreement or failed quorum.
+2.2 Governance Kernel
+   •   Purpose: Routes contradiction data into the correct governance lane.
+   •   Mechanism: Stability index → Governance lane.
+   •   Lanes:
+      •   Autonomic — high stability; automatic acceptance.
+      •   Deliberative — medium disagreement; requires review.
+      •   Constitutional — structural contradiction; requires charter update.
+      •   Behavioral Audit — semantic or definitional manipulation detected.
+   •   Key Functions:
+      •   route(graph, stability_index)
+      •   classify_lane(stability)
 
-### 1.8 Federation
-- **Purpose:** Multi-node simulation and coordination.
-- **Features:**
-  - Broadcasts events, synchronizes state, manages cache.
-- **Role:** Ensures distributed consistency and resilience.
+⸻
 
----
+2.3 Ledger
+   •   Purpose: Append-only, verifiable record of all governance events.
+   •   Implementation: GovernanceLedger class with chained SHA-256 hashes.
+   •   Features:
+      •   Hash-linked entries (block-chain style integrity).
+      •   Merkle verification via verify_chain().
+      •   JSONL storage for lightweight auditing.
+   •   Role: Provides auditability and temporal provenance for every governance event.
 
-## 2. Governance Pipeline (Demo Flow)
+⸻
 
-The Tessrax demo flow connects these primitives into a governance pipeline as follows:
+2.4 Interfaces
+   •   Purpose: Define the required structure for any domain plug-in.
+   •   Interface: DomainInterface with detect_contradictions() and optional serialization helpers.
+   •   Role: Guarantees consistent behavior across independently developed domains.
 
-1. **Decision Proposal:**  
-   An agent proposes an action.
-2. **Human Approval:**  
-   Human-in-the-loop approves or rejects. Dissent is recorded if rejected.
-3. **Sandboxed Execution:**  
-   Approved actions execute in a secure sandbox.
-4. **Receipt Generation:**  
-   Execution results are wrapped in a verifiable receipt.
-5. **Ledger Append:**  
-   The receipt is appended to the ledger, updating the Merkle root.
-6. **Quorum Validation:**  
-   Collective agreement is checked. Failures are logged as dissent.
-7. **Federation Propagation:**  
-   Receipts and state changes are broadcast to peer nodes.
+⸻
 
----
+2.5 Reconciliation
+   •   Purpose: Periodically analyzes the ledger to detect resolved or recurring contradictions.
+   •   Function: reconcile(ledger_path) summarizes unresolved contradictions and produces reconciliation statistics.
+   •   Role: Enables adaptive governance evolution by measuring contradiction decay over time.
 
-## 3. Data Flow Diagram
+⸻
 
-```
-+-------+        +--------------+        +---------+
-| Agent | -----> | Human Review | -----> | Sandbox |
-+-------+        +--------------+        +---------+
-     |                   |                     |
-     |                   v                     v
-     |             [Approve/Reject]       [Execution]
-     |                   |                     |
-     v                   v                     |
-+-----------+       +-----------+              |
-|  Dissent  |       |  Receipt  | <------------
-+-----------+       +-----------+              |
-                          |                    |
-                          v                    v
-                      +---------+        +-----------------+
-                      | Ledger  | -----> | Quorum/Dissent  |
-                      +---------+        +-----------------+
-                          |
-                          v
-                    +-------------+
-                    | Federation  |
-                    +-------------+
-```
+2.6 Domains
+   •   Purpose: Provide specialized contradiction logic for different knowledge areas.
+   •   Examples:
+      •   housing — economic and policy contradictions.
+      •   ai_memory — inconsistency across knowledge embeddings.
+      •   attention — cognitive focus conflicts.
+   •   Implementation: Each domain subclasses DomainInterface and registers itself automatically via load_domains().
 
----
+⸻
 
-## 4. Key Design Principles
+3. Governance Pipeline (Runtime Flow)
 
-- **Transparency:** All computations are auditable and tamper-evident.
-- **Contradiction Handling:** State inconsistencies are detected and logged.
-- **Human-in-the-Loop:** Blends automation with required human oversight.
-- **Extensibility:** Architecture supports the addition of new primitives.
-- **Distributed Resilience:** Federation enables multi-node deployments.
++-------------+        +----------------+        +---------------+
+| Agent Claims| -----> | Contradiction  | -----> | Governance    |
+|  (Inputs)   |        |   Engine       |        |   Kernel      |
++-------------+        +----------------+        +---------------+
+       |                         |                       |
+       |                         v                       v
+       |                   [Contradiction Graph]   [Governance Event]
+       |                         |                       |
+       v                         v                       v
++----------------+        +----------------+        +----------------+
+| Ledger (JSONL) | -----> | Reconciliation | -----> |  Reports / API |
++----------------+        +----------------+        +----------------+
 
----
 
-## 5. Limitations & Future Work
+⸻
 
-- **Current system is for demonstration; not hardened for production or multi-user concurrency.**
-- **Planned enhancements:**
-  - Stronger consistency and access control.
-  - Improved sandbox isolation.
-  - Blockchain-based log anchoring.
-  - Production-grade federation.
+4. Extensibility Mechanism
 
----
+Domain Discovery
 
-_Last updated: 2025-10-05_
+load_domains() dynamically scans the domains/ directory and imports any detector implementing DomainInterface.
+
+Configuration
+
+Future configuration via charter.json will define:
+   •   Governance thresholds (Autonomic, Deliberative, etc.)
+   •   Active domains
+   •   Ledger storage paths
+
+Example Invocation
+
+python core/engine.py                # Core demo
+python core/engine.py --domain all   # Run all available domains
+python core/engine.py --verify-ledger
+
+
+⸻
+
+5. Data Integrity Model
+   •   Hash Chain: Every ledger entry includes prev_hash and hash.
+   •   Tamper Detection: verify_chain() recomputes hashes to ensure integrity.
+   •   Reconciliation: Summarizes contradiction persistence and decay metrics.
+   •   Receipts: (future feature) Each ledger entry can be wrapped in a signed receipt for external anchoring.
+
+⸻
+
+6. Design Principles
+   •   Auditability: Every computation and governance event is traceable.
+   •   Composability: Domains and governance lanes are modular.
+   •   Extensibility: New contradiction types and governance rules can be added dynamically.
+   •   Transparency: Contradictions are surfaced, not hidden.
+   •   Autonomy + Oversight: Machine decisions are routable through human-in-the-loop lanes.
+
+⸻
+
+7. Limitations & Future Work
+   •   Reconciliation logic is minimal; lacks weighted persistence analysis.
+   •   Governance kernel currently uses static thresholds instead of policy files.
+   •   Only the housing domain is fully implemented; others remain stubs.
+   •   Lacks full API layer for external integrations.
+   •   Future milestones:
+      •   Domain generalization (AI memory, attention, governance, climate)
+      •   Visual ledger explorer (contradiction graph visualization)
+      •   Policy charter import/export
+      •   Optional distributed ledger anchoring
+
+⸻
+
+Last updated: 2025-10-10
+
