@@ -588,3 +588,97 @@ Resulting Behavior
 Tagline:
 
 “Feel the loss. Do the logical thing anyway.”
+IMPLEMENTATION SPEC — DETACHMENT ENGINE v1.0
+
+Purpose: Operationalizes the Recognition → Detachment → Action → Fuel pipeline.
+
+⸻
+
+1. Recognition Event Detector
+
+def detect_recognition(text):
+    patterns = [
+        r"\bthis isn'?t working\b",
+        r"\bi (was|am) wrong\b",
+        r"\bthe data (shows|proves|indicates)\b",
+        r"\bwe need to (stop|change|pivot)\b"
+    ]
+    return any(re.search(p, text.lower()) for p in patterns)
+
+Output: recognition_event = True | False
+Logged as: SCARD_TYPE = "Recognition"
+
+⸻
+
+2. Attachment Parser
+
+ATTACHMENT_TAGS = {
+    "time": [r"\bspent\b", r"\bwasted\b", r"\bmonths\b"],
+    "identity": [r"\bi('?m| am) the\b", r"\bthat'?s who i am\b"],
+    "ego": [r"\b(can'?t|won'?t) be wrong\b", r"\bprove\b"],
+    "certainty": [r"\bcan'?t risk\b", r"\bunknown\b"],
+    "social": [r"\beveryone (thinks|does)\b", r"\blook foolish\b"]
+}
+
+def parse_attachment(text):
+    matches = []
+    for tag, pats in ATTACHMENT_TAGS.items():
+        if any(re.search(p, text.lower()) for p in pats):
+            matches.append(tag)
+    weight = min(1.0, len(matches) * 0.2)
+    return matches, weight
+
+Outputs:
+   •   attachment_types = [tags]
+   •   attachment_weight ∈ [0,1]
+
+⸻
+
+3. Detachment Score Calculator
+
+def calc_detachment(recognition_event, attachment_weight, threshold=0.7):
+    score = (1 if recognition_event else 0) * (1 - attachment_weight)
+    status = "READY" if score >= threshold else "PARALYZED"
+    return score, status
+
+Outputs:
+   •   detachment_score
+   •   status
+
+⸻
+
+4. Action Tracker
+
+def track_action(event_log, logical_action_taken):
+    if logical_action_taken:
+        event_log.append({"event":"fuel_event","stability_delta":+1.0})
+        return "FUEL"
+    else:
+        event_log.append({"event":"paralysis_alert","stability_delta":-0.5})
+        return "PARALYSIS"
+
+Outputs:
+   •   fuel_event or paralysis_alert
+   •   stability_delta for Metabolism Engine
+
+⸻
+
+5. Pattern Analyzer
+
+def analyze_patterns(history):
+    recognitions = sum(1 for h in history if h["type"]=="Recognition")
+    actions = sum(1 for h in history if h.get("event")=="fuel_event")
+    dsr = actions / recognitions if recognitions else 0
+    top_attachments = Counter(tag for h in history for tag in h.get("attachments",[]))
+    return {"DSR": round(dsr,2), "attachment_profile": top_attachments.most_common()}
+
+Outputs:
+   •   DSR (Detachment Success Rate)
+   •   attachment_profile
+
+⸻
+
+Integration Points
+   •   Emits Detachment SCARD objects into Reflection Layer.
+   •   Updates Stability Index in Metabolism Engine.
+   •   Feeds Attachment Heatmaps into Commons Layer for collective trend visualization.
