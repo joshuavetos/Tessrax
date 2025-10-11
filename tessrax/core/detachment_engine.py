@@ -116,3 +116,23 @@ def analyze_and_log(text: str, event_log: List[Dict]) -> Dict[str, Any]:
 
     event_log.append(result)
     return result
+    
+from core.detachment_engine import detect_recognition, parse_attachment, calc_detachment
+
+def analyze_with_detachment(self, text: str) -> Dict[str, Any]:
+    """Extended analysis pipeline: contradiction + detachment."""
+    base = self.analyze_for_contradictions(text)
+    recognition = detect_recognition(text)
+
+    if recognition:
+        attachments, weight = parse_attachment(text)
+        score, status = calc_detachment(recognition, weight)
+        base["detachment"] = {
+            "recognition": recognition,
+            "attachments": attachments,
+            "attachment_weight": weight,
+            "detachment_score": score,
+            "status": status
+        }
+
+    return base
