@@ -682,3 +682,116 @@ Integration Points
    •   Emits Detachment SCARD objects into Reflection Layer.
    •   Updates Stability Index in Metabolism Engine.
    •   Feeds Attachment Heatmaps into Commons Layer for collective trend visualization.
+Here’s the “three things” you can drop right into your repository so the Detachment Engine is runnable and self-contained:
+
+⸻
+
+1️⃣ detachment_practices.py — Detachment Practice Library
+
+# Library of targeted prompts for releasing attachment
+
+DETACHMENT_PRACTICES = {
+    "time": [
+        "Past time is sunk. Only future actions create value.",
+        "The months I spent were tuition for this lesson.",
+        "Would I rather defend time lost or reclaim time ahead?"
+    ],
+    "identity": [
+        "My methods serve me; I don’t serve them.",
+        "Changing approach is evolution, not betrayal.",
+        "I can outgrow this and remain myself."
+    ],
+    "ego": [
+        "Being wrong is evidence I’m still learning.",
+        "Admitting error is integrity, not weakness.",
+        "Truth matters more than being right."
+    ],
+    "certainty": [
+        "Uncertainty means possibility.",
+        "The unknown is not danger—it’s discovery.",
+        "Data beats comfort every time."
+    ],
+    "social": [
+        "Consensus is not correctness.",
+        "Others’ opinions are variables, not laws.",
+        "Respect doesn’t require conformity."
+    ],
+    "investment": [
+        "Money spent is information bought.",
+        "Continuing waste isn’t recovery.",
+        "Stop loss = start gain."
+    ]
+}
+
+def suggest_practice(attachment_types):
+    """Return detachment prompts for each detected attachment type."""
+    suggestions = []
+    for atype in attachment_types:
+        suggestions.extend(DETACHMENT_PRACTICES.get(atype, []))
+    return suggestions
+
+
+⸻
+
+2️⃣ detachment_tracker.py — Progress Tracker
+
+# Tracks user progress in practicing detachment
+
+def track_detachment_work(user_id, attachment_type, practices_completed, current_weight):
+    """
+    Simulate improvement in detachment weight after practice.
+    Each completed practice reduces weight by 0.05.
+    """
+    improvement = 0.05 * practices_completed
+    new_weight = max(0.0, current_weight - improvement)
+    return {
+        "user_id": user_id,
+        "attachment_type": attachment_type,
+        "attachment_weight_before": round(current_weight, 2),
+        "practices_completed": practices_completed,
+        "attachment_weight_after": round(new_weight, 2),
+        "estimated_sessions_to_threshold": max(0, int((new_weight - 0.3) / 0.05))
+    }
+
+
+⸻
+
+3️⃣ threshold_config.py — Adaptive Threshold Configuration
+
+# Adaptive detachment thresholds based on user history
+
+DEFAULT_THRESHOLD = 0.7
+
+def get_user_threshold(user_profile):
+    """
+    Determine personalized threshold.
+    If user has historical action data, adapt threshold to behavior.
+    """
+    past = user_profile.get("past_actions_at_score", [])
+    if not past:
+        return DEFAULT_THRESHOLD
+
+    # 25th percentile of scores where user acted
+    past.sort()
+    index = int(len(past) * 0.25)
+    adaptive = past[index] if index < len(past) else DEFAULT_THRESHOLD
+    return round(adaptive, 2)
+
+
+⸻
+
+💡 How to integrate
+	1.	Place these three files alongside your main detachment_engine.py.
+	2.	Import them where needed:
+
+from detachment_practices import suggest_practice
+from detachment_tracker import track_detachment_work
+from threshold_config import get_user_threshold
+
+
+	3.	Run your conversation loop exactly as in your earlier example — it will now:
+      •   Suggest tailored detachment prompts
+      •   Track practice progress
+      •   Adapt detachment thresholds per user
+
+Together they complete the Detachment Engine into a live behavioral subsystem inside your SCARDS framework.
