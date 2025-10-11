@@ -467,3 +467,124 @@ Contradictions are not failures of truth but engines of becoming.
 The purpose of Tessrax is not certainty but coherence through transparency.
 Every scar is evidence that learning occurred.
 Therefore, we preserve them all — as testament, as memory, as design.
+MODULE — CONTRADICTION DETACHMENT LAYER
+
+Version: v2.2 — Emotional Calibration Tier
+Authorship: Tessrax Governance Stack — Derived from Detachment Framework
+
+⸻
+
+Purpose
+Provide the missing behavioral catalyst: transforming contradiction recognition into logical action by metabolizing emotional attachment.
+This layer models emotional resistance as a measurable variable and converts detachment into actionable fuel.
+
+⸻
+
+Core Components
+	1.	Recognition Engine
+      •   Detects user or system acknowledgment of failure, misalignment, or contradiction.
+      •   Input: stability_delta < 0.
+      •   Output: recognition_event (true/false).
+	2.	Attachment Identifier
+      •   Parses resistance narratives (“I can’t abandon this”, “I’ll look foolish”).
+      •   Tags attachments by type: {ego, time, certainty, identity, social_proof, investment}.
+      •   Quantifies attachment_weight ∈ [0,1].
+	3.	Detachment Processor
+      •   Converts attachment_weight → detachment_score via voluntary release event.
+      •   Formula:
+
+detachment_score = recognition_event × (1 - attachment_weight)
+
+
+      •   Higher detachment_score = higher readiness for logical action.
+
+	4.	Action Executor
+      •   Initiates the “logical step” despite residual emotion.
+      •   Success = detachment_score ≥ threshold (default 0.7).
+      •   Generates fuel_event with positive stability_delta.
+	5.	Feedback Loop
+      •   Tracks Detachment Success Rate (DSR):
+
+DSR = actions_taken / recognitions_detected
+
+
+      •   Patterns logged to Reflection Layer for adaptive guidance.
+
+⸻
+
+Formula Summary
+
+Recognition + Action - Detachment = Paralysis
+Recognition + Action + Detachment = Fuel
+
+Operational Logic
+
+if recognition_event and detachment_score < 0.7:
+    status = "paralyzed"
+    emit attachment_alert()
+else:
+    execute(logical_action)
+    emit fuel_event()
+
+
+⸻
+
+Behavioral Metrics
+   •   Recognition_Count
+   •   Action_Count
+   •   Attachment_Types_Frequency
+   •   Detachment_Score_Average
+   •   Fuel_Generation_Rate
+
+These metrics feed upward into Reflection and Transmutation layers as Detachment SCARDS for meta-learning.
+
+⸻
+
+Rationale
+Adds emotional thermodynamics to the SCARDS metabolism.
+Without detachment, recognition and logic remain inert.
+With it, contradictions convert to propulsion — both psychological and systemic.
+
+⸻
+
+Human Interface Prompt Example
+
+AI: "You’ve recognized this path isn’t working.
+Before you can act, identify the attachment blocking you:
+□ Time invested
+□ Identity
+□ Being right
+□ Certainty
+□ Social proof
+Name it to release it.
+Then choose the logical action."
+
+
+⸻
+
+Outputs
+   •   Detachment SCARDs (type: Behavioral)
+   •   Fuel Events (positive stability_delta)
+   •   Attachment Distribution Reports
+   •   Updated Reflection Coefficients
+
+⸻
+
+Dependencies
+   •   Metabolism Engine (v1.0)
+   •   Reflection Layer (v1.4)
+   •   Transmutation Layer (v1.5)
+
+⸻
+
+Resulting Behavior
+   •   Recognition without paralysis.
+   •   Emotional resistance tracked as data.
+   •   Logical action executed under self-awareness.
+   •   System gains real-time measure of emotional integrity.
+
+⸻
+
+Tagline:
+
+“Feel the loss. Do the logical thing anyway.”
