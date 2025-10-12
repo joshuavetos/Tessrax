@@ -1,0 +1,391 @@
+
+Every item below shows the folder tree and then the purpose or sample file contents you should drop inside each node so the structure mirrors the alpha build spec you already wrote.
+It’s organized so you can clone it straight into your Tessrax repo and immediately start wiring code or documentation.
+
+⸻
+
+Folder Tree
+
+/SCARDS
+│
+├── README.md
+│
+├── build/
+│   └── tessrax_alpha_build.json
+│
+├── schemas/
+│   ├── scard.schema.json
+│   ├── stability_field.schema.json
+│   ├── fuel_event.schema.json
+│   ├── federation_intent.schema.json
+│   └── verse.schema.json
+│
+├── services/
+│   ├── detection_layer/
+│   │   ├── main.py
+│   │   ├── event_ingestion_gateway.py
+│   │   ├── rarity_resonance_engine.py
+│   │   ├── chaos_layer_injector.py
+│   │   └── README.md
+│   │
+│   ├── metabolism_layer/
+│   │   ├── main.py
+│   │   ├── metabolism_tick_service.py
+│   │   ├── gravity_clusterer.py
+│   │   ├── detachment_engine.py
+│   │   ├── orchestration_service.py
+│   │   └── README.md
+│   │
+│   ├── reflection_layer/
+│   │   ├── main.py
+│   │   ├── reflection_engine.py
+│   │   ├── blind_spot_detector.py
+│   │   ├── governance_mirrors_api.py
+│   │   ├── transmutation_synthesis.py
+│   │   └── README.md
+│   │
+│   ├── mythic_layer/
+│   │   ├── main.py
+│   │   ├── mythic_translator.py
+│   │   ├── constellation_mapper.py
+│   │   ├── axis_horizon_singularity.py
+│   │   ├── lore_ledger.py
+│   │   └── README.md
+│   │
+│   ├── federation_layer/
+│   │   ├── main.py
+│   │   ├── federation_server.py
+│   │   ├── fuel_economy_service.py
+│   │   ├── conflict_resolution_service.py
+│   │   ├── commons_graph_service.py
+│   │   └── README.md
+│   │
+│   └── ritual_terminal/
+│       ├── main.py
+│       ├── ritual_client_app.py
+│       ├── realtime_visualization_service.py
+│       ├── telemetry_feedback_collector.py
+│       └── README.md
+│
+├── tests/
+│   ├── test_scard_validation.py
+│   ├── test_game_loop.py
+│   ├── test_detachment_engine.py
+│   ├── test_federation_sync.py
+│   └── README.md
+│
+├── devops/
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── github-actions.yml
+│   ├── helm/
+│   │   └── tessrax-alpha-chart.yaml
+│   ├── kustomize/
+│   │   └── deployment.yaml
+│   ├── ci/
+│   │   ├── unit_tests.yml
+│   │   ├── integration_tests.yml
+│   │   └── release_flow.yml
+│   └── README.md
+│
+└── docs/
+    ├── architecture.md
+    ├── game_loop.md
+    ├── interface_design.md
+    ├── emotional_economy.md
+    ├── federation_rules.md
+    ├── chaos_layer.md
+    ├── devops_pipeline.md
+    └── mythic_system.md
+
+
+⸻
+
+Key File Stubs
+
+/SCARDS/README.md
+
+# SCARDS – Tessrax Contradiction Metabolism Framework
+
+This folder contains all executable, schema, and documentation assets for the
+Tessrax Alpha Build (`v0.1.0-alpha`).  It mirrors the architecture defined in
+`tessrax_alpha_build.json` and provides the backbone for the Contradiction Game.
+
+Structure:
+- `build/` → canonical JSON build spec
+- `schemas/` → all data contracts
+- `services/` → modular microservices
+- `tests/` → unit/integration suites
+- `devops/` → deployment and CI/CD
+- `docs/` → human-readable design explanations
+
+/SCARDS/build/tessrax_alpha_build.json
+
+Here is the unified **Alpha Build Plan** integrating all seven design documents into executable logic form.  
+
+***
+
+```json
+{
+  "build_name": "tessrax_alpha_build",
+  "version": "0.1.0-alpha",
+  "modules": {
+    "detection_layer": {
+      "dependencies": [],
+      "interfaces": {
+        "scard_registry": "POST /scards (REST), validate schemas, consent manifests, and signatures",
+        "event_ingestion_gateway": "Kafka topic `contradictions.raw`; deduplication + timestamp",
+        "rarity_resonance_engine": "gRPC scoring API; returns rarity_score and resonance_vector",
+        "chaos_layer_injector": "Feature-flag controlled entropy seeding; emits SCARD seeds"
+      }
+    },
+    "metabolism_layer": {
+      "dependencies": ["detection_layer"],
+      "interfaces": {
+        "metabolism_tick_service": "EventBus subscriber `ticks.metabolism`; applies Scar→Metabolize→Echo loop updates",
+        "gravity_clusterer": "gRPC service cluster_graph.compute(nodes,contradictions)",
+        "detachment_engine": "gRPC detachment.compute(detachment_score) → clarity_fuel",
+        "orchestration_service": "WebSocket broadcast for sync & arbitration outcomes"
+      }
+    },
+    "reflection_layer": {
+      "dependencies": ["metabolism_layer"],
+      "interfaces": {
+        "reflection_engine": "REST /reflection/run (meta-sim counterfactual)",
+        "blind_spot_detector": "Kafka consumer `scards.resolved`; detects contradictions unaddressed",
+        "governance_mirrors_api": "GraphQL view combining SCARD lineage + decision bias traces",
+        "transmutation_synthesis": "POST /transmute → produces Transmuted SCARDs"
+      }
+    },
+    "mythic_layer": {
+      "dependencies": ["reflection_layer"],
+      "interfaces": {
+        "mythic_translator": "gRPC verse.generate({scard_ids, tone}) → text_fragment",
+        "constellation_mapper": "Realtime map of contradiction clusters via WebSocket `orrery.stream`",
+        "axis_horizon_singularity_services": "Forecast tipping points, expose Horizon metrics",
+        "lore_ledger": "Append-only ledger store (cold tier) via provenance API"
+      }
+    },
+    "federation_layer": {
+      "dependencies": ["mythic_layer"],
+      "interfaces": {
+        "federation_server": "Authoritative orchestrator; validates intents, runs arbitration loops",
+        "fuel_economy_service": "REST /fuel and WebSocket `fuel.events`; manages personal/reserve pools",
+        "conflict_resolution_service": "Subscribes to contradictions.intent; performs vote/arbitration/duel",
+        "commons_graph_service": "GraphQL federation view; manages visibility and access policies"
+      }
+    },
+    "ritual_terminal": {
+      "dependencies": ["federation_layer"],
+      "interfaces": {
+        "ritual_client_app": "Electron/Web hybrid terminal running command line, scar log, stability meter, orrery",
+        "realtime_visualization_service": "WebSocket client for constellation/axis updates",
+        "telemetry_feedback_collector": "REST /telemetry; aggregates UX and pacing data"
+      }
+    }
+  },
+  "missing_interface_contracts": [
+    "SCARD registry → Rarity/Resonance engine API contract (field-level: rarity_score, resonance_vector, poles)",
+    "Metabolism tick → Stability field protobuf definition (clarity_fuel_delta, volatility, phase_tag)",
+    "Fuel Economy → Federation Server contract for tithe updates and reserve signing (roles Stewards/Catalysts/Keepers)",
+    "Reflection → Mythic Translator contract for transmuted SCARD export (requires standard verse schema)",
+    "Ritual Terminal → Orchestration sync: message structure for partial tick updates vs. authoritative confirmation"
+  ],
+  "loop_rhythm": {
+    "phases": ["Spot", "Scar", "Metabolize", "Echo"],
+    "timing_seconds": {
+      "spot": 20,
+      "scar": 10,
+      "metabolize": 20,
+      "echo": 10
+    },
+    "combo_mechanic": {
+      "trigger_window": 5,
+      "effect": "resonance_chain * 1.5; volatility += 0.2"
+    }
+  },
+  "fuel_and_difficulty": {
+    "fuel_curve": "fuel = 10 * (detachment_score ^ 2)",
+    "max_per_cycle": 30,
+    "diminishing_multiplier": 0.25,
+    "tiers": {
+      "1": "teach_detachment",
+      "2": "balance_fuel_vs_stability",
+      "3": "precision_detachment_cascade"
+    }
+  },
+  "federation_economy": {
+    "pools": {
+      "personal": "local clarity_fuel wallet",
+      "reserve": "server-verified shared fund"
+    },
+    "roles": ["Steward", "Catalyst", "Keeper"],
+    "vote_methods": ["resonance_weight", "arbitration_matrix", "duel_of_proofs"],
+    "matrix_priority": ["Consent", "Governance", "Lineage", "Resonance", "Gravity", "Metabolism", "Decay"]
+  },
+  "entropy_engine": {
+    "sources": ["personal", "social", "ecological", "technological", "mythic", "cosmic"],
+    "parameters": {
+      "rarity": "event_frequency",
+      "resonance": "emotional_weight",
+      "systemic_impact": "stability_field_delta"
+    },
+    "real_world_hooks": {
+      "enabled": false,
+      "data_sources": ["news", "climate", "trending"],
+      "mapping": "external_event → contradictory_theme_seed"
+    }
+  },
+  "ui_layout": {
+    "zones": {
+      "command_line": "bottom_center",
+      "scar_log": "left_panel",
+      "stability_meter": "right_panel",
+      "orrery": "center_canvas"
+    },
+    "aesthetic": "ritual_instrument",
+    "accessibility": ["high_contrast_mode", "text_only", "audio_captioned"]
+  },
+  "storage_hierarchy": {
+    "hot": "postgres + timescaledb",
+    "warm": "s3 snapshots (json/parquet)",
+    "cold": "immutable ledger with merkle_proofs"
+  },
+  "protocols": {
+    "rest": "SCARD CRUD + receipts",
+    "graphql": "composite_player_federation_view",
+    "websocket": "live_ticks_sync",
+    "grpc": "inter_service_calls",
+    "eventbus": "orchestration_topics"
+  },
+  "pseudocode": {
+    "game_loop": [
+      "initialize_session()",
+      "while session_active:",
+      "    phase = 'Spot'; trigger_entropy_events(); update_visual('anticipation')",
+      "    contradictions = detect_contradictions()",
+      "    phase = 'Scar'; player_actions = collect_inputs(); apply_scards(player_actions)",
+      "    phase = 'Metabolize'; update_stability_field(); compute_fuel(detachment_engine)",
+      "    phase = 'Echo'; render_outcomes(); emit_resonance_wave()",
+      "    sync_with_federation_server();",
+      "    sleep(loop_delay);"
+    ],
+    "federation_sync": [
+      "def sync_with_federation_server():",
+      "    intent_batch = collect_local_intents();",
+      "    ws.send(intents ⇒ federation_server);",
+      "    response = ws.receive_confirmations();",
+      "    reconcile_local_state(response.authoritative_delta);",
+      "    update_fuel_balances(response.fuel_state);",
+      "    update_constellation_map(response.constellation_state);",
+      "    commit_lore_fragments_if_needed();"
+    ]
+  },
+  "devops_and_ci": {
+    "repo_structure": "monorepo_with_submodules",
+    "testing": {
+      "unit": ["pytest", "jest", "go test"],
+      "integration": "testcontainers + docker-compose federation",
+      "e2e": "playwright ritual_client",
+      "simulation": "snapshot_constellation_determinism"
+    },
+    "security": ["codeql", "dependabot", "secret_scan"],
+    "release_flow": ["dev", "staging", "canary", "prod"],
+    "progressive_delivery": "argo_rollouts",
+    "feature_flags": ["chaos_layer", "real_world_hooks"],
+    "observability": ["opentelemetry", "grafana", "prometheus"]
+  }
+}
+```
+
+
+Example Schema — /SCARDS/schemas/scard.schema.json
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SCARD",
+  "type": "object",
+  "properties": {
+    "id": {"type": "string"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "contradiction_text": {"type": "string"},
+    "categories": {"type": "array", "items": {"type": "string"}},
+    "provenance": {"type": "string"},
+    "actors": {"type": "array", "items": {"type": "string"}},
+    "context": {"type": "string"},
+    "severity": {"type": "number"},
+    "recurrence_count": {"type": "integer"},
+    "status": {"type": "string", "enum": ["active","resolved","archived"]}
+  },
+  "required": ["id","timestamp","contradiction_text","categories","status"]
+}
+
+Example Service Stub — /SCARDS/services/metabolism_layer/metabolism_tick_service.py
+
+from datetime import datetime
+import asyncio
+
+async def metabolism_tick(stability_field, tick_rate=1.0):
+    """
+    Main metabolism tick loop: updates Scar→Metabolize→Echo.
+    Emits event payloads to the event bus.
+    """
+    while True:
+        stability_field.update_time(datetime.utcnow())
+        stability_field.process_contradictions()
+        await asyncio.sleep(tick_rate)
+
+Example Test — /SCARDS/tests/test_game_loop.py
+
+from services.metabolism_layer.metabolism_tick_service import metabolism_tick
+import asyncio
+
+def test_loop_runs(monkeypatch):
+    class DummyField:
+        def __init__(self): self.ticks = 0
+        def update_time(self, _): self.ticks += 1
+        def process_contradictions(self): pass
+
+    field = DummyField()
+    asyncio.run(asyncio.wait_for(metabolism_tick(field, tick_rate=0.1), timeout=0.3))
+    assert field.ticks > 0
+
+/SCARDS/devops/docker-compose.yml
+
+version: '3.9'
+services:
+  federation:
+    build: ./services/federation_layer
+    ports: ["8080:8080"]
+  ritual_terminal:
+    build: ./services/ritual_terminal
+    ports: ["3000:3000"]
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: tessrax
+      POSTGRES_USER: tessrax
+      POSTGRES_PASSWORD: tessrax
+    ports: ["5432:5432"]
+
+/SCARDS/docs/architecture.md
+
+# Tessrax Alpha Architecture
+
+This document explains how Detection → Metabolism → Reflection → Mythic →
+Federation → Ritual Terminal form a continuous feedback organism.
+Refer to `build/tessrax_alpha_build.json` for API-level detail.
+
+
+⸻
+
+Summary
+
+The /SCARDS folder now contains:
+   •   Code stubs for every layer
+   •   Schemas for all major data types
+   •   Documentation mapped to your seven agent specs
+   •   DevOps pipeline to spin the network locally
+   •   Tests ensuring core loop continuity
+
+Once this directory is committed, you can incrementally fill in logic for each service using the interfaces already defined in tessrax_alpha_build.json.
