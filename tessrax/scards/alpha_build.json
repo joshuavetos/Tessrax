@@ -514,3 +514,299 @@ Once this directory is committed, you can incrementally fill in logic for each s
   "verification_steps": "1) Pre-export checks: count rows matching criteria; snapshot transaction with REPEATABLE READ isolation; compute SHA-256 per SCARD and per tick bundle. 2) Warm write validation: upload Parquet with content-md5; list S3 objects and compare sizes; run parquet schema check and row count parity. 3) Cold ledger construction: deterministically serialize JSON with sorted keys; compute leaf hashes; build Merkle tree and persist root; store per-leaf proof paths. 4) Pointer integrity: write-back cold_pointer to hot/warm, then read-back verify. 5) End-to-end audit: recompute random sample hashes from hot/warm and verify inclusion via Merkle proof against stored root. 6) Observability: emit metrics (migrated_count, failed_count, bytes_written, hash_mismatch_count), logs with correlation IDs, and traces for each batch.",
   "rollback_protocol": "If any step fails: a) Transactional rollback in hot: do not flip archived_warm/fossilized flags until verification passes; keep changes in a staging table. b) Warm rollback: mark S3 objects with temporary tag 'quarantine'; do not delete hot records; re-run export on next cycle. c) Cold rollback: if Merkle root verification fails, discard batch ledger write, retain warm objects, and append an incident record to a non-immutable audit stream. d) Pointer repair: if cold_pointer write-back mismatches, clear pointers and re-queue item; maintain idempotent migration keys to avoid duplicates. e) Recovery playbook: run '/usr/local/bin/recover_batch --batch-id=XYZ' to rehydrate from warm to hot (controlled by feature flag), verifying schema compatibility before insert; notify via PagerDuty and create a change ticket. f) Post-incident: lock migrations via Airflow pause; run checksum sweep over last 24h; enable canary mode (10% batches) before full resumption."
 }
+
+1.
+
+{
+  "player_experience_model": "The cycle produces a rising and falling emotional curve: Spot (20s) builds anticipation and scanning tension as players search for contradictions; Scar (10s) is the sharp decision moment, fast and focused, delivering a burst of agency; Metabolize (20s) is the release and transformation phase, where tension resolves into stability and players feel rewarded with clarity fuel; Echo (10s) is the reflective afterglow, where consequences ripple outward and mythic resonance is felt. Together, the loop creates a breath-like rhythm of inhale (Spot), strike (Scar), exhale (Metabolize), and echo (afterglow).",
+  "suggested_adjustments": {
+    "spot": -5,
+    "scar": 0,
+    "metabolize": 0,
+    "echo": +5
+  },
+  "ideal_session_length": "25–40 minutes",
+  "fatigue_signals": [
+    "average_reaction_time_per_spot",
+    "scar_decision_latency",
+    "fuel_yield_variance",
+    "metabolize_completion_rate",
+    "echo_skip_rate",
+    "session_length_until_idle",
+    "contradiction_detection_errors"
+  ],
+  "telemetry_schema": {
+    "average_reaction_time_per_spot": "float/seconds",
+    "scar_decision_latency": "float/seconds",
+    "fuel_yield_variance": "float/points",
+    "metabolize_completion_rate": "percentage/%",
+    "echo_skip_rate": "percentage/%",
+    "session_length_until_idle": "float/minutes",
+    "contradiction_detection_errors": "integer/count"
+  }
+}
+
+2.
+
+{
+  "curation_algorithm": "Each verse is assigned a dynamic Lore Weight = resonance_score * rarity_score * recency_factor. Recency_factor decays exponentially with time (e.g., half-life of 3 epochs). Verses with Lore Weight below a configurable threshold are marked for archival. High-weight verses persist longer and influence federation mythos, while low-weight verses fade naturally.",
+  "display_policy": "Per epoch, only the top N verses (default 20) by Lore Weight remain visible in the active Lore Ledger. Verses are rotated so that at least 10% of visible slots are reserved for 'fresh' verses from the current epoch, ensuring novelty. Older verses with high Lore Weight can persist across multiple epochs, but no single verse may remain visible beyond 5 epochs without revalidation.",
+  "archival_policy": "When a verse’s Lore Weight falls below threshold or it exceeds its maximum visibility window, it is moved to warm storage (Lore Archive). After 10 epochs in warm storage, verses are fossilized into cold storage (Immutable Ledger) with Merkle proofs for provenance. Archival preserves lineage links so federations can trace mythic continuity without cluttering the active ledger.",
+  "resonance_weighting": "pseudo-code: \nfunction lore_weight(verse):\n    return verse.resonance_score * verse.rarity_score * exp(-epoch_age / 3)\n\nthreshold = 0.15 (tunable)\nif lore_weight < threshold: mark_for_archival",
+  "example_cycle": [
+    { "epoch": 1, "visible": 20, "archived": 80 },
+    { "epoch": 2, "visible": 20, "archived": 160 },
+    { "epoch": 3, "visible": 20, "archived": 240 }
+  ]
+}
+
+3.
+
+{
+  "test_parameters": { "concurrency": 100, "duration_s": 300 },
+  "simulation_method": "Use a distributed load generator that spawns 100 concurrent clients (containers or threads) issuing randomized SCARD intents and arbitration votes. Script phases: (1) Burst SCARD creation (mix of categories, severities) at 10–20 req/s/client for 60s; (2) Arbitration wave where 70% of clients submit conflicting intents and votes within 5–10s windows; (3) Stabilization phase with mixed resolve/revoke actions; (4) Chaos injections (duplicate SCARDs, delayed votes, network jitter). Implement with k6 or Locust for HTTP/WebSocket traffic, plus a custom Node/Python harness to open persistent sockets, send intents, receive Orchestration outcomes, and record timestamps. Seed variability (fixed RNG seeds) for reproducibility; ramp up/down to observe queue behavior.",
+  "expected_metrics": [
+    "latency_ms",
+    "error_rate",
+    "vote_time",
+    "arbitration_throughput",
+    "ws_stream_drop_rate",
+    "intent_queue_depth",
+    "conflict_resolution_success_pct",
+    "duplicate_detect_time_ms"
+  ],
+  "threshold_targets": { "avg_latency_ms": 3000, "error_rate": 0.01 },
+  "resilience_tests": [
+    "network partition",
+    "vote collision",
+    "duplicate SCARDs",
+    "orchestration leader failover",
+    "event bus backlog",
+    "ledger write contention"
+  ]
+}
+
+4.
+
+{
+  "roles": ["Steward", "Catalyst", "Keeper"],
+  "key_types": {
+    "root": "Rotating master every 90d; used to sign federation-wide policies, delegate role keys, and publish JWKS.",
+    "role": "Steward/Catalyst/Keeper scoped keys (valid 30–60d) for domain-specific signing (budget, high-impact actions, audits).",
+    "session": "Ephemeral per login/operation (TTL 15–60m); minted via short-lived JWT/OAuth2 token-bound keys; least-privilege.",
+    "audit": "Read-only verification key (no sign privilege); pinned to ledgers for provenance checks; long-lived (180–365d).",
+    "recovery": "Break-glass key, sealed in HSM with dual control; rotates with root; used only to revoke/restore after compromise."
+  },
+  "rotation_protocol": "1) Schedule cryptoperiods: root=90d, role=30–60d, audit=180–365d, session=15–60m. 2) T-7d pre-rotation: generate next keys in HSM, publish 'next' JWKS with 'nbf' future validity, distribute to federations. 3) T-0 cutover: activate new keys, set old keys to 'grace' for 7d; dual-sign critical artifacts (policies, receipts) during grace to ensure continuity. 4) T+7d retire: disable old keys, mark as 'retired'; archive signatures and publish final revocation list. 5) Automate via signed rotation manifests (root signs role; role signs session issuers). 6) Enforce key separation: root never leaves HSM; session keys are device-bound with token binding; role keys require MFA + policy checks.",
+  "revocation_flow": "1) Detect compromise (anomaly, leak, or manual report). 2) Immediately mark affected key 'revoked' in JWKS and publish revocation event to Commons bus. 3) Broadcast short-lived denylist (CRL-like) to all federation services; force re-auth for sessions derived from revoked issuers. 4) Use recovery key to co-sign emergency rotation manifest; mint replacement keys with shortened cryptoperiods. 5) Re-sign active policies/receipts as needed; append Revocation Receipt to lineage ledger. 6) Post-incident: run audit with Keeper role, rotate dependent role/session keys, and update trust anchors on clients.",
+  "api_endpoints": [
+    "/security/keys/verify",
+    "/security/keys/rotate",
+    "/security/keys/jwks",
+    "/security/keys/revoke",
+    "/security/keys/attest"
+  ],
+  "implementation_notes": "Use Ed25519 for signatures (fast, secure), X25519 for ECDH when needed; publish keys via JWKS (RFC 7517) with kid, alg, use, nbf/exp, status fields. Session tokens: JWT (RFC 7519) with short exp and token binding (DPoP or mTLS). Store keys in HSM/KMS (e.g., CloudHSM/KMS) with audit logs. Dual-sign during grace windows to ease rollovers. Include OCSP-like freshness via signed status endpoint. Enforce MFA and hardware-backed keys (WebAuthn/FIDO2) for role operations. Maintain deterministic serialization for receipts and lineage proofs."
+}
+
+5.
+
+{
+  "service_name": "trace_joiner",
+  "join_key": "scard_id (primary) with fallback to session_id",
+  "input_streams": [
+    "OpenTelemetry traces (server spans: detection/metabolism/reflection/mythic/federation)",
+    "UX telemetry logs (client events: spot/scar/metabolize/echo, UI latencies, input actions)"
+  ],
+  "output_format": "Merged span JSONL where each line is a unified record: {trace_id, scard_id, session_id, phase, start_ts, end_ts, duration_ms, server_attrs{}, client_attrs{}, fuel_delta, stability_delta, resonance_vector[], errors[], device_meta{}}",
+  "query_examples": [
+    "latency_by_phase: SELECT phase, percentile_cont(0.5)(duration_ms), percentile_cont(0.95)(duration_ms) FROM joined_spans WHERE epoch=CURRENT_EPOCH GROUP BY phase;",
+    "fuel_vs_engagement: SELECT bucketize(fuel_delta), avg(client_attrs.interaction_count) FROM joined_spans WHERE phase='metabolize' GROUP BY bucketize(fuel_delta);",
+    "echo_follow_through: SELECT avg(client_attrs.echo_view_time_ms) FROM joined_spans WHERE phase='echo' AND server_attrs.echo_generated=true;",
+    "error_hotspots: SELECT server_attrs.service, count(*) FROM joined_spans WHERE errors IS NOT NULL GROUP BY server_attrs.service;",
+    "resonance_latency_correlation: SELECT corr(server_attrs.resonance_magnitude, duration_ms) FROM joined_spans WHERE phase='metabolize';"
+  ],
+  "storage": "TimescaleDB for time-series aggregation and continuous queries; Elastic index for ad-hoc search across attributes and free-text client logs",
+  "privacy_safeguards": "PII redaction at ingest: strip names/emails, hash session_id with rotating salt, tokenize contradiction_text with on-device summarization before send, apply allowlist of client_attrs, enforce data retention (client_raw=7d, joined=30d, aggregate=90d), access via RBAC; encrypt at rest (KMS) and in transit (mTLS); provide opt-out and data erasure hooks keyed by hashed session_id."
+}
+
+6.
+
+{
+  "tools": ["sigstore", "cosign"],
+  "stages": ["build", "sign", "verify", "promote"],
+  "environment_keys": {
+    "dev": "temporary (ephemeral keypair generated per build, discarded after 24h)",
+    "staging": "rotated (KMS-backed keys rotated every 30d, stored in cloud KMS/HSM-lite)",
+    "prod": "HSM (hardware security module–backed root keys, rotated every 90d, dual-control access)"
+  },
+  "sample_commands": [
+    "cosign sign --key k8s://dev-namespace/tmp-key --upload=true image:tag",
+    "cosign verify --key k8s://staging-namespace/rotated-key image:tag",
+    "cosign sign --key pkcs11:slot-id=0 --hsm image:tag",
+    "cosign verify --cert /etc/certs/prod-chain.pem --keyless image:tag"
+  ],
+  "policy": "No artifact may advance to the next stage (dev→staging→prod) without a verified signature. Verification must succeed against the environment’s trust root (temporary, rotated, or HSM). Dual-signing is required during key rotation windows. Promotion jobs fail closed if verification is missing or invalid."
+}
+
+7.
+
+openapi: 3.1.0
+info:
+  title: Tessrax Alpha API
+  version: 0.1.0
+  description: |
+    Public-facing API for Tessrax Alpha build.  
+    Provides endpoints for SCARD lifecycle management, resonance scoring, and fuel economy queries.  
+    GraphQL endpoint is also available for composite queries.
+servers:
+  - url: https://api.tessrax.io
+paths:
+  /scards:
+    get:
+      summary: List SCARD objects
+      operationId: listScards
+      responses:
+        '200':
+          description: A list of SCARD objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SCARD'
+    post:
+      summary: Create new SCARD
+      operationId: createScard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SCARD'
+      responses:
+        '201':
+          description: SCARD created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SCARD'
+  /resonance/score:
+    post:
+      summary: Compute rarity and resonance
+      operationId: computeResonance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SCARD'
+      responses:
+        '200':
+          description: Resonance and rarity scores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResonanceScore'
+  /fuel:
+    get:
+      summary: Retrieve fuel balances
+      operationId: getFuel
+      parameters:
+        - name: player_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Fuel balance for player
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  player_id:
+                    type: string
+                  fuel_balance:
+                    type: number
+  /graphql:
+    post:
+      summary: GraphQL endpoint for composite queries
+      operationId: graphqlEndpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                variables:
+                  type: object
+      responses:
+        '200':
+          description: GraphQL response
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  schemas:
+    SCARD:
+      type: object
+      required: [id, timestamp, contradiction_text, categories]
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the SCARD
+        timestamp:
+          type: string
+          format: date-time
+        contradiction_text:
+          type: string
+        categories:
+          type: array
+          items:
+            type: string
+        provenance:
+          type: string
+        actors:
+          type: array
+          items:
+            type: string
+        context:
+          type: string
+        severity:
+          type: number
+          minimum: 0
+          maximum: 1
+        recurrence_count:
+          type: integer
+        status:
+          type: string
+          enum: [active, resolved, archived]
+    ResonanceScore:
+      type: object
+      required: [id, rarity_score, resonance_vector, category_poles]
+      properties:
+        id:
+          type: string
+        rarity_score:
+          type: number
+        resonance_vector:
+          type: array
+          items:
+            type: number
+        category_poles:
+          type: array
+          items:
+            type: string
+            
+mkdir -p SCARDS/validated_prompts
+cp *.json *.yaml SCARDS/validated_prompts/
+git add SCARDS/
+git commit -m "Tessrax Alpha – gap closure payloads integrated"
+git tag v0.1.0-alpha-closure
+git push origin v0.1.0-alpha-closure
