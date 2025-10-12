@@ -388,3 +388,129 @@ The /SCARDS folder now contains:
    •   Tests ensuring core loop continuity
 
 Once this directory is committed, you can incrementally fill in logic for each service using the interfaces already defined in tessrax_alpha_build.json.
+
+1.
+
+{
+  "endpoint": "/resonance/score",
+  "method": "POST",
+  "input_schema": {
+    "type": "object",
+    "required": ["id", "timestamp", "contradiction_text", "categories"],
+    "properties": {
+      "id": { "type": "string", "description": "Unique SCARD identifier (UUID or hash)" },
+      "timestamp": { "type": "string", "format": "date-time", "description": "ISO 8601 UTC timestamp of SCARD creation" },
+      "contradiction_text": { "type": "string", "description": "Human-readable contradiction statement" },
+      "categories": { "type": "array", "items": { "type": "string" }, "description": "Category tags for contradiction (e.g., 'freedom', 'order')" },
+      "provenance": { "type": "string", "description": "Source lineage or consent manifest reference" },
+      "actors": { "type": "array", "items": { "type": "string" }, "description": "Entities involved in the contradiction" },
+      "context": { "type": "string", "description": "Optional contextual metadata or narrative frame" },
+      "severity": { "type": "number", "minimum": 0, "maximum": 1, "description": "Normalized severity score" },
+      "recurrence_count": { "type": "integer", "minimum": 0, "description": "Number of times this contradiction has recurred" },
+      "status": { "type": "string", "enum": ["active", "resolved", "archived"], "description": "Lifecycle state of the SCARD" }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "required": ["id", "rarity_score", "resonance_vector", "category_poles"],
+    "properties": {
+      "id": { "type": "string", "description": "Echoes SCARD id for traceability" },
+      "rarity_score": { "type": "number", "minimum": 0, "description": "Computed rarity score (higher = rarer)" },
+      "resonance_vector": { 
+        "type": "array", 
+        "items": { "type": "number" }, 
+        "description": "Numeric vector representing semantic/emotional resonance weights" 
+      },
+      "category_poles": { 
+        "type": "array", 
+        "items": { "type": "string" }, 
+        "description": "Detected opposing category poles (e.g., 'freedom' vs 'order')" 
+      }
+    }
+  },
+  "example_request": {
+    "id": "scard-12345",
+    "timestamp": "2025-10-12T15:41:02Z",
+    "contradiction_text": "Freedom must be limited to preserve order.",
+    "categories": ["freedom", "order"],
+    "provenance": "user:Josh/session:alpha-test-01",
+    "actors": ["citizen", "state"],
+    "context": "federation debate log",
+    "severity": 0.8,
+    "recurrence_count": 3,
+    "status": "active"
+  },
+  "example_response": {
+    "id": "scard-12345",
+    "rarity_score": 0.72,
+    "resonance_vector": [0.15, 0.87, 0.33],
+    "category_poles": ["freedom", "order"]
+  },
+  "notes": "The SCARD schema provides the input context; the Rarity/Resonance Engine enriches it with computed rarity and resonance. 'id' is echoed back for correlation. 'categories' are used to derive 'category_poles'. Type coercions: 'timestamp' must be ISO 8601 string; 'severity' normalized to float [0–1]; 'recurrence_count' coerced to integer. Output 'resonance_vector' is a numeric array (length defined by engine configuration)."
+}
+
+2.
+
+{
+  "visual_differentiation": {
+    "metabolize": "Central Orrery glow contracts inward, contradictions dissolve into a steady core light. Stability Meter brightens with a smooth gradient shift from red/orange to calm blue/green. Scar Log entries seal with a glowing glyph, signaling closure.",
+    "echo": "Rippling concentric rings radiate outward from the Orrery core, fading into the starfield. Mythic verses appear as floating text fragments that drift outward before settling into the Lore Ledger. Colors shift subtly across the spectrum, suggesting diffusion rather than resolution."
+  },
+  "audio_cues": {
+    "metabolize": "A low, resonant hum that resolves into a single clear tone, like a tuning fork stabilizing. Sub-bass pulse fades as clarity is achieved.",
+    "echo": "Soft cascading chimes or harp-like arpeggios that spread in stereo, suggesting outward motion. Gentle reverb tail conveys distance and continuation."
+  },
+  "motion_patterns": {
+    "metabolize": "Inward pull: contradictions collapse smoothly toward the center, then stabilize in stillness. Motion slows and steadies, signaling completion.",
+    "echo": "Outward expansion: resonance waves ripple across the Orrery, constellations shimmer, and fragments drift outward. Motion accelerates briefly, then dissipates into calm."
+  },
+  "player_feedback": "Metabolize should feel like a deep exhale — tension resolving into calm stability, rewarding the player with clarity and control. Echo should feel like the afterglow — the resonance of their action spreading into the wider system, poetic and expansive rather than decisive.",
+  "implementation_notes": "Ensure phase transitions are temporally distinct: Metabolize animations/audio should resolve within ~2–3 seconds, while Echo ripples can last 5–7 seconds with fading persistence. Use separate animation layers so Echo effects do not overwrite Metabolize visuals. Synchronize audio cues with visual triggers for coherence. Keep performance optimized by limiting particle counts in Echo ripples and preloading sound assets to avoid latency."
+}
+
+3.
+
+{
+  "revised_equation": "Per-event: fuel_event = 12 * (detachment_score ^ 1.5). Per-cycle soft cap: cycle_total = max_per_cycle * (1 - e^(-raw_total / max_per_cycle)). Post-cap diminishing: post_cap_multiplier = 1 if raw_total <= max_per_cycle; 0.35 if raw_total <= 1.5 * max_per_cycle; else 0.15. Final credited fuel = fuel_event * post_cap_multiplier, and displayed cycle_total uses the soft-cap function for player clarity.",
+  "example_table": [
+    { "detachment_score": 0.2, "fuel": 1.07 },
+    { "detachment_score": 0.5, "fuel": 4.24 },
+    { "detachment_score": 0.8, "fuel": 8.59 },
+    { "detachment_score": 1.0, "fuel": 12.00 }
+  ],
+  "analysis": "The 1.5 power curve raises mid- to high-skill yields without making low scores worthless, producing a smoother expert ramp than a pure quadratic. The exponential soft cap converts raw_total into a saturating cycle_total so players feel rewarded early in a cycle while naturally tapering off later, reducing grind pressure. The stepped post-cap multipliers preserve meaningful gains for exceptional detachment after the cap (35% then 15%), avoiding harsh cliffs that punish expert streaks while still protecting economy balance. Together, this keeps early play brisk, mid-cycle strategic, and late-cycle focused on quality over quantity.",
+  "test_conditions": "Run 10-minute simulated sessions across three cohorts: novice (mean detachment=0.45, σ=0.1), intermediate (mean=0.65, σ=0.1), expert (mean=0.85, σ=0.07). Event cadence: 1 action every 20s (novice), 15s (intermediate), 10s (expert). Measure: per-event credited fuel, cycle_total progression, frequency of entering 0.35 and 0.15 multipliers, and perceived fairness via UI telemetry (abort rates after cap, continued engagement). A/B compare against baseline quadratic with hard 0.25 multiplier. Validate that experts still achieve higher net fuel with fewer actions, novices are not starved, and total economy stays within max_per_cycle ±10% across cohorts."
+}
+
+4.
+
+{
+  "tooling": "Apache Airflow for orchestrated DAGs; Python scripts using psycopg2 (PostgreSQL), boto3 (S3), pyarrow (Parquet), timescale-python (TimescaleDB), and hashlib for content-addressing; AWS Lambda for Merkle ledger finalization; AWS Step Functions for warm→cold coordination; cron for lightweight triggers in non-Airflow environments; Terraform for infra-as-code; OpenTelemetry for migration observability.",
+  "migration_rules": [
+    {
+      "criteria": "status == 'resolved' AND age > 7d AND last_accessed > 24h",
+      "action": "Export SCARD rows and related time-series ticks to S3 as partitioned Parquet (tenant/federation/date), include lineage/provenance; mark records as archived_warm=true; retain minimal hot indices (id, latest_status) for lookups."
+    },
+    {
+      "criteria": "status IN ('resolved','archived') AND age > 90d AND archived_warm=true",
+      "action": "Generate content-addressed blobs (SHA-256) of canonical JSON (stable key order); build Merkle tree over batch (by federation+epoch); write to cold ledger store (append-only), persist root hash and proofs; update hot/warm records with cold_pointer (merkle_root, leaf_hash) and set fossilized=true."
+    },
+    {
+      "criteria": "status == 'active' AND age > 30d AND recurrence_count > 0",
+      "action": "Snapshot to warm without removal from hot (dual-home) for replay and analytics; tag snapshot_version and keep hot authoritative."
+    },
+    {
+      "criteria": "status == 'resolved' AND decay_echo_complete=true",
+      "action": "Prioritize for hot→warm migration even if age ≤ 7d to reduce hot load; respect last_accessed > 12h gate."
+    }
+  ],
+  "sample_cron_jobs": [
+    "*/10 * * * * /usr/local/bin/run_hot_to_warm --batch-size=5000 --since=10m",
+    "0 * * * * /usr/local/bin/run_hot_gc --vacuum-analyze --retain-indices",
+    "0 0 * * * /usr/local/bin/run_warm_to_cold --batch-size=20000 --max-age=90d",
+    "0 3 * * 0 /usr/local/bin/verify_cold_ledger --federation=all --sample-rate=0.1",
+    "*/30 * * * * /usr/local/bin/audit_pointers --check-integrity --report"
+  ],
+  "verification_steps": "1) Pre-export checks: count rows matching criteria; snapshot transaction with REPEATABLE READ isolation; compute SHA-256 per SCARD and per tick bundle. 2) Warm write validation: upload Parquet with content-md5; list S3 objects and compare sizes; run parquet schema check and row count parity. 3) Cold ledger construction: deterministically serialize JSON with sorted keys; compute leaf hashes; build Merkle tree and persist root; store per-leaf proof paths. 4) Pointer integrity: write-back cold_pointer to hot/warm, then read-back verify. 5) End-to-end audit: recompute random sample hashes from hot/warm and verify inclusion via Merkle proof against stored root. 6) Observability: emit metrics (migrated_count, failed_count, bytes_written, hash_mismatch_count), logs with correlation IDs, and traces for each batch.",
+  "rollback_protocol": "If any step fails: a) Transactional rollback in hot: do not flip archived_warm/fossilized flags until verification passes; keep changes in a staging table. b) Warm rollback: mark S3 objects with temporary tag 'quarantine'; do not delete hot records; re-run export on next cycle. c) Cold rollback: if Merkle root verification fails, discard batch ledger write, retain warm objects, and append an incident record to a non-immutable audit stream. d) Pointer repair: if cold_pointer write-back mismatches, clear pointers and re-queue item; maintain idempotent migration keys to avoid duplicates. e) Recovery playbook: run '/usr/local/bin/recover_batch --batch-id=XYZ' to rehydrate from warm to hot (controlled by feature flag), verifying schema compatibility before insert; notify via PagerDuty and create a change ticket. f) Post-incident: lock migrations via Airflow pause; run checksum sweep over last 24h; enable canary mode (10% batches) before full resumption."
+}
