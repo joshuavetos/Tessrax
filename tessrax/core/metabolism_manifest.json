@@ -1,0 +1,124 @@
+{
+  "manifest_id": "TESSRAX_METABOLISM_MANIFEST_V1_0",
+  "title": "Tessrax Metabolism Framework — Chaos→Order→Persistence→Decay→Renewal",
+  "governance": {
+    "protocol": "GovernanceKernel v11.1",
+    "ledger_path": "data/ledger/metabolism.jsonl",
+    "attestation_root": "MERKLE",
+    "signature_scheme": "Ed25519",
+    "audit_interval": "3600s",
+    "defiance_metric": "average_energy / max_energy",
+    "repair_metric": "repairs_per_cycle / decay_events"
+  },
+
+  "phase_nodes": [
+    {
+      "id": "tessrax.core.entropy_engine",
+      "origin": "Gemini",
+      "language": "Python",
+      "dependencies": ["pygame"],
+      "function": "Particle-based chaos/order/persistence visualization",
+      "output_stream": "entropy_field, defiance_score",
+      "telemetry": ["average_reaction_time", "scar_decision_latency", "fuel_yield_variance"],
+      "governance_hooks": {
+        "phase": "order",
+        "log_rate": "1s",
+        "signature": true
+      }
+    },
+    {
+      "id": "tessrax.domains.metabolism.entropic_tides",
+      "origin": "DeepSeek",
+      "language": "Python",
+      "dependencies": ["numpy", "matplotlib", "scipy"],
+      "function": "Cellular-automata life loop for entropy metabolism",
+      "output_stream": "world_state, defiance_history",
+      "governance_hooks": {
+        "phase": "persistence",
+        "log_rate": "5s",
+        "signature": true
+      }
+    },
+    {
+      "id": "tessrax.docs.entropy_loop",
+      "origin": "Meta",
+      "language": "Python",
+      "dependencies": ["pygame", "numpy"],
+      "function": "Pedagogical reference implementation (educational clarity)",
+      "output_stream": "defiance_meter, tending_log",
+      "governance_hooks": {
+        "phase": "documentation",
+        "log_rate": "10s",
+        "signature": false
+      }
+    },
+    {
+      "id": "tessrax.media.p5_metabolize_tide",
+      "origin": "Perplexity",
+      "language": "JavaScript (p5.js)",
+      "function": "Browser ritual; visual/audio entropy loop",
+      "output_stream": "entropy_value, defiance_log",
+      "governance_hooks": {
+        "phase": "chaos",
+        "log_rate": "2s",
+        "signature": true
+      }
+    },
+    {
+      "id": "tessrax.interface.web.ritual_loop",
+      "origin": "Copilot",
+      "language": "HTML5 + JS + WebAudio",
+      "function": "Interactive front-end with sliders and defiance meter",
+      "output_stream": "entropy, repair, half_life, defiance_series",
+      "governance_hooks": {
+        "phase": "renewal",
+        "log_rate": "1s",
+        "signature": true
+      }
+    }
+  ],
+
+  "integration_pipeline": {
+    "bus": "EventBridge: tessrax.metabolism",
+    "schema_version": "1.0",
+    "event_types": [
+      "ENTROPY_SAMPLE",
+      "ORDER_PATTERN",
+      "PERSISTENCE_METRIC",
+      "REPAIR_EVENT",
+      "DEFIANCE_UPDATE"
+    ],
+    "merge_policy": "last_writer_wins_with_proof",
+    "conflict_resolution": "governance_kernel.reconcile()",
+    "retention_policy": "retain 90d; fossilize after 10 epochs",
+    "checksum": "sha3_512"
+  },
+
+  "ledger_fields": {
+    "timestamp": "ISO8601",
+    "phase": "string",
+    "entropy_level": "float",
+    "repair_rate": "float",
+    "defiance_score": "float",
+    "cycle_id": "integer",
+    "source_node": "string",
+    "signature": "base64",
+    "merkle_root": "hex"
+  },
+
+  "visualization": {
+    "dashboard": "web/entropy_dashboard.html",
+    "charts": [
+      "Entropy over time",
+      "Defiance Meter oscillation",
+      "Repair vs. Decay heatmap",
+      "Cross-phase coherence matrix"
+    ]
+  },
+
+  "notes": {
+    "philosophy": "Maintenance as meaning; recurrence as sanctity.",
+    "cycle_law": "Entropy → Order → Persistence → Decay → Renewal → (repeat)",
+    "ethic": "Metabolize the tide, don’t resist it."
+  }
+}
