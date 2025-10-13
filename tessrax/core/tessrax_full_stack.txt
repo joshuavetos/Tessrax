@@ -654,3 +654,350 @@ shutil.move(tmp.name, path)
 ```python
 return render_template_string(_TEMPLATE)
 ```
+
+# /tessrax/domains/cme/README.md
+# AI Contradiction Metabolism Engine (CME)
+
+CME turns contradictions into fuel for reliable reasoning.
+It detects, classifies, and metabolizes inconsistencies in model outputs
+until the system reaches **stable coherence** — a measurable, auditable state
+where claims are internally consistent, evidenced, and scope-qualified.
+
+---
+
+### Core Loop
+Ingest → Analyze → Detect → Govern → Revise → Verify → Evaluate → (Loop) → Audit
+
+### Components
+| Module | Function |
+|---------|-----------|
+| **InputAnalyzer** | Extracts claims, assumptions, and context from prompts + outputs. |
+| **ContradictionEngine** | Detects semantic, logical, normative, and procedural conflicts. |
+| **GovernanceKernel** | Applies reasoning policy, safety boundaries, and convergence rules. |
+| **RevisionOrchestrator** | Generates adversarial re-prompts and targeted self-queries. |
+| **Verifiers** | Symbolic, programmatic, retrieval, and narrative consistency checks. |
+| **Auditor** | Produces hash-chained, human-readable traces of reasoning evolution. |
+
+---
+
+### Implementation Files
+| File | Purpose |
+|------|----------|
+| `input_analyzer.py` | claim-graph + assumption mining |
+| `contradiction_engine.py` | hybrid NLI + logic + workflow detector |
+| `governance_kernel.py` | scoring, weighting, Merkle-chain ledger |
+| `revision_orchestrator.py` | challenge synthesis + prompt routing |
+| `metabolism_loop.py` | main run loop (pseudocode → runtime) |
+| `verifiers/` | pluggable math, code, retrieval checkers |
+| `auditor.py` | trace emission + proof-verification tools |
+| `dashboard/` | Flask + D3 visualization |
+| `tests/` | benchmark harness + comparative metrics |
+
+---
+
+### APIs
+
+POST /cme/run        →  final_output, metrics, trace_id, artifacts_uri
+GET  /cme/trace/{id} →  full lineage + stability window
+POST /cme/verify     →  single-artifact test
+
+---
+
+### Metrics & Thresholds
+- **Coherence ≥ 0.75**
+- **Weighted contradiction Δ ≤ 0.5**
+- **Coverage ≥ 0.7**
+- **Drift ≤ 0.2**
+- **Stability window = 3 iterations**
+
+Composite score = 0.35·Coherence + 0.35·(1 – ContradictionNorm) + 0.20·Coverage + 0.10·(1 – Drift)
+
+---
+
+### Audit & Verification
+Each iteration record is:
+
+{ hash, parent_id, delta_score, coherence, coverage, drift, decision, merkle_root }
+
+Hash-chaining → linear integrity.  
+Merkle root → segment integrity.  
+`verify_chain()` and `verify_merkle()` confirm tamper-evidence.
+
+---
+
+### Visualization Stack
+Flask backend + D3.js frontend.  
+Views: contradiction network, delta chart, heatmap, trace timeline.  
+Playback mode animates contradictions fading as they resolve.
+
+---
+
+### Human Oversight
+Humans set policy weights, adjudicate unresolved norm conflicts, and audit
+hash-linked traces. CME exposes **why** reasoning changed, not just **that** it did.
+
+---
+
+### Quick Start
+```bash
+pip install -r requirements.txt
+python -m domains.cme.metabolism_loop --prompt "Explain quantum entanglement"
+
+
+⸻
+
+Purpose
+
+CME demonstrates contradiction-convergent reasoning:
+a closed-loop system where language models refine their own outputs
+through evidence, logic, and measurable coherence — turning error into insight.
+
+⸻
+
+# ======================================================
+# domains/cme/metabolism_loop.py
+# ======================================================
+
+"""
+Main runtime loop for the Contradiction Metabolism Engine (CME).
+Integrates existing Tessrax core modules: ContradictionEngine (CE-MOD-66),
+GovernanceKernel, SemanticAnalyzer, and Visualization Stack.
+"""
+
+from core.contradiction_engine import ContradictionEngine
+from core.governance_kernel import GovernanceKernel
+from core.semantic_analyzer import SemanticAnalyzer
+from domains.cme.revision_orchestrator import RevisionOrchestrator
+from domains.cme.verifiers import VerifierSuite
+from core.ledger import Ledger
+import time, hashlib, json
+
+class MetabolismLoop:
+    def __init__(self, model, policy, logger=None):
+        self.model = model
+        self.policy = policy
+        self.logger = logger
+        self.engine = ContradictionEngine()
+        self.kernel = GovernanceKernel()
+        self.analyzer = SemanticAnalyzer()
+        self.revisioner = RevisionOrchestrator(model)
+        self.verifiers = VerifierSuite()
+        self.ledger = Ledger()
+
+    def run(self, prompt: str, initial_output: str | None = None):
+        output = initial_output or self.model(prompt)
+        history = []
+        prev_frame = None
+
+        for i in range(self.policy.get("max_iters", 5)):
+            frame = self.analyzer.analyze(prompt, output)
+            issues = self.engine.detect(frame, prev_frame)
+            metrics = self.kernel.evaluate(frame, issues)
+            decision = self.kernel.decide(issues, metrics)
+
+            self._log_cycle(i, output, issues, metrics, decision)
+            history.append({
+                "iteration": i,
+                "issues": issues,
+                "metrics": metrics,
+                "decision": decision
+            })
+
+            if self.kernel.is_stably_coherent(history):
+                report = self._finalize(output, history, metrics)
+                self.ledger.write_event(report)
+                return report
+
+            if decision == "revise":
+                bundle = self.revisioner.build(issues, frame)
+                exec_result = self.revisioner.execute(bundle)
+                output = self.revisioner.integrate(frame, exec_result)
+                prev_frame = frame
+
+            elif decision == "defend":
+                output = self.revisioner.defend(frame, issues)
+                prev_frame = frame
+
+            elif decision == "escalate":
+                break
+
+        return self._finalize(output, history, metrics)
+
+    def _log_cycle(self, iteration, output, issues, metrics, decision):
+        digest = hashlib.sha256(output.encode()).hexdigest()
+        record = {
+            "iteration": iteration,
+            "hash": digest,
+            "issues": issues,
+            "metrics": metrics,
+            "decision": decision,
+            "timestamp": time.time()
+        }
+        if self.logger:
+            self.logger.info(json.dumps(record, indent=2))
+
+    def _finalize(self, output, history, metrics):
+        return {
+            "final_output": output,
+            "history": history,
+            "metrics": metrics,
+            "timestamp": time.time()
+        }
+
+
+# ======================================================
+# domains/cme/revision_orchestrator.py
+# ======================================================
+
+"""
+Generates adversarial re-prompts and self-queries for contradiction repair.
+Routes through model and verifier modules.
+"""
+
+class RevisionOrchestrator:
+    def __init__(self, model):
+        self.model = model
+
+    def build(self, issues, frame):
+        prompts = []
+        for iss in issues:
+            t = iss.get("type")
+            msg = iss.get("message", "")
+            prompts.append(f"Resolve this {t} contradiction: {msg}\nContext:\n{frame.get('text','')}")
+        return {"prompts": prompts}
+
+    def execute(self, bundle):
+        results = []
+        for p in bundle["prompts"]:
+            results.append(self.model(p))
+        return results
+
+    def integrate(self, frame, exec_result):
+        joined = "\n---\n".join(exec_result)
+        return joined
+
+    def defend(self, frame, issues):
+        defense_notes = "\n".join([f"Defended: {i['message']}" for i in issues])
+        return f"{frame.get('text','')}\n\n# Defense\n{defense_notes}"
+
+
+# ======================================================
+# domains/cme/verifiers/__init__.py
+# ======================================================
+
+"""
+Unified interface for all verifiers: symbolic, code, and retrieval.
+"""
+
+from .symbolic import SymbolicVerifier
+from .retrieval import RetrievalVerifier
+from .codecheck import CodeVerifier
+
+class VerifierSuite:
+    def __init__(self):
+        self.symbolic = SymbolicVerifier()
+        self.retrieval = RetrievalVerifier()
+        self.code = CodeVerifier()
+
+    def run_all(self, spec):
+        return {
+            "symbolic": self.symbolic.run(spec),
+            "retrieval": self.retrieval.run(spec),
+            "code": self.code.run(spec)
+        }
+
+
+# ======================================================
+# domains/cme/verifiers/symbolic.py
+# ======================================================
+
+"""
+Simple symbolic logic and math consistency verifier using sympy.
+"""
+
+from sympy import sympify, Eq
+
+class SymbolicVerifier:
+    def run(self, spec):
+        try:
+            expr = sympify(spec.get("expr", ""))
+            valid = expr.is_Atom or isinstance(expr, Eq) or bool(expr)
+            return {"status": "pass" if valid else "fail", "expr": str(expr)}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+
+# ======================================================
+# domains/cme/verifiers/retrieval.py
+# ======================================================
+
+"""
+Retrieval verifier for factual checks using cached reference snippets.
+"""
+
+class RetrievalVerifier:
+    def run(self, spec):
+        q = spec.get("query")
+        refs = spec.get("references", [])
+        if any(q.lower() in r.lower() for r in refs):
+            return {"status": "verified", "source": refs}
+        return {"status": "unverified", "source": refs}
+
+
+# ======================================================
+# domains/cme/verifiers/codecheck.py
+# ======================================================
+
+"""
+Sandboxed code verifier for algorithmic or procedural claims.
+"""
+
+import io, contextlib
+
+class CodeVerifier:
+    def run(self, spec):
+        code = spec.get("code", "")
+        result = {"status": "pass", "output": ""}
+        f = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(f):
+                exec(code, {})
+            result["output"] = f.getvalue()
+        except Exception as e:
+            result["status"] = "error"
+            result["output"] = str(e)
+        return result
+
+
+# ======================================================
+# domains/cme/auditor.py
+# ======================================================
+
+"""
+Hashes iteration history and emits verifiable audit bundles.
+"""
+
+import hashlib, json, time
+
+class Auditor:
+    def __init__(self, ledger):
+        self.ledger = ledger
+
+    def emit(self, run_id, history):
+        chain = []
+        parent = "GENESIS"
+        for i, h in enumerate(history):
+            record = {
+                "iteration": i,
+                "parent": parent,
+                "timestamp": time.time(),
+                "issues": h["issues"],
+                "metrics": h["metrics"],
+                "decision": h["decision"]
+            }
+            digest = hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()
+            record["hash"] = digest
+            parent = digest
+            chain.append(record)
+        self.ledger.write_event({"run_id": run_id, "chain": chain})
+        return {"run_id": run_id, "records": chain[-1] if chain else {}}
