@@ -4,6 +4,12 @@ Tessrax is a **self-auditing governance architecture** designed to metabolize co
 It transforms conflicting signals (“scars”) into structured, verifiable artifacts and records their resolutions on an immutable ledger.  
 Every contradiction metabolized strengthens system coherence, auditability, and trust.
 
+The Tessrax framework introduces original terminology to describe new systemic primitives that lacked precise names in existing computing or governance lexicons.
+Key neologisms include Persystem, Contradiction Metabolism, Scar, Receipt, Integrity Band, and Rigor Layer. Each term has been defined, implemented, and documented within the stack to provide a shared vocabulary for self-auditing, contradiction-aware architectures.
+
+These words are not rhetorical flourishes—they are structural definitions.
+Tessrax names what it builds, and by naming, makes it real.
+
 ---
 
 ## ✨ Core Purpose
