@@ -396,3 +396,28 @@ if __name__ == "__main__":
 
     print("\nGovernance log entries:", len(gov.log))
     quick_tests()
+
+from difflib import SequenceMatcher
+import math
+
+def semantic_conflict(a: str, b: str, threshold: float = 0.3) -> bool:
+    """Detect near-antonyms or opposing statements via string similarity."""
+    ratio = SequenceMatcher(None, a.lower(), b.lower()).ratio()
+    return ratio < threshold and any(word in a.lower().split() for word in ["not","never","no"]) != \
+           any(word in b.lower().split() for word in ["not","never","no"])
+
+def numeric_conflict(a_val, b_val, tol: float = 1e-3) -> bool:
+    """Detect numeric contradictions (opposite signs or large deviation)."""
+    try:
+        a, b = float(a_val), float(b_val)
+        if a * b < 0: 
+            return True
+        return abs(a - b) / (abs(a) + 1e-9) > tol
+    except Exception:
+        return False
+
+def detect_contradiction(claim_a, claim_b) -> bool:
+    """Unified contradiction rule."""
+    if isinstance(claim_a.value, (int,float)) and isinstance(claim_b.value, (int,float)):
+        return numeric_conflict(claim_a.value, claim_b.value)
+    return semantic_conflict(claim_a.claim, claim_b.claim)
