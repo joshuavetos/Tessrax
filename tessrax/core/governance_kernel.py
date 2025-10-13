@@ -124,3 +124,24 @@ def route(G: nx.Graph, stability_index: float,
     """Public entry point with automatic locking."""
     with get_lock("governance_route"):
         return record_event(G, stability_index, ledger_path)
+        
+# governance_kernel.py (excerpt)
+from tessrax.core.ledger_core import append_event, verify_chain
+
+def route(event):
+    append_event(event)
+    if not verify_chain():
+        raise RuntimeError("Ledger integrity breach detected.")
+
+LANE_THRESHOLDS = {
+    "autonomic": 0.9,
+    "deliberative": 0.75,
+    "constitutional": 0.5,
+    "behavioral_audit": 0.0
+}
+
+def classify_lane(stability):
+    for lane, cutoff in LANE_THRESHOLDS.items():
+        if stability >= cutoff:
+            return lane
+    return "behavioral_audit"
