@@ -1,0 +1,194 @@
+# structured_memory_cell.json  
+### Tessrax Structured Semantic Memory Cell (SSMC) Specification  
+**Version:** 1.0  
+**Author:** Tessrax Governance Agent  
+**Auditor:** Josh Scott Vetos  
+**Purpose:** Define a unified data structure for long-term associative memory with numeric relation codes, traceable lineage, and activation dynamics.  
+**Use Case:** Enables graph-based recall, contradiction metabolism, and explainable activation chains across the Tessrax ecosystem.  
+
+---
+
+```json
+{
+  "cell_id": "string",                              
+  "text": "string",                                
+  "keywords": ["string"],                          
+  "domains": ["string"],                           
+
+  "relation_codes": [                              
+    {
+      "code": "string",                           
+      "type": "enum(causal, temporal, hierarchical, contradiction, analogy)", 
+      "directionality": "enum(unidirectional, bidirectional)",             
+      "weight": 0.0,                              
+      "confidence": 0.0,                          
+      "valid_from": "ISO8601-timestamp|null",     
+      "valid_to": "ISO8601-timestamp|null"        
+    }
+  ],                                               
+
+  "numeric_relations": {                           
+    "parent": {                                   
+      "relation_codes": ["string"],               
+      "cell_ids": ["string"]                      
+    },
+    "siblings": {
+      "relation_codes": ["string"],
+      "cell_ids": ["string"]
+    },
+    "domains": {
+      "relation_codes": ["string"],
+      "cell_ids": ["string"]
+    },
+    "contradictions": {
+      "relation_codes": ["string"],
+      "cell_ids": ["string"]
+    }
+  },                                             
+
+  "relation_weights": {                           
+    "parent": {"code_string": 0.0},
+    "siblings": {"code_string": 0.0},
+    "domains": {"code_string": 0.0},
+    "contradictions": {"code_string": 0.0}
+  },
+
+  "embedding_vector": [0.0],                      
+  "activation_state": {                           
+    "value": 0.0,                                 
+    "decay_rate": 0.001,                          
+    "last_updated": "ISO8601-timestamp"           
+  },
+
+  "lineage": [                                    
+    {
+      "path": ["string"],                         
+      "depth": 0,                                 
+      "start_cell_id": "string",                  
+      "start_code": "string",                     
+      "timestamp": "ISO8601-timestamp"            
+    }
+  ],
+
+  "activation_history": [                         
+    {
+      "source_code": "string",                    
+      "timestamp": "ISO8601-timestamp"            
+    }
+  ],
+
+  "provenance": {                                
+    "created_by": "string",                       
+    "source_uri": "string",                       
+    "version": "string",                          
+    "checksum": "sha256string",                   
+    "parent_hash": "sha256string"                 
+  },
+
+  "mutable": true                                 
+}
+
+
+⸻
+
+Activation Algorithm (Pseudocode)
+
+def propagate_activation(seed_cell, relation_graph, threshold=0.3, decay=0.001):
+    """
+    Activates related memory cells based on numeric relation codes and weights.
+    Inspired by biological signaling dynamics (amplitude × persistence integration).
+    """
+    active_set = {seed_cell['cell_id']}
+    activation_map = {seed_cell['cell_id']: 1.0}
+
+    for layer in range(3):  # 3 hops max
+        new_activations = {}
+        for cid, strength in activation_map.items():
+            neighbors = relation_graph.get(cid, [])
+            for n in neighbors:
+                weight = relation_graph[cid][n]['weight']
+                new_strength = strength * weight * (1 - decay)
+                if new_strength > threshold:
+                    new_activations[n] = max(new_activations.get(n, 0), new_strength)
+        activation_map.update(new_activations)
+        active_set.update(new_activations.keys())
+
+    return active_set
+
+Interpretation:
+Activation propagates along weighted edges defined by relation_codes.
+Each iteration decays energy slightly; only signals above the threshold activate.
+This allows selective recall — only cells semantically and relationally coherent with the query activate.
+
+⸻
+
+Example Use Case
+
+Query: “contradiction metabolism”
+
+Activated Cell	Relation Type	Weight	Why Activated
+core_engine.metabolism	causal	0.92	Core match on keyword and domain
+core_engine.governance	hierarchical	0.75	Governance oversees metabolism
+path.active_contradictions	contradiction	0.66	Directly linked contradiction relation
+ledger.trace_integrity	analogy	0.54	Relational analogy via integrity metrics
+
+Each cell’s activation chain can be explained through its relation code and lineage path.
+
+⸻
+
+Safeguards
+	1.	Activation Drift Prevention:
+Periodic normalization of weights (Σweights ≤ 1.0) to prevent runaway recall.
+	2.	Context Filtering:
+Only cells with overlapping domains or active timestamps are eligible for activation.
+	3.	False Positive Control:
+Require both lexical (keywords) and relational (relation_codes) match before activation.
+	4.	Decay and Refresh:
+Cells unused for >30 days auto-decay; high-relevance activations refresh weight and timestamp.
+
+⸻
+
+Recommended Implementation Libraries
+
+Function	Library	Purpose
+Graph Structure	networkx	Manage cell connectivity and traversal
+Numeric Relations	numpy	Compute weights, embeddings, decay
+Storage	sqlite3 or SQLModel	Persistent cell store
+Hashing	hashlib	Generate checksum and parent_hash
+Time Management	datetime	Handle activation and validity windows
+
+
+⸻
+
+Example Entry
+
+{
+  "cell_id": "TESSRAX_MEM_0012",
+  "text": "Contradiction metabolism converts systemic conflict into learning fuel.",
+  "keywords": ["contradiction", "metabolism", "learning"],
+  "domains": ["governance", "metabolism"],
+  "relation_codes": [
+    {"code": "0012.4", "type": "causal", "directionality": "bidirectional", "weight": 0.92, "confidence": 0.98, "valid_from": "2025-10-13T00:00:00Z", "valid_to": null}
+  ],
+  "numeric_relations": {
+    "parent": {"relation_codes": ["0001.0"], "cell_ids": ["TESSRAX_CORE_001"]},
+    "contradictions": {"relation_codes": ["0999.1"], "cell_ids": ["TESSRAX_PATH_004"]}
+  },
+  "relation_weights": {"parent": {"0001.0": 0.8}, "contradictions": {"0999.1": 0.6}},
+  "embedding_vector": [0.22, 0.48, 0.16, 0.03],
+  "activation_state": {"value": 0.76, "decay_rate": 0.001, "last_updated": "2025-10-13T21:00:00Z"},
+  "lineage": [{"path": ["TESSRAX_CORE", "TESSRAX_METABOLISM"], "depth": 2, "start_cell_id": "TESSRAX_CORE_001", "start_code": "0001.0", "timestamp": "2025-10-13T21:00:00Z"}],
+  "activation_history": [{"source_code": "0012.4", "timestamp": "2025-10-13T21:00:00Z"}],
+  "provenance": {"created_by": "Tessrax Governance Agent", "source_uri": "https://github.com/joshuavetos/Tessrax", "version": "1.0", "checksum": "a7f29e...", "parent_hash": "prevhash"},
+  "mutable": true
+}
+
+
+⸻
+
+Summary
+
+This file defines the governed associative memory substrate for Tessrax.
+It merges symbolic logic, semantic graphs, and provenance-aware activation into a single schema.
+Each memory cell can explain why it activates, when it last did, and what it’s connected to — providing a verifiable, interpretable memory layer for contradiction metabolism and reasoning systems.
+
