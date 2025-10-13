@@ -289,3 +289,71 @@ Integrity Anchor: GPT to Josh — Tessrax LLC
 Tessrax: The metabolism of contradiction.
 Infrastructure for existence to process itself.
 
+
+🗂️ Repository Map & Subsystems (as of v12.0)
+
+The full Tessrax repository reflects a complete contradiction-metabolism ecosystem, including core runtime, domain extensions, research pilots, audit frameworks, and compliance infrastructure.
+
+1. Core Engines (/tessrax/core)
+
+Implements the foundational contradiction-metabolism logic:
+   •   contradiction_engine.py — orchestrates contradiction detection & classification
+   •   governance_kernel.py — quorum logic, ledger entries, ratification
+   •   semantic_analyzer.py, metabolism_adapter.py, receipts.py, ledger.py — cognitive substrate and proof mechanisms
+   •   current.py — unified runtime launcher (FastAPI 8080 + Flask 8090)
+
+2. Domain Modules (/tessrax/domains/)
+
+Each domain applies Tessrax logic to a real-world contradiction field.
+All share a uniform structure: contradiction_detector.py, governance_kernel.py, graph.py, primitives.py, and a local README.md.
+   •   ai_memory/ — coherence vs retention
+   •   attention_economy/ — wellbeing vs engagement
+   •   climate_policy/ — targets vs output reality
+   •   democratic_governance/ — representation vs manipulation
+
+domain_loader.py dynamically registers and runs these modules.
+
+3. Rigor Layer (/tessrax/rigor_layer_v1.0)
+
+Implements the Integrity Band — six modules governing epistemic hygiene:
+Hierarchy of Differences, Telos Awareness, Charitable Reasoning, Observer Relativity, Equilibria & Invariants, and Multi-Scale Reconciliation.
+
+4. Docs, Prompts, and Research Pilots (/docs/)
+   •   Corporate Frienthropy — ethics + economics integration module (company_frienthropy.csv, corporate_frienthropy.py)
+   •   Moral Systems Engineering (MSE) — thermodynamics of empathy pilot
+   •   Prompts/ — reusable contradiction sweep & orchestration scripts
+   •   Architecture & Security — architecture.md, security.md, governance_patches.md, federation.md, protocols.md, resilience_template.md
+
+5. Audit & Compliance Layer (/tessrax-audit/ + /compliance/)
+
+Implements Tessrax’s multi-dimensional audit stack:
+   •   creative_audit.json, ethical_audit.json, strategic_audit.json, technical_audit.json — modular audit matrices
+   •   manifest.json, popup.html/js — optional web audit interface
+   •   COMPLIANCE_READINESS.md, SECURITY_POLICY.md — operational safeguards
+   •   AI_personhood_liability.md, NORM-TRIAL-AI-PERSONHOOD-2025-... — legal prototypes for agent accountability
+
+6. RFCs & Governance Proposals
+
+Includes formal specs and working drafts:
+   •   rfc-0.md — Contrastive Self-Verification minimal spec
+   •   governance_receipt_scar_closure.json — proof schema
+   •   inevitability.md, requirements.md, overview.md — theoretical groundwork for long-term evolution
+
+7. Scard & Testing Utilities
+   •   scards/ — test contradictions and scars
+   •   unified_test_bundle.py — full-stack integrity testing harness
+
+8. High-Level Artifacts
+   •   automation_kit_plan.md — outlines modular automation hooks
+   •   Tessrax_Security_and_Governance_Upgrade_Plan.md — roadmap for v13.0
+   •   tessrax_full_stack.txt — snapshot manifest of all operational modules
+   •   structured_memory_cell.json — serialized runtime memory model
+
+⸻
+
+Summary:
+This repo constitutes a governance-ready AI metabolism stack — including live contradiction engines, formal rigor modules, applied research domains, governance charters, audit dashboards, and legal scaffolding.
+It demonstrates not just how contradictions are detected and resolved, but how a self-governing computational organism can sustain auditability, ethical introspection, and institutional continuity across resets.
+
+⸻
+
