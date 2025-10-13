@@ -238,3 +238,11 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+import os, sys
+ROOT_PATH = os.getenv("TESSRAX_PATH", os.getcwd())
+if ROOT_PATH not in sys.path:
+    sys.path.insert(0, ROOT_PATH)
+Now the user (or CI) can set:
+export TESSRAX_PATH=/home/josh/projects/Tessrax
+and the runtime adjusts automatically.
