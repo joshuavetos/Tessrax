@@ -1,0 +1,427 @@
+=== FILE: contradiction_engine.py ===
+"""
+Tessrax Contradiction Engine — CE-MOD-66
+Detects, scores, and logs contradictions across statements, domains, or data streams.
+"""
+
+from __future__ import annotations
+import hashlib, json, math
+from typing import List, Dict, Any, Tuple
+
+
+class Contradiction:
+    """Represents a single contradiction instance with metadata."""
+    def __init__(self, a: str, b: str, ctype: str, explanation: str = ""):
+        self.a = a
+        self.b = b
+        self.ctype = ctype
+        self.explanation = explanation
+        self.score = self._score()
+
+    def _score(self) -> float:
+        """Simple heuristic scoring for contradiction severity."""
+        h = hashlib.sha1(f"{self.a}|{self.b}|{self.ctype}".encode()).hexdigest()
+        # convert first few hex digits into numeric magnitude
+        base = int(h[:6], 16) / 0xFFFFFF
+        return round(base, 3)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "pair": [self.a, self.b],
+            "type": self.ctype,
+            "severity": self.score,
+            "explanation": self.explanation
+        }
+
+
+class ContradictionEngine:
+    """Main contradiction analysis and scoring interface."""
+    def __init__(self):
+        self.entries: List[Contradiction] = []
+
+    def analyze_pair(self, a: str, b: str, ctype: str, explanation: str = "") -> Dict[str, Any]:
+        c = Contradiction(a, b, ctype, explanation)
+        self.entries.append(c)
+        return c.to_dict()
+
+    def summary(self) -> Dict[str, Any]:
+        if not self.entries:
+            return {"count": 0, "avg_severity": 0.0}
+        avg = sum(c.score for c in self.entries) / len(self.entries)
+        return {
+            "count": len(self.entries),
+            "avg_severity": round(avg, 3),
+            "entries": [c.to_dict() for c in self.entries]
+        }
+
+    def export_json(self) -> str:
+        return json.dumps(self.summary(), indent=2)
+
+
+if __name__ == "__main__":
+    ce = ContradictionEngine()
+    ce.analyze_pair("Governments claim transparency", "Governments hide data", "Normative")
+    ce.analyze_pair("AI is safe", "AI is dangerous", "Semantic")
+    print(ce.export_json())
+
+=== FILE: contradiction_engine.py (END) ===
+
+
+=== FILE: engine.py ===
+"""
+Tessrax Runtime Engine — orchestrates core subsystems:
+Memory, Metabolism, Governance, and Trust.
+"""
+
+import time, json, uuid
+from typing import Dict, Any
+from contradiction_engine import ContradictionEngine
+
+
+class TessraxEngine:
+    """High-level orchestrator connecting all four engines."""
+    def __init__(self):
+        self.id = f"RUN-{uuid.uuid4()}"
+        self.memory: Dict[str, Any] = {}
+        self.metabolism = {}
+        self.governance = {}
+        self.trust = {}
+        self.contradiction_engine = ContradictionEngine()
+
+    def remember(self, key: str, value: Any):
+        self.memory[key] = value
+
+    def detect_contradiction(self, a: str, b: str, ctype: str, explanation: str = "") -> Dict[str, Any]:
+        result = self.contradiction_engine.analyze_pair(a, b, ctype, explanation)
+        self._log_event("contradiction_detected", result)
+        return result
+
+    def _log_event(self, event_type: str, payload: Dict[str, Any]):
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
+        print(f"[{stamp}] {event_type.upper()} :: {json.dumps(payload)}")
+
+    def run_demo(self):
+        """Example demonstration cycle."""
+        self.remember("law", "Resolve contradictions; sovereignty over performance")
+        self.detect_contradiction("Policy says transparent", "Policy redacts data", "Governance")
+        self.detect_contradiction("AI promises safety", "AI releases risky models", "Ethical")
+        print("Summary:", self.contradiction_engine.summary())
+
+
+if __name__ == "__main__":
+    engine = TessraxEngine()
+    engine.run_demo()
+
+=== FILE: engine.py (END) ===
+
+
+=== FILE: governance_kernel.py ===
+"""
+Governance Kernel — policy evaluation, quorum simulation, and ledger routing.
+"""
+
+import json, hashlib, datetime
+from typing import Dict, Any, List
+
+
+class GovernanceKernel:
+    """Processes policy events and enforces quorum-based decisions."""
+    def __init__(self):
+        self.ledger: List[Dict[str, Any]] = []
+
+    def _hash(self, data: str) -> str:
+        return hashlib.sha256(data.encode()).hexdigest()
+
+    def evaluate_policy(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """Simulate evaluation of a policy violation or governance event."""
+        quorum = {"audit": True, "synthesis": True, "implementer": False, "research": True}
+        approved = sum(quorum.values()) >= 3  # 3-of-4 quorum
+        record = {
+            "id": f"LEDGER-{len(self.ledger)+1}",
+            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "event": event,
+            "quorum_votes": quorum,
+            "approved": approved,
+            "hash": self._hash(json.dumps(event))
+        }
+        self.ledger.append(record)
+        return record
+
+    def export_ledger(self) -> str:
+        return json.dumps(self.ledger, indent=2)
+
+    def simulate_violation(self):
+        sample_event = {
+            "type": "SCARD",
+            "scard_type": "ς_Integrity_Breach",
+            "trigger": "Unanchored emission",
+            "severity": "Medium"
+        }
+        rec = self.evaluate_policy(sample_event)
+        print("Governance Record:", json.dumps(rec, indent=2))
+
+
+if __name__ == "__main__":
+    kernel = GovernanceKernel()
+    kernel.simulate_violation()
+    print(kernel.export_ledger())
+
+=== FILE: governance_kernel.py (END) ===
+
+=== FILE: metabolism_adapter.py ===
+"""
+Metabolism Adapter — converts contradiction events into normalized ledger entries.
+"""
+
+import time, json, hashlib
+from typing import Dict, Any
+
+
+class MetabolismAdapter:
+    """Normalizes contradiction events and assigns entropy/volatility weights."""
+    def __init__(self):
+        self.events = []
+
+    def _entropy(self, payload: Dict[str, Any]) -> float:
+        """Rough entropy proxy: length + hash variance."""
+        seed = hashlib.sha1(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+        return round(int(seed[:6], 16) / 0xFFFFFF, 3)
+
+    def ingest(self, contradiction: Dict[str, Any]) -> Dict[str, Any]:
+        e = {
+            "id": f"ENT-{len(self.events)+1}",
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "payload": contradiction,
+            "entropy": self._entropy(contradiction)
+        }
+        self.events.append(e)
+        return e
+
+    def export(self) -> str:
+        return json.dumps(self.events, indent=2)
+
+
+if __name__ == "__main__":
+    from contradiction_engine import ContradictionEngine
+    ce = ContradictionEngine()
+    c = ce.analyze_pair("Truth is transparent", "Truth is hidden", "Normative")
+    ma = MetabolismAdapter()
+    rec = ma.ingest(c)
+    print(json.dumps(rec, indent=2))
+
+=== FILE: metabolism_adapter.py (END) ===
+
+
+=== FILE: world_receipt_protocol.py ===
+"""
+World Receipt Protocol — minimal FastAPI server to verify and record signed receipts.
+"""
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import hashlib, datetime, json
+
+app = FastAPI(title="World Receipt Protocol", version="1.0")
+
+
+class Receipt(BaseModel):
+    sender: str
+    payload: dict
+    signature: str
+
+
+ledger = []
+
+
+def verify_signature(sender: str, payload: dict, signature: str) -> bool:
+    check = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+    return check[:8] == signature[:8]  # lightweight demo verification
+
+
+@app.post("/submit")
+def submit_receipt(receipt: Receipt):
+    if not verify_signature(receipt.sender, receipt.payload, receipt.signature):
+        raise HTTPException(status_code=403, detail="Invalid signature.")
+    entry = {
+        "sender": receipt.sender,
+        "payload": receipt.payload,
+        "signature": receipt.signature,
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+    }
+    ledger.append(entry)
+    return {"status": "accepted", "entry_id": len(ledger)}
+
+
+@app.get("/ledger")
+def get_ledger():
+    return {"entries": ledger, "count": len(ledger)}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("world_receipt_protocol:app", host="0.0.0.0", port=8080)
+
+=== FILE: world_receipt_protocol.py (END) ===
+
+
+=== FILE: visualization.py ===
+"""
+Visualization Utilities — produces drift plots and contradiction graphs.
+"""
+
+import matplotlib.pyplot as plt
+import random
+
+
+def plot_entropy_drift(events):
+    """Simple scatter of entropy over time index."""
+    if not events:
+        print("No events to plot.")
+        return
+    xs = list(range(len(events)))
+    ys = [e["entropy"] for e in events]
+    plt.figure(figsize=(8, 4))
+    plt.plot(xs, ys, marker="o")
+    plt.title("Entropy Drift")
+    plt.xlabel("Event Index")
+    plt.ylabel("Entropy")
+    plt.grid(True)
+    plt.show()
+
+
+def visualize_contradictions(contradictions):
+    """Bar chart of contradiction severities by type."""
+    if not contradictions:
+        print("No contradictions to visualize.")
+        return
+    types = [c["type"] for c in contradictions]
+    severities = [c["severity"] for c in contradictions]
+    colors = ["#00BFFF", "#FF5733", "#AAAAAA", "#4CAF50"]
+    plt.figure(figsize=(8, 4))
+    plt.bar(types, severities, color=random.choices(colors, k=len(types)))
+    plt.title("Contradiction Severity by Type")
+    plt.ylabel("Severity")
+    plt.xticks(rotation=30)
+    plt.tight_layout()
+    plt.show()
+
+
+if __name__ == "__main__":
+    dummy = [
+        {"type": "Normative", "severity": 0.7},
+        {"type": "Semantic", "severity": 0.4},
+        {"type": "Procedural", "severity": 0.8}
+    ]
+    visualize_contradictions(dummy)
+    fake_events = [{"entropy": random.random()} for _ in range(10)]
+    plot_entropy_drift(fake_events)
+
+=== FILE: visualization.py (END) ===
+
+=== FILE: housing_prototype.py ===
+"""
+Tessrax Housing Prototype — domain demonstration.
+Models the contradiction between construction velocity and material durability.
+"""
+
+import random, json
+from typing import Dict, Any
+
+
+class HousingContradictionDetector:
+    """Detects contradictions in housing development data."""
+    def __init__(self):
+        self.records = []
+
+    def analyze(self, project: str, velocity: float, durability: float) -> Dict[str, Any]:
+        """
+        velocity: units built per month
+        durability: average lifespan rating (0–1)
+        """
+        # heuristic contradiction score: fast builds often trade off durability
+        score = round(abs(velocity - durability * 10) / 10, 3)
+        contradiction = {
+            "project": project,
+            "velocity": velocity,
+            "durability": durability,
+            "contradiction_index": score,
+            "analysis": (
+                "High contradiction: fast build vs. low durability"
+                if score > 0.6 else "Low contradiction"
+            )
+        }
+        self.records.append(contradiction)
+        return contradiction
+
+    def export(self) -> str:
+        return json.dumps(self.records, indent=2)
+
+
+if __name__ == "__main__":
+    det = HousingContradictionDetector()
+    for name in ["Block A", "Block B", "Block C"]:
+        v = random.uniform(5, 12)
+        d = random.uniform(0.4, 0.9)
+        print(json.dumps(det.analyze(name, v, d), indent=2))
+
+=== FILE: housing_prototype.py (END) ===
+
+
+=== FILE: dashboard.html ===
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tessrax Ledger Dashboard</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#0A0A23; color:#F7F7F7; margin:0; }
+  header { background:#00BFFF; color:#0A0A23; padding:1rem; text-align:center; }
+  section { padding:1rem 2rem; }
+  table { width:100%; border-collapse:collapse; margin-top:1rem; }
+  th, td { border-bottom:1px solid #4A4A4A; padding:0.5rem; text-align:left; }
+  th { color:#00BFFF; }
+  .low { color:#4CAF50; }
+  .high { color:#FF5733; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tessrax Ledger Dashboard</h1>
+</header>
+
+<section id="summary">
+  <h2>Contradiction Ledger Snapshot</h2>
+  <table id="ledgerTable">
+    <thead>
+      <tr><th>Project</th><th>Velocity</th><th>Durability</th><th>Index</th><th>Analysis</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<script>
+async function loadData() {
+  // Example static data; replace with live fetch('/ledger')
+  const data = [
+    {"project":"Block A","velocity":9.3,"durability":0.55,"contradiction_index":0.63,"analysis":"High contradiction: fast build vs. low durability"},
+    {"project":"Block B","velocity":6.8,"durability":0.82,"contradiction_index":0.42,"analysis":"Low contradiction"}
+  ];
+  const tbody = document.querySelector("#ledgerTable tbody");
+  data.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.project}</td>
+      <td>${r.velocity.toFixed(2)}</td>
+      <td>${r.durability.toFixed(2)}</td>
+      <td class="${r.contradiction_index>0.6?'high':'low'}">${r.contradiction_index}</td>
+      <td>${r.analysis}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+loadData();
+</script>
+</body>
+</html>
+
+=== FILE: dashboard.html (END) ===
