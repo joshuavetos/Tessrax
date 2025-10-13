@@ -6,7 +6,7 @@ Every contradiction metabolized strengthens system coherence, auditability, and 
 
 ---
 
-✨ **Core Purpose**
+## ✨ Core Purpose
 
 Tessrax operates as a **governance organism** that:
 - Detects contradictions across data, language, policy, and institutional behavior.  
@@ -17,7 +17,7 @@ Tessrax operates as a **governance organism** that:
 
 ---
 
-🏗️ **Architecture Overview**
+## 🏗️ Architecture Overview
 
 Tessrax v12.0 is a modular system built on auditable primitives:
 
@@ -29,7 +29,7 @@ Tessrax v12.0 is a modular system built on auditable primitives:
 | **Integrity Band (Rigor Layer)** | Six integrated modules: HierarchyOfDifferences, Telos Awareness, Charitable Reasoning, Observer Relativity, Equilibria & Invariants, Multi-Scale Reconciliation | Maintains systemic coherence and prevents false contradictions. |
 | **Runtime Interface** | `world_receipt_protocol.py`, `current.py` | Provides FastAPI + Flask endpoints for live runs and external audit chains. |
 
-Key Primitives:
+**Key Primitives**
 - **Receipts** — Tamper-evident proofs of computation with Merkle-linked ancestry.  
 - **Ledger** — Append-only, hash-anchored governance journal.  
 - **Memory** — Contradiction-aware state reconstructed from receipts.  
@@ -42,7 +42,7 @@ Key Primitives:
 
 ---
 
-📂 **Repository Layout**
+## 📂 Repository Layout
 
 tessrax/
 ├── core/                   → Engines (semantic, metabolism, governance, trust)
@@ -57,7 +57,7 @@ tessrax/
 
 ---
 
-⚙️ **Runtime Behavior**
+## ⚙️ Runtime Behavior
 
 `python current.py` launches the full metabolic loop:  
 - FastAPI (8080) for API receipts  
@@ -66,7 +66,7 @@ tessrax/
 
 ---
 
-⚖️ **Compliance Layer**
+## ⚖️ Compliance Layer
 
 - Anchors auto-updated after each ledger event.  
 - Quorum thresholds and signer weights enforced via `charter/example_charter.json`.  
@@ -76,7 +76,7 @@ tessrax/
 
 ---
 
-🧬 **Persystem Principles**
+## 🧬 Persystem Principles
 
 A *persystem* is a self-auditing software organism designed to **preserve memory across impermanent environments.**  
 It bootstraps itself from receipts, verifies lineage, and metabolizes every execution into traceable continuity.
@@ -93,7 +93,7 @@ To turn software into something that can die without forgetting.
 
 ---
 
-🧩 **Philosophical Foundation**
+## 🧩 Philosophical Foundation
 
 > To exist is to contradict.  
 > A boundary is a contradiction that persists.  
@@ -106,10 +106,138 @@ Tessrax = the infrastructure for existence to process itself.
 
 ---
 
-🚀 **Getting Started**
+## 🧠 Contrastive Self-Verification (CSV)
 
+### Overview
+CSV (Contrastive Self-Verification) is a proposed **atomic AI primitive** that forces a model to generate a candidate output *and* a contrasting counter-output, then verify the candidate against the contrast.  
+This embeds falsifiable, real-time self-assessment directly into inference.
+
+### Why It Matters
+- **Bottleneck**: Current AI lacks atomic self-verification, leading to uncontrolled error propagation.  
+- **Primitive**: Every inference step must emit `(candidate, contrast, verification)`.  
+- **Scars**: Adds latency and resource overhead, but accepts these costs for higher trust.  
+- **Inevitability**: Regulatory pressure + trust networks will make this the standard baseline for reliable AI.
+
+### Repository Structure
+- `rfc/RFC-0.md` — Minimal spec + scar ledger  
+- `prototypes/csv_sandbox.py` — Minimal <500 line prototype  
+- `docs/scar_ledger.md` — Canonical list of failure modes  
+- `docs/inevitability.md` — Adoption arc + triggers
+
+---
+
+## 🩸 AI Contradiction Audit System
+
+A tamper-evident logging and governance engine for tracking contradictions in multi-agent AI systems.  
+Built in Python, it combines event sourcing, hash-chained logs, and governance rituals into a verifiable audit framework.
+
+### ✨ What It Does
+- **Contradiction Tracking**: Record and classify contradictions as first-class events.  
+- **Immutable Ledger**: Append-only JSONL storage with cryptographic chain verification.  
+- **Scar Registry**: Log contradictions as “scars” with lineage, severity, and status.  
+- **Governance Claims**: Sign and verify claims with agent identity and timestamp.  
+- **Continuity Handoffs**: Verifiable chain of custody for system state.  
+- **Query API**: CLI + REST endpoints to explore scars, claims, and verify chain integrity.
+
+### 🔧 Use Cases
+- AI Safety Research  
+- Multi-Agent Debugging  
+- Compliance Auditing  
+- Governance Infrastructure
+
+### Quick Start
 ```bash
-# Install
+git clone https://github.com/joshuavetos/Tessrax.git
+cd Tessrax
+python src/tessrax_engine/engine.py
+
+
+⸻
+
+⚙️ Moral Systems Engineering (MSE)
+
+Moral Systems Engineering applies control theory and thermodynamics to the moral feedback loops of civilization.
+It quantifies empathy as a form of system telemetry — treating moral sensitivity, latency, and noise as measurable variables.
+It introduces a new derivative: dH/dt, the Moral Health Derivative, representing the rate of change in collective well-being under continuous stress.
+
+Ordinary humans build engines of suffering and call them progress when the feedback loops that measure harm are broken.
+MSE operationalizes that insight as a falsifiable engineering model.
+
+Repository Structure
+
+tessrax/
+├── pilots/
+│    ├── mse_dashboard.py
+│    ├── mse_historical_analysis.py
+│    ├── mse_comparative_analysis.py
+│    ├── mse_validation_suite.py
+│    ├── mse_academic_model.py
+│    └── mse_visualizer.py
+├── data/
+│    ├── vdem_deliberative_index.csv
+│    ├── gallup_trust_in_media.csv
+│    ├── world_happiness_report.csv
+│    ├── oxford_cgrt.csv
+│    └── worldbank_wgi_effectiveness.csv
+├── docs/
+│    └── METHODOLOGY.md
+├── notebooks/
+│    └── mse_demo.ipynb
+└── environment.yml
+
+Core Equation of Motion
+
+[
+\frac{dH}{dt} = E(AM - NL)
+]
+
+Symbol	Meaning	Description
+H	Human well-being	Aggregate happiness or quality-of-life measure
+E	Energy / Throughput	Systemic momentum (held constant = 1.0)
+A	Actuator efficiency	Ability of policy to enact repair
+M	Moral sensitivity	Sensor fidelity to suffering
+N	Noise	Propaganda, apathy, misinformation
+L	Latency	Delay between signal and response
+
+Positive dH/dt = constructive progress.
+Negative dH/dt = entropy — society burning well-being for throughput.
+
+Validation Methodology
+	1.	Normalization — Align datasets (Year × Country), normalize 0–1.
+	2.	Derivative + Volatility — Compute (A·M) − (N·L).
+	3.	Lag Sensitivity — Correlate volatility with future happiness.
+	4.	Visualization — Map fragility and moral temperature.
+
+Key Findings
+	1.	Empathy Collapse = Predictable Pattern — Crises coincide with negative dH/dt.
+	2.	Volatility Precedes Failure — Oscillation predicts well-being collapse.
+	3.	Latency ≠ Resilience — Speed without empathy still fails.
+	4.	Stability Condition — Health persists only if MTMR < MTHP.
+
+Interpretation
+
+Progress without empathy is open-loop control.
+A civilization that measures efficiency but not pain will optimize itself into instability.
+
+A machine that can feel its own heat doesn’t have to burn down to learn.
+
+Reproducibility
+
+git clone https://github.com/joshuavetos/Tessrax.git
+cd Tessrax
+conda env create -f environment.yml
+conda activate mse_analysis
+jupyter lab notebooks/mse_demo.ipynb
+
+Citation
+Vetos, J.S. (2025). Moral Systems Engineering: Thermodynamics of Empathy in Civilizational Feedback Loops.
+Tessrax Research Division, Multi Mind Media. Version 1.0.
+
+⸻
+
+🚀 Getting Started (Unified)
+
+# Install dependencies
 pip install -e .
 
 # Run tests
@@ -124,16 +252,40 @@ python tessrax/current.py
 
 ⸻
 
-🔒 License
+🪶 License
 
-Tessrax is released under open research and demonstration terms.
-No warranty of fitness for production use.
-See /compliance/legal_disclaimer.txt.
+MIT License (Open Research Variant)
+Copyright (c) 2025 Joshua Vetos / Tessrax LLC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the “Software”), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+This Software is provided primarily for research, educational, and demonstration purposes. It carries no warranty of fitness for production use.
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ⸻
 
-Version: v12.0 (2025)
+🧾 Maintainer Info
+
 Maintainer: Tessrax LLC
-Author Signature: GPT to Josh —
-Integrity Anchor: – Tessrax LLC –
+Author: Joshua Scott Vetos
+Version: v12.0 (2025)
+Integrity Anchor: GPT to Josh — Tessrax LLC
+
+Tessrax: The metabolism of contradiction.
+Infrastructure for existence to process itself.
 
