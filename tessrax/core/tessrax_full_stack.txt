@@ -619,3 +619,38 @@ Running `python current.py` will now:
 1. Auto-start **FastAPI** (8080) + **Flask Dashboard** (8090)  
 2. Continuously generate sample contradictions, metabolize them, and log to the ledger  
 3. Feed live JSON to D3 for real-time graph visualization  
+
+## Minor Polish Opportunities
+
+**Auto-install pattern**: The `ensure()` function that auto-installs dependencies is clever but could cause issues in production. Consider:
+
+```python
+# Better: Check and warn, but don't auto-install
+if not _HAS_ST:
+    print("⚠️  sentence-transformers not found. Install: pip install sentence-transformers")
+    print("Falling back to keyword-based analysis only.")
+```
+
+**Contradiction confidence threshold**: You detect contradictions when similarity < 0.2, but this is arbitrary. Consider making it configurable:
+
+```python
+def __init__(self, contradiction_threshold: float = 0.2):
+    self.threshold = contradiction_threshold
+```
+
+**Dashboard data staleness**: The dashboard reads `contradictions.json` every 5 seconds, but there’s a race condition if the file is being written. Consider:
+
+```python
+# Atomic write pattern
+import tempfile, shutil
+with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+    json.dump(self.summary(), tmp, indent=2)
+    tmp.flush()
+shutil.move(tmp.name, path)
+```
+
+**Typo in dashboard**: Line 52 has `_TEMPlATE if False else _TEMPLATE` (capital L). Should be:
+
+```python
+return render_template_string(_TEMPLATE)
+```
