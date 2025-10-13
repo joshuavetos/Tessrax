@@ -1001,3 +1001,197 @@ class Auditor:
             chain.append(record)
         self.ledger.write_event({"run_id": run_id, "chain": chain})
         return {"run_id": run_id, "records": chain[-1] if chain else {}}
+
+# Institutional Reasoning Ledger (IRL) — Unified Specification v1.0
+## Overview
+The **Institutional Reasoning Ledger (IRL)** is a self-auditing governance system that preserves decision reasoning across leadership changes.  
+It records **Decision Frames** (goals, constraints, claims, assumptions, and evidence), detects and metabolizes contradictions through iterative verification loops, and emits an **Institutional Core**—the stabilized reasoning that remains coherent and evidence-backed after repeated testing.  
+All components are offline-safe, deterministic, and tamper-evident.
+
+---
+
+## 1. Architecture
+```json
+{
+  "modules": [
+    {
+      "name": "API Gateway",
+      "responsibility": "Expose endpoints to create, update, and review Decision Frames; trigger metabolism runs; fetch traces and Institutional Core snapshots.",
+      "interfaces": [
+        "POST /irl/decision_frames",
+        "POST /irl/metabolize/{frame_id}",
+        "GET /irl/trace/{run_id}",
+        "GET /irl/core",
+        "GET /irl/frames/{frame_id}"
+      ]
+    },
+    {
+      "name": "Decision Frame Builder",
+      "responsibility": "Normalize user inputs into structured Decision Frames with goals, constraints, claims, assumptions, and cited evidence.",
+      "interfaces": [
+        "build_frame(input_text: str, metadata: dict) -> DecisionFrame",
+        "update_frame(frame_id: str, patch: dict) -> DecisionFrame"
+      ]
+    },
+    {
+      "name": "Input Analyzer",
+      "responsibility": "Extract atomic claims, assumptions, entities, and policy/context bindings; construct claim graph and scope tags.",
+      "interfaces": [
+        "analyze_frame(frame: DecisionFrame) -> FrameStruct",
+        "extract_claims(text: str) -> [Claim]"
+      ]
+    },
+    {
+      "name": "Conflict Detection Engine",
+      "responsibility": "Detect semantic, logical, normative/policy, and procedural conflicts within and across Decision Frames.",
+      "interfaces": [
+        "detect_conflicts(frame_struct: FrameStruct, prev_struct?: FrameStruct) -> [Conflict]",
+        "score_conflicts(conflicts: [Conflict]) -> ConflictSummary"
+      ]
+    },
+    {
+      "name": "Governance Kernel",
+      "responsibility": "Apply policies, weights, thresholds, and safety boundaries; decide actions: revise, defend, accept, or escalate.",
+      "interfaces": [
+        "decide(conflict_summary: ConflictSummary, metrics: Metrics, policy: Policy) -> ActionPlan",
+        "is_stable(history: [IterationRecord], policy: Policy) -> bool"
+      ]
+    },
+    {
+      "name": "Revision Orchestrator",
+      "responsibility": "Generate targeted challenges (adversarial prompts, self-queries) and route verification tasks to local verifiers; integrate revisions or defenses.",
+      "interfaces": [
+        "build_challenges(conflicts: [Conflict], frame_struct: FrameStruct, policy: Policy) -> ChallengeBundle",
+        "apply_revisions(frame_struct: FrameStruct, evidence: EvidenceBundle) -> FrameStruct"
+      ]
+    },
+    {
+      "name": "Local Verifiers",
+      "responsibility": "Perform offline checks: symbolic/math, programmatic tests, policy rule validation, temporal/sequence consistency; read-only retrieval from local corpora.",
+      "interfaces": [
+        "verify_math(expr: str) -> TestResult",
+        "verify_policy(rule_set: PolicySet, claim: Claim) -> TestResult",
+        "verify_sequence(proc: ProcedureGraph) -> TestResult",
+        "validate_citation(local_ref: str) -> TestResult"
+      ]
+    },
+    {
+      "name": "Evaluator",
+      "responsibility": "Compute per-iteration metrics: coherence, contradiction_delta, contradiction_norm, coverage, depth, drift, stability.",
+      "interfaces": [
+        "compute_metrics(frame_struct: FrameStruct, conflicts: [Conflict], evidence: EvidenceBundle) -> Metrics"
+      ]
+    },
+    {
+      "name": "Trace Logger",
+      "responsibility": "Persist append-only iteration logs with hash-linked lineage; optionally Merkle-root sub-artifacts; enforce tamper-evidence.",
+      "interfaces": [
+        "append_iteration(run_id: str, record: IterationRecord) -> str",
+        "verify_chain(run_id: str) -> bool",
+        "emit_report(run_id: str) -> AuditReport"
+      ]
+    },
+    {
+      "name": "Institutional Core Manager",
+      "responsibility": "Maintain the current Institutional Core snapshot: stabilized claims, defenses, scope qualifiers, and evidence bundles.",
+      "interfaces": [
+        "update_core(run_id: str, final_frame: FrameStruct, metrics: Metrics) -> CoreSnapshot",
+        "get_core() -> CoreSnapshot"
+      ]
+    },
+    {
+      "name": "Dashboard Server",
+      "responsibility": "Serve JSON for visualization and static assets; power D3.js views of contradiction networks, timelines, and delta charts.",
+      "interfaces": [
+        "GET /dashboard/data/run/{run_id}",
+        "GET /dashboard/data/core",
+        "GET /static/*"
+      ]
+    },
+    {
+      "name": "Policy Store",
+      "responsibility": "Hold governance thresholds, severity weights, stability window, rotation rules; allow versioned policy profiles.",
+      "interfaces": [
+        "get_policy(policy_id: str) -> Policy",
+        "set_policy(policy_id: str, policy: Policy) -> None"
+      ]
+    }
+  ],
+  "dataflow": [
+    "User submits decision context and materials to API Gateway.",
+    "Decision Frame Builder normalizes input into a Decision Frame with goals, constraints, claims, assumptions, and evidence.",
+    "Input Analyzer constructs a FrameStruct: claim graph, assumptions set, entity/context bindings, scope tags.",
+    "Conflict Detection Engine runs detectors and outputs conflicts + severity.",
+    "Evaluator computes metrics; Governance Kernel applies policy to decide revise/defend/accept/escalate.",
+    "Revision Orchestrator routes verification tasks to Local Verifiers and integrates revisions.",
+    "Loop repeats until stability thresholds met or budget cap reached.",
+    "Trace Logger appends each iteration record with hash-linked lineage.",
+    "Institutional Core Manager extracts stabilized claims into the Institutional Core snapshot.",
+    "Dashboard Server visualizes timeline, contradiction network, and delta charts for audit."
+  ],
+  "stack": {
+    "python": [
+      "Python 3.11",
+      "FastAPI",
+      "Pydantic",
+      "SQLite",
+      "Uvicorn",
+      "NetworkX",
+      "SymPy",
+      "jsonlines",
+      "Jinja2",
+      "pytest"
+    ],
+    "frontend": [
+      "D3.js",
+      "Lite CSS (Tailwind or Pico.css)",
+      "Vanilla JS + Fetch API"
+    ],
+    "storage": [
+      "SQLite database",
+      "Append-only JSONL traces",
+      "Content-addressed artifacts"
+    ]
+  },
+  "persistence": {
+    "store": "Hybrid: SQLite for records; JSONL for traces; artifact files referenced by hash.",
+    "hashing": "SHA-256 over canonical JSON; each IterationRecord includes its hash and parent_hash.",
+    "rotation_policy": "Monthly compaction, retain 90 days full traces, deduplicate artifacts."
+  }
+}
+
+1.
+
+{ “modules”: [ { “name”: “API Gateway”, “responsibility”: “Expose endpoints to create, update, and review Decision Frames; trigger metabolism runs; fetch traces and Institutional Core snapshots.”, “interfaces”: [ “POST /irl/decision_frames”, “POST /irl/metabolize/{frame_id}”, “GET /irl/trace/{run_id}”, “GET /irl/core”, “GET /irl/frames/{frame_id}” ] }, { “name”: “Decision Frame Builder”, “responsibility”: “Normalize user inputs into structured Decision Frames with goals, constraints, claims, assumptions, and cited evidence.”, “interfaces”: [ “build_frame(input_text: str, metadata: dict) -> DecisionFrame”, “update_frame(frame_id: str, patch: dict) -> DecisionFrame” ] }, { “name”: “Input Analyzer”, “responsibility”: “Extract atomic claims, assumptions, entities, and policy/context bindings; construct claim graph and scope tags.”, “interfaces”: [ “analyze_frame(frame: DecisionFrame) -> FrameStruct”, “extract_claims(text: str) -> [Claim]” ] }, { “name”: “Conflict Detection Engine”, “responsibility”: “Detect semantic, logical, normative/policy, and procedural conflicts within and across Decision Frames.”, “interfaces”: [ “detect_conflicts(frame_struct: FrameStruct, prev_struct?: FrameStruct) -> [Conflict]”, “score_conflicts(conflicts: [Conflict]) -> ConflictSummary” ] }, { “name”: “Governance Kernel”, “responsibility”: “Apply policies, weights, thresholds, and safety boundaries; decide actions: revise, defend, accept, or escalate.”, “interfaces”: [ “decide(conflict_summary: ConflictSummary, metrics: Metrics, policy: Policy) -> ActionPlan”, “is_stable(history: [IterationRecord], policy: Policy) -> bool” ] }, { “name”: “Revision Orchestrator”, “responsibility”: “Generate targeted challenges (adversarial prompts, self-queries) and route verification tasks to local verifiers; integrate revisions or defenses.”, “interfaces”: [ “build_challenges(conflicts: [Conflict], frame_struct: FrameStruct, policy: Policy) -> ChallengeBundle”, “apply_revisions(frame_struct: FrameStruct, evidence: EvidenceBundle) -> FrameStruct” ] }, { “name”: “Local Verifiers”, “responsibility”: “Perform offline checks: symbolic/math, programmatic tests, policy rule validation, temporal/sequence consistency; read-only retrieval from local corpora.”, “interfaces”: [ “verify_math(expr: str) -> TestResult”, “verify_policy(rule_set: PolicySet, claim: Claim) -> TestResult”, “verify_sequence(proc: ProcedureGraph) -> TestResult”, “validate_citation(local_ref: str) -> TestResult” ] }, { “name”: “Evaluator”, “responsibility”: “Compute per-iteration metrics: coherence, contradiction_delta, contradiction_norm, coverage, depth, drift, stability.”, “interfaces”: [ “compute_metrics(frame_struct: FrameStruct, conflicts: [Conflict], evidence: EvidenceBundle) -> Metrics” ] }, { “name”: “Trace Logger”, “responsibility”: “Persist append-only iteration logs with hash-linked lineage; optionally Merkle-root sub-artifacts; enforce tamper-evidence.”, “interfaces”: [ “append_iteration(run_id: str, record: IterationRecord) -> str”, “verify_chain(run_id: str) -> bool”, “emit_report(run_id: str) -> AuditReport” ] }, { “name”: “Institutional Core Manager”, “responsibility”: “Maintain the current Institutional Core snapshot: stabilized claims, defenses, scope qualifiers, and evidence bundles.”, “interfaces”: [ “update_core(run_id: str, final_frame: FrameStruct, metrics: Metrics) -> CoreSnapshot”, “get_core() -> CoreSnapshot” ] }, { “name”: “Dashboard Server”, “responsibility”: “Serve JSON for visualization and static assets; power D3.js views of contradiction networks, timelines, and delta charts.”, “interfaces”: [ “GET /dashboard/data/run/{run_id}”, “GET /dashboard/data/core”, “GET /static/*” ] }, { “name”: “Policy Store”, “responsibility”: “Hold governance thresholds, severity weights, stability window, rotation rules; allow versioned policy profiles.”, “interfaces”: [ “get_policy(policy_id: str) -> Policy”, “set_policy(policy_id: str, policy: Policy) -> None” ] } ], “dataflow”: [ “User submits decision context and materials to API Gateway.”, “Decision Frame Builder normalizes input into a Decision Frame with goals, constraints, claims, assumptions, and evidence.”, “Input Analyzer constructs a FrameStruct: claim graph, assumptions set, entity/context bindings, scope tags.”, “Conflict Detection Engine runs detectors (semantic, logical, normative, procedural) and outputs conflicts + severity.”, “Evaluator computes metrics; Governance Kernel applies policy to decide revise/defend/accept/escalate.”, “Revision Orchestrator generates challenges and routes to Local Verifiers for offline checks; integrates evidence and revisions back into FrameStruct.”, “Loop: conflict detection → governance decision → revision/defense → evaluation repeats until stability thresholds met or budget cap reached.”, “Trace Logger appends each iteration record with hash-linked lineage; verifies chain integrity.”, “Institutional Core Manager extracts stabilized claims with evidence/scope into the Institutional Core snapshot.”, “Dashboard Server serves data for visualization: timeline of iterations, contradiction network, heatmaps, and delta charts for audit.” ], “stack”: { “python”: [ “Python 3.11”, “FastAPI (primary API)”, “Pydantic (schemas)”, “SQLite (persistence via SQLModel or sqlite3)”, “Uvicorn (ASGI server)”, “NetworkX (claim/contradiction graphs)”, “SymPy (symbolic/math checks)”, “jsonlines (append-only logs)”, “Jinja2 (optional templating for static dashboard)”, “pytest (tests)” ], “frontend”: [ “D3.js (graphs and charts)”, “Lite CSS framework (Tailwind or Pico.css)”, “Vanilla JS + Fetch API (data binding)” ], “storage”: [ “SQLite database (frames, policies, cores, indices)”, “Append-only JSONL files (iteration traces, metrics time-series)”, “Filesystem content-addressed artifacts (proofs/tests/citations)” ] }, “persistence”: { “store”: “Hybrid: SQLite for normalized records (Decision Frames, Core Snapshots, policy profiles); append-only JSONL for iteration traces; artifacts stored as content-addressed files with URIs referenced in DB.”, “hashing”: “SHA-256 over canonicalized JSON (sorted keys, normalized floats). Each IterationRecord includes its hash and parent_hash to form a tamper-evident chain; optional Merkle root over sub-artifacts (claims, issues, metrics, decisions).”, “rotation_policy”: “Monthly compaction of traces: keep full JSONL for last 90 days; beyond that, retain summarized iterations (metrics + top conflicts) with hashes; artifact files deduplicated by content hash; core snapshots versioned and never overwritten.” }, “risks”: [ { “risk”: “LLM dependency or online retrieval violating offline constraint.”, “mitigation”: “Use local models or deterministic rule-based analyzers; retrieval limited to local corpora; enforce read-only and sandboxed verifiers.” }, { “risk”: “Graph complexity and performance on large decision sets.”, “mitigation”: “Scope claims to atomic units; use incremental graph updates; cache analysis; apply severity-based prioritization to reduce verification workload.” }, { “risk”: “Tamper or silent edits to traces.”, “mitigation”: “Append-only JSONL with hash-linked parent-child records; periodic chain verification; read-only audit replicas.” }, { “risk”: “Policy misconfiguration leading to premature coherence declarations.”, “mitigation”: “Versioned policy profiles, safe defaults, stability window checks, human review escalation for high-severity unresolved conflicts.” }, { “risk”: “Team bandwidth and timeline overruns.”, “mitigation”: “Phase delivery: MVP (frame builder + detection + trace logging), then governance kernel + revision loop, then dashboard; weekly milestones and test harness.” }, { “risk”: “Data privacy and sensitive content exposure.”, “mitigation”: “Redaction tokens in stored frames; role-based access; separate secure store for sensitive artifacts with hashed references only.” } ] }
+
+2.
+
+{ “schemas”: { “DecisionFrame”: { “type”: “object”, “required”: [“id”, “timestamp”, “source”, “claims”, “assumptions”, “evidence”], “properties”: { “id”: {“type”: “string”}, “timestamp”: {“type”: “string”, “format”: “date-time”}, “source”: {“type”: “string”, “description”: “Origin of decision (user, meeting, document)”}, “goals”: {“type”: “array”, “items”: {“type”: “string”}}, “constraints”: {“type”: “array”, “items”: {“type”: “string”}}, “claims”: { “type”: “array”, “items”: { “type”: “object”, “required”: [“id”, “text”], “properties”: { “id”: {“type”: “string”}, “text”: {“type”: “string”}, “confidence”: {“type”: “number”, “minimum”: 0, “maximum”: 1}, “scope”: {“type”: “string”} } } }, “assumptions”: {“type”: “array”, “items”: {“type”: “string”}}, “evidence”: { “type”: “array”, “items”: { “type”: “object”, “required”: [“id”, “citation”], “properties”: { “id”: {“type”: “string”}, “citation”: {“type”: “string”}, “uri”: {“type”: “string”}, “verified”: {“type”: “boolean”} } } }, “metadata”: {“type”: “object”} } }, “ConflictRecord”: { “type”: “object”, “required”: [“id”, “type”, “severity”, “statements”, “message”], “properties”: { “id”: {“type”: “string”}, “type”: {“type”: “string”, “enum”: [“semantic”, “logical”, “normative”, “procedural”]}, “severity”: {“type”: “string”, “enum”: [“low”, “medium”, “high”]}, “statements”: {“type”: “array”, “items”: {“type”: “string”}}, “message”: {“type”: “string”}, “status”: {“type”: “string”, “enum”: [“unresolved”, “resolved”, “defended”], “default”: “unresolved”}, “resolution”: {“type”: “string”}, “evidence”: {“type”: “array”, “items”: {“type”: “string”}} } }, “IterationRecord”: { “type”: “object”, “required”: [“id”, “run_id”, “iteration_index”, “timestamp”, “parent_hash”, “frame_id”, “conflicts”, “metrics”, “decision”, “hash”], “properties”: { “id”: {“type”: “string”}, “run_id”: {“type”: “string”}, “iteration_index”: {“type”: “integer”}, “timestamp”: {“type”: “string”, “format”: “date-time”}, “parent_hash”: {“type”: “string”}, “frame_id”: {“type”: “string”}, “conflicts”: {“type”: “array”, “items”: {”$ref”: “#/schemas/ConflictRecord”}}, “metrics”: { “type”: “object”, “properties”: { “coherence”: {“type”: “number”}, “contradiction_norm”: {“type”: “number”}, “contradiction_delta”: {“type”: “number”}, “coverage”: {“type”: “number”}, “depth”: {“type”: “number”}, “drift”: {“type”: “number”}, “stability”: {“type”: “boolean”} } }, “decision”: {“type”: “string”, “enum”: [“revise”, “defend”, “accept”, “escalate”]}, “hash”: {“type”: “string”}, “merkle_root”: {“type”: “string”} } }, “InstitutionalCore”: { “type”: “object”, “required”: [“id”, “timestamp”, “claims”, “evidence”, “policy_version”], “properties”: { “id”: {“type”: “string”}, “timestamp”: {“type”: “string”, “format”: “date-time”}, “claims”: {“type”: “array”, “items”: {“type”: “string”}}, “evidence”: {“type”: “array”, “items”: {“type”: “string”}}, “scope_qualifiers”: {“type”: “array”, “items”: {“type”: “string”}}, “policy_version”: {“type”: “string”}, “metrics”: {“type”: “object”} } }, “Trace”: { “type”: “object”, “required”: [“run_id”, “iterations”, “final_core”, “audit”], “properties”: { “run_id”: {“type”: “string”}, “iterations”: {“type”: “array”, “items”: {”$ref”: “#/schemas/IterationRecord”}}, “final_core”: {”$ref”: “#/schemas/InstitutionalCore”}, “audit”: { “type”: “object”, “properties”: { “verified”: {“type”: “boolean”}, “chain_valid”: {“type”: “boolean”}, “summary”: {“type”: “string”} } } } } }, “relationships”: [ {“from”: “DecisionFrame”, “to”: “ConflictRecord”, “relation”: “contains”, “key”: “claims.id”}, {“from”: “IterationRecord”, “to”: “DecisionFrame”, “relation”: “references”, “key”: “frame_id”}, {“from”: “IterationRecord”, “to”: “ConflictRecord”, “relation”: “includes”, “key”: “conflicts.id”}, {“from”: “Trace”, “to”: “IterationRecord”, “relation”: “aggregates”, “key”: “iterations.id”}, {“from”: “Trace”, “to”: “InstitutionalCore”, “relation”: “finalizes”, “key”: “final_core.id”} ] }
+
+3.
+
+{ “loop”: [ “1. Parse DecisionFrame: normalize input into structured claims, assumptions, evidence, and constraints.”, “2. Run Conflict Detection Engine: identify semantic, logical, normative/policy, and procedural conflicts; produce ConflictRecords with severity.”, “3. Compute metrics: conflict_load (weighted sum), coherence (claim graph consistency), coverage (fraction of claims with supporting evidence/tests), drift (divergence from original frame).”, “4. Governance Kernel evaluates metrics against thresholds and history; chooses action: revise, defend, escalate, or accept.”, “5. If action=revise: Revision Orchestrator generates challenges, routes to verifiers (math checks, policy rules, citation validation), integrates revised claims.”, “6. If action=defend: produce defense artifacts (scope qualifiers, conditional statements, verified evidence) and mark conflicts as defended.”, “7. If action=escalate: halt loop, emit unresolved conflicts for human review.”, “8. If action=accept: declare current frame stable and coherent.”, “9. Append IterationRecord to Trace with hash-linked lineage.”, “10. Repeat steps 2–9 until conflict_load delta ≤ epsilon_conflict for stability_window iterations or max_iters reached.”, “11. Emit InstitutionalCore: surviving claims + evidence + scope qualifiers, and Trace: full iteration history with metrics and hashes.” ], “thresholds”: { “max_iters”: 10, “epsilon_conflict”: 0.05, “stability_window”: 3 }, “actions”: [“revise”, “defend”, “escalate”, “accept”], “pseudocode”: “def metabolism_loop(frame, policy):\n    history = []\n    prev_conflict_load = None\n    stable_count = 0\n    for i in range(policy[‘max_iters’]):\n        conflicts = detect_conflicts(frame)\n        metrics = compute_metrics(frame, conflicts)\n        action = decide_action(conflicts, metrics, policy)\n        log_iteration(i, frame, conflicts, metrics, action, history)\n\n        if action == ‘revise’:\n            frame = apply_revisions(frame, conflicts)\n        elif action == ‘defend’:\n            frame = apply_defenses(frame, conflicts)\n        elif action == ‘escalate’:\n            return emit_core_and_trace(frame, history, unresolved=conflicts)\n        elif action == ‘accept’:\n            return emit_core_and_trace(frame, history)\n\n        if prev_conflict_load is not None:\n            delta = abs(metrics[‘conflict_load’] - prev_conflict_load)\n            if delta <= policy[‘epsilon_conflict’]:\n                stable_count += 1\n            else:\n                stable_count = 0\n            if stable_count >= policy[‘stability_window’]:\n                return emit_core_and_trace(frame, history)\n        prev_conflict_load = metrics[‘conflict_load’]\n\n    return emit_core_and_trace(frame, history, unresolved=conflicts)”, “metrics”: [“conflict_load”, “coherence”, “coverage”, “drift”] }
+
+4.
+
+{ “detectors”: [ { “type”: “semantic”, “inputs”: [“claims”, “assumptions”], “method”: “Entity and property normalization; detect clashes in attributes (e.g., same entity with conflicting properties, temporal mismatches). Uses string normalization, ontology mapping, and pairwise comparison.”, “score_range”: [0, 1], “api”: { “fn”: “detect_semantic_conflicts”, “in”: [“claims”, “assumptions”], “out”: {“issues”: “array”} } }, { “type”: “logical”, “inputs”: [“claims”, “assumptions”], “method”: “Translate claims into propositional/predicate forms; run consistency checks with symbolic logic or numeric constraints. Detect contradictions such as A and not-A, or conflicting quantitative bounds.”, “score_range”: [0, 1], “api”: { “fn”: “detect_logical_conflicts”, “in”: [“claims”, “assumptions”], “out”: {“issues”: “array”} } }, { “type”: “normative”, “inputs”: [“claims”, “constraints”], “method”: “Model obligations, prohibitions, and permissions using deontic logic. Detect conflicts where the same action is both required and forbidden, or where rules overlap inconsistently.”, “score_range”: [0, 1], “api”: { “fn”: “detect_normative_conflicts”, “in”: [“claims”, “constraints”], “out”: {“issues”: “array”} } }, { “type”: “procedural”, “inputs”: [“claims”, “constraints”], “method”: “Represent procedures as ordered steps or state-transition graphs. Detect contradictions in ordering (e.g., step requires precondition not yet satisfied) or cycles that prevent completion.”, “score_range”: [0, 1], “api”: { “fn”: “detect_procedural_conflicts”, “in”: [“claims”, “constraints”], “out”: {“issues”: “array”} } } ], “severity_rules”: { “low”: “Minor inconsistency that does not block reasoning or can be trivially scoped (e.g., ambiguous wording, low-impact semantic mismatch).”, “medium”: “Conflict that affects correctness of some claims or procedures but can be resolved with clarification, scope qualifier, or additional evidence.”, “high”: “Direct contradiction that undermines core claims, rules, or procedures; cannot both be true or valid under the same conditions and requires revision or escalation.” } }
+
+5.
+
+{ “verifiers”: [ { “name”: “symbolic”, “api”: { “run”: { “in”: { “expr”: “string” }, “out”: { “status”: “string”, “details”: “string” } } } }, { “name”: “code”, “api”: { “run”: { “in”: { “code”: “string” }, “out”: { “status”: “string”, “stdout”: “string” } } } }, { “name”: “policy”, “api”: { “run”: { “in”: { “rule_id”: “string”, “facts”: “array” }, “out”: { “status”: “string”, “explanation”: “string” } } } }, { “name”: “citation”, “api”: { “run”: { “in”: { “claim”: “string”, “corpus_ids”: “array” }, “out”: { “status”: “string”, “sources”: “array” } } } } ], “safety”: { “sandbox”: “Firejail or Python subprocess with restricted environment; resource caps (CPU/mem/time) and no network”, “read_only”: true } }
+
+6.
+
+{ “policy”: { “weights”: { “coherence”: 0.35, “conflicts”: 0.35, “coverage”: 0.20, “drift”: 0.10 }, “thresholds”: { “epsilon”: 0.05, “c_min”: 0.75, “k_min”: 0.70, “d_max”: 0.20, “window”: 3 } }, “decision_rules”: [ “If conflict_load is high and coverage < k_min → action = revise.”, “If conflict_load is low but unresolved high-severity conflicts remain with adequate evidence → action = defend.”, “If conflict_load delta > epsilon for more than window iterations or drift > d_max → action = escalate.”, “If coherence ≥ c_min, conflict_load ≤ epsilon, coverage ≥ k_min, and stability window satisfied → action = accept.” ], “hashing”: { “algo”: “sha256”, “canonical_json”: “stable_sort_keys” }, “iteration_record”: { “fields”: [ “hash”, “parent_hash”, “metrics”, “decision”, “timestamp” ] } }
+
+7.
+
+{ “storage”: { “engine”: “sqlite”, “layout”: “SQLite DB with normalized tables: decision_frames(id PK, timestamp, source, goals JSON, constraints JSON, assumptions JSON, metadata JSON); claims(id PK, frame_id FK, text, confidence REAL, scope); evidence(id PK, frame_id FK, citation, uri, verified BOOL); runs(run_id PK, frame_id FK, policy_id, started_at, ended_at, status); iterations(id PK, run_id FK, iteration_index INT, timestamp, parent_hash, frame_digest, metrics JSON, decision, hash, merkle_root); conflicts(id PK, iteration_id FK, type, severity, message, status, resolution, statements JSON, evidence JSON); cores(core_id PK, run_id FK, timestamp, claims JSON, evidence JSON, scope_qualifiers JSON, policy_version, metrics JSON). Hash-linked lineage preserved via iterations.parent_hash → iterations.hash chain and content-addressed artifact references.” }, “endpoints”: [ { “method”: “POST”, “path”: “/irl/ingest”, “in”: “DecisionFrame”, “out”: “{id}” }, { “method”: “GET”, “path”: “/irl/trace/{id}”, “out”: “Trace” }, { “method”: “GET”, “path”: “/irl/core/{id}”, “out”: “InstitutionalCore” } ], “retention”: { “raw_days”: 90, “summaries_days”: 365, “redaction”: “PII fields in decision_frames.metadata are tokenized with reversible redaction keys stored in a restricted table (redaction_keys) referenced by hash; iteration and conflict records retain hashes and minimal summaries after raw_days compaction to preserve chain integrity.” } }
+
+8.
+
+{ “components”: [“timeline”, “conflict_graph”, “delta_chart”, “core_viewer”, “audit_checker”], “data_endpoints”: [“GET /irl/trace/{id}”, “GET /irl/core/{id}”, “GET /irl/metrics/{id}”], “layout”: “Top bar with run metadata; Left panel = timeline of iterations (clickable list); Center panel = conflict network graph (nodes=claims, edges=conflicts); Right panel = delta chart (conflict load/coherence over iterations) + audit checker status; Bottom panel = core viewer showing stabilized claims and evidence.”, “interaction”: [“filter_by_type”, “hover_issue”, “replay_iterations”] }
+
+9.
+
+{ “infra”: { “host”: “single VM (Ubuntu 22.04 LTS) with Docker Compose orchestration”, “containers”: [“api”, “verifier”, “dashboard”], “secrets”: “env_files” }, “security”: { “rbac”: “roles: admin (manage policies, retention, users), analyst (view traces, cores, dashboards), contributor (ingest frames, run metabolism), auditor (verify hashes, run audit checks)”, “api_keys”: true, “audit_log”: true }, “testing”: { “unit”: “pytest”, “detector_golds”: “csv”, “e2e”: “scripted_scenarios” }, “timeline”: [ {“week”: 1, “milestone”: “bootstrap repo”}, {“week”: 2, “milestone”: “set up VM host, Docker Compose, and CI pipeline”}, {“week”: 3, “milestone”: “implement DecisionFrame schema + ingestion API”}, {“week”: 4, “milestone”: “detectors alpha”}, {“week”: 6, “milestone”: “verifier suite alpha (symbolic, code sandbox, policy, citation)”}, {“week”: 8, “milestone”: “governance kernel + metrics computation”}, {“week”: 10, “milestone”: “iteration trace logging with hash linkage”}, {“week”: 12, “milestone”: “closed-loop MVP”}, {“week”: 14, “milestone”: “dashboard alpha (timeline, conflict graph, delta chart)”}, {“week”: 16, “milestone”: “RBAC + API key enforcement + audit logging”}, {“week”: 18, “milestone”: “backups and retention policies implemented”}, {“week”: 20, “milestone”: “pilot org”}, {“week”: 22, “milestone”: “stability testing, detector gold set validation, e2e scripted scenarios”}, {“week”: 24, “milestone”: “v1 release”} ] }
