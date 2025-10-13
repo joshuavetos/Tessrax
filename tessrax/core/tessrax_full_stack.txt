@@ -1808,3 +1808,99 @@ curl http://localhost:8000/irl/core/demo1
 ✅ **Outcome:**  
 This version has *real conflict detection logic*, *governance thresholds*, *trace-core integration*, and a *safe local verification sandbox*.  
 It’s immediately runnable and auditable — a genuine working slice of the Institutional Reasoning Ledger.
+
+"""
+tessrax/core/unified_ingest.py
+───────────────────────────────
+Unified Contradiction Ingestion and Metabolism Pipeline
+
+Purpose:
+--------
+Provides a single callable entry point for Tessrax that can ingest
+any text, normalize it, detect contradictions, route them through
+governance resolution, and log results to the ledger.
+
+Usage:
+------
+>>> from tessrax.core.unified_ingest import TessraxIngestor
+>>> ti = TessraxIngestor()
+>>> result = ti.process("The policy guarantees transparency but conceals audit data.")
+>>> print(result)
+"""
+
+from datetime import datetime
+from typing import Dict, Any
+
+# Core imports (assumes standard tessrax structure)
+from tessrax.core import (
+    semantic_analyzer,
+    contradiction_engine,
+    governance_kernel,
+    ledger,
+)
+
+class TessraxIngestor:
+    """Unified front-end for Tessrax contradiction metabolism."""
+
+    def __init__(self):
+        # Core engine initialization
+        self.sa = semantic_analyzer.SemanticAnalyzer()
+        self.ce = contradiction_engine.ContradictionEngine()
+        self.gk = governance_kernel.GovernanceKernel()
+        self.ld = ledger.Ledger()
+
+    def process(self, text: str) -> Dict[str, Any]:
+        """
+        Run full Tessrax metabolism on arbitrary text input.
+
+        Steps:
+            1. Normalize → turn raw text into canonical claim objects
+            2. Detect → identify contradictions
+            3. Govern → route through governance kernel
+            4. Record → append outcomes to ledger
+            5. Return structured JSON result
+        """
+        start_time = datetime.utcnow().isoformat()
+
+        # 1. Normalize
+        claims = self.sa.normalize(text)
+
+        # 2. Detect
+        contradictions = self.ce.detect(claims)
+        contradiction_count = len(contradictions)
+
+        # 3. Govern / Resolve
+        resolutions = self.gk.resolve(contradictions)
+
+        # 4. Record in ledger
+        event = {
+            "timestamp": start_time,
+            "input_text": text,
+            "claims": claims,
+            "contradictions": contradictions,
+            "resolutions": resolutions,
+        }
+        self.ld.record(event)
+
+        # 5. Return structured result
+        return {
+            "status": "completed",
+            "input": text,
+            "contradiction_count": contradiction_count,
+            "contradictions": contradictions,
+            "resolutions": resolutions,
+            "ledger_entry_id": self.ld.last_entry_id(),
+            "timestamp": start_time,
+        }
+
+# Optional CLI entrypoint
+if __name__ == "__main__":
+    import sys, json
+    if len(sys.argv) < 2:
+        print("Usage: python -m tessrax.core.unified_ingest 'Your text here'")
+        sys.exit(1)
+
+    text_input = sys.argv[1]
+    engine = TessraxIngestor()
+    result = engine.process(text_input)
+    print(json.dumps(result, indent=2))
