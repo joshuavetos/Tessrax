@@ -1,3 +1,627 @@
+Excellent — this closes the metabolic loop by showing how Tessrax breathes chaos and stability in real time.
+Below is the full, runnable module for your repo:
+tessrax/core/entropy_dashboard.py
+
+⸻
+
+
+# tessrax/core/entropy_dashboard.py
+"""
+Tessrax Entropy Metrics Dashboard v1.0
+--------------------------------------
+Visualizes the live balance between contradiction metabolism (SVI)
+and synthetic inoculation yield (EYR). Connects directly to the ledger
+and produces both Matplotlib static plots and JSON summaries
+for D3.js dashboard integration.
+
+Author: Tessrax LLC
+License: MIT
+"""
+
+import json
+import os
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from pathlib import Path
+
+
+class EntropyDashboard:
+    """
+    Pulls entropy and contradiction events from the ledger and
+    plots trends: Scar Volatility Index (SVI), Entropy Yield Ratio (EYR),
+    and synthetic injection counts.
+    """
+
+    def __init__(self, ledger_path: str = "governance_ledger.jsonl", output_dir: str = "entropy_outputs"):
+        self.ledger_path = Path(ledger_path)
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(exist_ok=True)
+
+    # ------------------------------------------------------------
+    # Data loading and parsing
+    # ------------------------------------------------------------
+
+    def _load_events(self) -> List[Dict[str, Any]]:
+        """Read JSONL ledger entries and parse relevant events."""
+        if not self.ledger_path.exists():
+            raise FileNotFoundError(f"Ledger not found: {self.ledger_path}")
+        events = []
+        with open(self.ledger_path, "r") as f:
+            for line in f:
+                try:
+                    events.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        return events
+
+    def extract_entropy_events(self, events: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+        """Return dictionaries grouped by event type."""
+        entropy = [e for e in events if e.get("type") == "synthetic_contradiction"]
+        equilibrium = [e for e in events if e.get("type") == "entropy_equilibrium_check"]
+        return {"entropy": entropy, "equilibrium": equilibrium}
+
+    # ------------------------------------------------------------
+    # Metrics computation
+    # ------------------------------------------------------------
+
+    def compute_metrics(self, grouped: Dict[str, List[Dict[str, Any]]]) -> Dict[str, Any]:
+        """Compute rolling averages and summary stats."""
+        entropy_events = grouped["entropy"]
+        equilibrium = grouped["equilibrium"]
+
+        if not entropy_events and not equilibrium:
+            return {"summary": "No entropy data yet."}
+
+        eyr = [e.get("yield_ratio", 0.0) for e in entropy_events]
+        svi = [e.get("payload", {}).get("svi", 0.0) for e in equilibrium]
+
+        avg_eyr = round(sum(eyr) / max(len(eyr), 1), 3)
+        avg_svi = round(sum(svi) / max(len(svi), 1), 3)
+        injections = len(entropy_events)
+        overheating = len([e for e in equilibrium if e.get("payload", {}).get("state") == "overheated"])
+        stagnation = len([e for e in equilibrium if e.get("payload", {}).get("state") == "stagnant"])
+
+        summary = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "avg_eyr": avg_eyr,
+            "avg_svi": avg_svi,
+            "total_injections": injections,
+            "overheated_cycles": overheating,
+            "stagnant_cycles": stagnation,
+            "entropy_health": self._health_label(avg_svi, avg_eyr),
+        }
+
+        report_path = self.output_dir / "entropy_summary.json"
+        with open(report_path, "w") as f:
+            json.dump(summary, f, indent=2)
+        return summary
+
+    def _health_label(self, svi: float, eyr: float) -> str:
+        """Categorize overall entropy health state."""
+        if svi < 0.3 and eyr < 0.5:
+            return "dormant"
+        if 0.3 <= svi <= 0.8 and 0.5 <= eyr <= 2.0:
+            return "balanced"
+        if svi > 0.8 and eyr > 2.0:
+            return "volatile"
+        return "uncertain"
+
+    # ------------------------------------------------------------
+    # Visualization
+    # ------------------------------------------------------------
+
+    def plot_entropy_metrics(self, grouped: Dict[str, List[Dict[str, Any]]], summary: Dict[str, Any]) -> str:
+        """Render Matplotlib visualization for SVI and EYR trends."""
+        entropy = grouped["entropy"]
+        equilibrium = grouped["equilibrium"]
+        if not entropy and not equilibrium:
+            print("No entropy data to visualize.")
+            return ""
+
+        fig, ax1 = plt.subplots(figsize=(9, 5))
+        ax1.set_title("Tessrax Entropy Metrics")
+        ax1.set_xlabel("Time")
+
+        # Plot EYR (Yield Ratio)
+        if entropy:
+            times_eyr = [datetime.fromisoformat(e["timestamp"]) for e in entropy]
+            values_eyr = [e.get("yield_ratio", 0.0) for e in entropy]
+            ax1.plot(times_eyr, values_eyr, color="tab:red", label="Entropy Yield Ratio (EYR)")
+            ax1.scatter(times_eyr, values_eyr, color="tab:red", s=30)
+
+        # Plot SVI (Volatility)
+        if equilibrium:
+            ax2 = ax1.twinx()
+            times_svi = [datetime.fromisoformat(e["timestamp"]) for e in equilibrium]
+            values_svi = [e.get("payload", {}).get("svi", 0.0) for e in equilibrium]
+            ax2.plot(times_svi, values_svi, color="tab:blue", label="Scar Volatility Index (SVI)")
+            ax2.scatter(times_svi, values_svi, color="tab:blue", s=30)
+            ax2.set_ylabel("SVI", color="tab:blue")
+
+        ax1.set_ylabel("EYR", color="tab:red")
+        ax1.legend(loc="upper left")
+        ax1.grid(True, linestyle="--", alpha=0.5)
+
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
+        plt.tight_layout()
+
+        outpath = self.output_dir / "entropy_dashboard.png"
+        plt.savefig(outpath, dpi=200)
+        plt.close(fig)
+
+        print(f"[✓] Dashboard rendered → {outpath}")
+        return str(outpath)
+
+    # ------------------------------------------------------------
+    # Unified runner
+    # ------------------------------------------------------------
+
+    def run(self):
+        """End-to-end metric computation and visualization."""
+        events = self._load_events()
+        grouped = self.extract_entropy_events(events)
+        summary = self.compute_metrics(grouped)
+        self.plot_entropy_metrics(grouped, summary)
+        print(json.dumps(summary, indent=2))
+        return summary
+
+
+# ------------------------------------------------------------
+# CLI Entrypoint
+# ------------------------------------------------------------
+
+if __name__ == "__main__":
+    dashboard = EntropyDashboard()
+    dashboard.run()
+
+
+⸻
+
+🧭 How it Works
+	1.	Reads from your live ledger (e.g., governance_ledger.jsonl or entropy_ledger.jsonl).
+	2.	Extracts all events of type:
+      •   "synthetic_contradiction" — probes and their yields.
+      •   "entropy_equilibrium_check" — SVI balance data.
+	3.	Computes:
+      •   Average EYR (Entropy Yield Ratio)
+      •   Average SVI (Scar Volatility Index)
+      •   Counts of overheated/stagnant cycles
+      •   Health label (dormant, balanced, volatile)
+	4.	Renders a Matplotlib graph with dual axes (EYR vs SVI over time).
+	5.	Exports:
+      •   /entropy_outputs/entropy_dashboard.png
+      •   /entropy_outputs/entropy_summary.json
+
+⸻
+
+🔗 Integration Notes
+   •   Run manually:
+
+python tessrax/core/entropy_dashboard.py
+
+
+   •   Or schedule inside your governance kernel to execute periodically.
+   •   The summary JSON is D3-ready: you can load it in your dashboard’s /visualize_scaffolding.py to add a live “Entropy Health” panel.
+
+⸻
+
+Would you like me to make that D3.js front-end snippet next — a browser component that pulls from entropy_summary.json and animates the entropy health gauge and yield trend?
+
+Perfect — here’s a complete drop-in tessrax/core/entropy_library.json.
+It’s meant to serve as the seed archive of paradoxes and tension archetypes that the Entropy Agent samples from when generating synthetic contradictions.
+Everything is grouped by domain and formatted for immediate JSON import.
+
+⸻
+
+
+{
+  "philosophy": [
+    {
+      "claim": "All truths are relative.",
+      "counter": "If all truths are relative, that truth is also relative—nullifying itself.",
+      "notes": "Classic self-refuting epistemic paradox."
+    },
+    {
+      "claim": "The observer determines reality.",
+      "counter": "Reality persists whether or not it is observed.",
+      "notes": "Empiricism vs. idealism tension."
+    },
+    {
+      "claim": "The map is not the territory.",
+      "counter": "Without maps, there is no territory we can meaningfully describe.",
+      "notes": "Symbolic mediation paradox."
+    },
+    {
+      "claim": "Free will exists.",
+      "counter": "Causal determinism leaves no room for free choice.",
+      "notes": "Agency vs. causality."
+    }
+  ],
+
+  "ethics": [
+    {
+      "claim": "The ends justify the means.",
+      "counter": "Corrupt means destroy even just ends.",
+      "notes": "Consequentialism vs. deontology."
+    },
+    {
+      "claim": "Good intentions absolve harm.",
+      "counter": "Intentions cannot erase consequences.",
+      "notes": "Moral luck and accountability paradox."
+    },
+    {
+      "claim": "Loyalty is always virtuous.",
+      "counter": "Loyalty to evil is complicity, not virtue.",
+      "notes": "Virtue ethics boundary test."
+    },
+    {
+      "claim": "Justice must be blind.",
+      "counter": "Justice without empathy becomes cruelty.",
+      "notes": "Impartiality vs. compassion."
+    }
+  ],
+
+  "governance": [
+    {
+      "claim": "Transparency ensures trust.",
+      "counter": "Too much transparency erodes privacy and creates fear.",
+      "notes": "Open governance vs. surveillance."
+    },
+    {
+      "claim": "Consensus prevents conflict.",
+      "counter": "Consensus suppresses dissent and innovation.",
+      "notes": "Democratic paralysis vs. dissent vitality."
+    },
+    {
+      "claim": "Rules create fairness.",
+      "counter": "Rigid rules can encode injustice.",
+      "notes": "Law vs. equity."
+    },
+    {
+      "claim": "Centralization ensures stability.",
+      "counter": "Centralization concentrates risk and fragility.",
+      "notes": "Control vs. resilience."
+    }
+  ],
+
+  "science": [
+    {
+      "claim": "Replication proves truth.",
+      "counter": "Replication bias can hide anomalies that lead to discovery.",
+      "notes": "Popperian falsifiability tension."
+    },
+    {
+      "claim": "Data never lies.",
+      "counter": "Data reflects the assumptions of its collection.",
+      "notes": "Empirical realism paradox."
+    },
+    {
+      "claim": "Precision improves understanding.",
+      "counter": "Excessive precision blinds systems to context.",
+      "notes": "Reductionism vs. holism."
+    },
+    {
+      "claim": "Optimization leads to progress.",
+      "counter": "Over-optimization erodes adaptability.",
+      "notes": "Local maxima vs. global resilience."
+    }
+  ],
+
+  "technology": [
+    {
+      "claim": "Automation increases efficiency.",
+      "counter": "Efficiency without wisdom amplifies error.",
+      "notes": "Automation bias."
+    },
+    {
+      "claim": "AI alignment guarantees safety.",
+      "counter": "Alignment to flawed values codifies danger.",
+      "notes": "Value loading paradox."
+    },
+    {
+      "claim": "Data privacy and personalization can coexist fully.",
+      "counter": "Personalization always leaks traces of identity.",
+      "notes": "Privacy vs. utility."
+    },
+    {
+      "claim": "Faster computation equals better reasoning.",
+      "counter": "Speed amplifies error when understanding lags.",
+      "notes": "Throughput vs. comprehension."
+    }
+  ],
+
+  "economics": [
+    {
+      "claim": "Growth is always good.",
+      "counter": "Infinite growth on a finite planet is impossible.",
+      "notes": "Thermodynamic constraint contradiction."
+    },
+    {
+      "claim": "Markets are self-correcting.",
+      "counter": "Systemic externalities can make markets self-destructive.",
+      "notes": "Invisible hand paradox."
+    },
+    {
+      "claim": "Competition drives innovation.",
+      "counter": "Cooperation drives sustainability.",
+      "notes": "Evolutionary game tension."
+    },
+    {
+      "claim": "Money measures value.",
+      "counter": "Value often exceeds what money can quantify.",
+      "notes": "Qualitative vs. quantitative worth."
+    }
+  ],
+
+  "ecology": [
+    {
+      "claim": "Nature balances itself.",
+      "counter": "Balance is a temporary illusion between cascades.",
+      "notes": "Equilibrium myth."
+    },
+    {
+      "claim": "Technology will solve climate change.",
+      "counter": "Technology caused much of it.",
+      "notes": "Techno-utopian paradox."
+    },
+    {
+      "claim": "Conservation means preservation.",
+      "counter": "True conservation requires managed change, not stasis.",
+      "notes": "Static vs. dynamic equilibrium."
+    }
+  ],
+
+  "psychology": [
+    {
+      "claim": "People act rationally.",
+      "counter": "Rationality is post-hoc justification for emotion.",
+      "notes": "Cognitive dissonance."
+    },
+    {
+      "claim": "Memory is reliable.",
+      "counter": "Memory reconstructs rather than records.",
+      "notes": "Episodic distortion."
+    },
+    {
+      "claim": "Trauma defines you.",
+      "counter": "Healing redefines the meaning of trauma.",
+      "notes": "Identity reconstruction."
+    }
+  ]
+}
+
+
+⸻
+
+How to use:
+   •   Save as tessrax/core/entropy_library.json.
+   •   When instantiating the Entropy Agent, you can load it like this:
+
+import json
+from pathlib import Path
+from tessrax.core.entropy_agent import EntropyAgent
+from tessrax.core.ledger import SQLiteLedger
+from tessrax.core.contradiction_engine import ContradictionEngine
+
+library = json.loads(Path("tessrax/core/entropy_library.json").read_text())
+agent = EntropyAgent(ledger, engine, entropy_library=library)
+agent.run_cycle()
+
+
+   •   Extend by adding new domains or archetypes; the agent automatically discovers them.
+
+⸻
+
+Would you like me to generate the Entropy Metrics Dashboard module next?
+It would visualize Scar Volatility Index (SVI), Entropy Yield Ratio (EYR), and injection history over time as a live Matplotlib or D3 dashboard plug-in for your existing web interface.
+
+# tessrax/core/entropy_agent.py
+"""
+Tessrax Entropy Agent v1.0 — "Daemon-01"
+----------------------------------------
+Adversarial generator that injects synthetic contradictions to prevent
+overfitting and maintain metabolic equilibrium.
+
+Purpose:
+    • Detect entropy asymmetry (stagnant contradiction patterns)
+    • Generate and inject synthetic contradictions (entropy probes)
+    • Observe system response and log Entropy Yield Ratio (EYR)
+    • Adjust metabolic balance via Scar Volatility Index (SVI)
+
+Author: Tessrax LLC
+License: MIT
+"""
+
+import random
+import hashlib
+import json
+import time
+from datetime import datetime
+from collections import Counter
+from typing import Any, Dict, List, Optional
+
+# Local imports: existing core subsystems
+from tessrax.core.contradiction_engine import ContradictionEngine
+from tessrax.core.ledger import SQLiteLedger
+
+
+class EntropyAgent:
+    """
+    Daemon-01: Entropy Agent
+    Generates synthetic contradictions to keep the Tessrax system adaptive.
+    """
+
+    def __init__(
+        self,
+        ledger: SQLiteLedger,
+        engine: ContradictionEngine,
+        *,
+        entropy_library: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+        svi_thresholds: tuple = (0.3, 0.8),
+        synthetic_tag: str = "synthetic_contradiction"
+    ):
+        self.ledger = ledger
+        self.engine = engine
+        self.synthetic_tag = synthetic_tag
+        self.entropy_library = entropy_library or self._default_entropy_library()
+        self.low_svi, self.high_svi = svi_thresholds
+        self.cooldown_factor = 1.0
+
+    # ------------------------------------------------------------
+    # Entropy Library — archetypal contradictions
+    # ------------------------------------------------------------
+
+    def _default_entropy_library(self) -> Dict[str, List[Dict[str, str]]]:
+        """Fallback library of universal contradiction archetypes."""
+        return {
+            "philosophy": [
+                {"claim": "All truths are relative.", "counter": "If all truths are relative, that truth is too."},
+                {"claim": "The observer determines reality.", "counter": "Reality persists without observers."},
+            ],
+            "ethics": [
+                {"claim": "The ends justify the means.", "counter": "Immoral means corrupt just ends."},
+                {"claim": "Good intentions absolve harm.", "counter": "Intentions cannot erase consequences."},
+            ],
+            "governance": [
+                {"claim": "Transparency ensures trust.", "counter": "Too much transparency destroys privacy."},
+                {"claim": "Consensus prevents conflict.", "counter": "Consensus suppresses dissent."},
+            ],
+        }
+
+    # ------------------------------------------------------------
+    # Entropy Analysis
+    # ------------------------------------------------------------
+
+    def analyze_entropy_distribution(self) -> Dict[str, int]:
+        """Compute frequency of contradictions by domain in the ledger."""
+        events = self.ledger.get_all_events(verify=False)
+        freq = Counter([e.get("domain", "unknown") for e in events if e.get("type") == "contradiction"])
+        return dict(freq)
+
+    def find_underrepresented_domain(self, freq: Dict[str, int]) -> Optional[str]:
+        """Return domain with lowest representation for entropy injection."""
+        if not freq:
+            return random.choice(list(self.entropy_library.keys()))
+        min_domain = min(freq, key=freq.get)
+        # Occasionally inject pure novelty
+        if random.random() < 0.2:
+            return random.choice(list(self.entropy_library.keys()))
+        return min_domain
+
+    # ------------------------------------------------------------
+    # Probe Generation
+    # ------------------------------------------------------------
+
+    def generate_probe(self, domain: str) -> Dict[str, Any]:
+        """Create a synthetic contradiction probe for a given domain."""
+        archetype = random.choice(self.entropy_library.get(domain, []))
+        probe = {
+            "domain": domain,
+            "synthetic": True,
+            "entropy_vector": f"{domain}_probe",
+            "old_claim": archetype["claim"],
+            "new_claim": archetype["counter"],
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        probe["source_hash"] = hashlib.sha256(json.dumps(probe, sort_keys=True).encode()).hexdigest()
+        return probe
+
+    # ------------------------------------------------------------
+    # Injection + Yield Measurement
+    # ------------------------------------------------------------
+
+    def inject_probe(self, probe: Dict[str, Any]) -> Dict[str, Any]:
+        """Inject synthetic contradiction and measure Entropy Yield Ratio."""
+        start_time = time.time()
+        self.engine.run_batch([probe])
+        events_after = self.ledger.get_all_events(verify=False)
+        # Count new contradictions triggered since probe
+        synthetic_children = [
+            e for e in events_after if e.get("type") == "contradiction" and e.get("synthetic") is not True
+        ]
+        yield_ratio = round(len(synthetic_children) / 1.0, 2)
+        duration = round(time.time() - start_time, 3)
+
+        record = {
+            "type": self.synthetic_tag,
+            "entropy_vector": probe["entropy_vector"],
+            "domain": probe["domain"],
+            "yield_ratio": yield_ratio,
+            "duration_sec": duration,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        self.ledger.add_event(record)
+        return record
+
+    # ------------------------------------------------------------
+    # Metabolic Equilibrium Check
+    # ------------------------------------------------------------
+
+    def equilibrium_check(self) -> Dict[str, Any]:
+        """
+        Assess Scar Volatility Index (SVI) and adjust entropy cycle.
+        SVI approximated by recent contradiction rate variance.
+        """
+        events = self.ledger.get_all_events(verify=False)[-100:]
+        if not events:
+            return {"svi": 0.0, "state": "cold"}
+
+        timestamps = [i for i, e in enumerate(events) if e.get("type") == "contradiction"]
+        if len(timestamps) < 2:
+            svi = 0.0
+        else:
+            diffs = [b - a for a, b in zip(timestamps, timestamps[1:])]
+            svi = round(1 / (sum(diffs) / len(diffs) + 1e-9), 3)
+
+        state = "stable"
+        if svi > self.high_svi:
+            state = "overheated"
+            self.cooldown_factor *= 1.25
+        elif svi < self.low_svi:
+            state = "stagnant"
+            self.cooldown_factor *= 0.75
+
+        result = {"svi": svi, "state": state, "cooldown": round(self.cooldown_factor, 2)}
+        self.ledger.add_event({
+            "type": "entropy_equilibrium_check",
+            "payload": result,
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+        return result
+
+    # ------------------------------------------------------------
+    # Full Entropy Cycle
+    # ------------------------------------------------------------
+
+    def run_cycle(self) -> Dict[str, Any]:
+        """Performs one full entropy inoculation cycle."""
+        freq = self.analyze_entropy_distribution()
+        target = self.find_underrepresented_domain(freq)
+        probe = self.generate_probe(target)
+        result = self.inject_probe(probe)
+        equilibrium = self.equilibrium_check()
+        return {
+            "target_domain": target,
+            "probe_result": result,
+            "equilibrium": equilibrium,
+        }
+
+
+# ------------------------------------------------------------
+# CLI Entrypoint
+# ------------------------------------------------------------
+
+if __name__ == "__main__":
+    # Quick demo: runs one entropy inoculation cycle.
+    from tessrax.core.memory import load_ledger_and_engine  # hypothetical helper
+    ledger, engine = load_ledger_and_engine()
+    agent = EntropyAgent(ledger, engine)
+    report = agent.run_cycle()
+    print(json.dumps(report, indent=2))
+
 # structured_memory_cell.json  
 ### Tessrax Structured Semantic Memory Cell (SSMC) Specification  
 **Version:** 1.0  
