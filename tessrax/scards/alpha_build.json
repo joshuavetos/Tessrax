@@ -1,3 +1,173 @@
+# SCARDS Production Upgrade Package
+
+This upgrade consolidates **Claude’s SCARD specification** into a **complete, production-ready implementation** spanning the full lifecycle of contradiction management—from creation, validation, and scoring to detachment analysis and API delivery.
+
+---
+
+## Included Components
+
+### 1. **Core Engine**
+Path: `scards/core/engine.py`
+
+Implements:
+- Full `SCARD` schema with cryptographic provenance.
+- Validation for binary tension (negations, opposition markers, conceptual pairs).
+- RarityScorer v2.0 — multi-factor rarity and impact scoring.
+- GravityEngine — gravitational modeling of recurring contradictions.
+- DetachmentEngine v2.2 — converts emotional attachment into measurable resistance.
+- SCardEngine — orchestration for registration, clustering, and analysis.
+
+**Features**
+- Deterministic IDs (SHA-256 based)
+- Enum-controlled lifecycle states
+- Cluster formation via category overlap
+- Recognition and attachment pattern detection
+- Detachment readiness scoring and practice suggestions
+
+---
+
+### 2. **Testing Suite**
+Path: `tests/test_scard_engine.py`
+
+Covers:
+- Validation of binary tension detection.
+- Rarity scoring tiers and boundary cases.
+- Gravity/decay computation correctness.
+- Detachment recognition and attachment parsing.
+- Engine integration (registration, detachment analysis).
+
+✅ Ready for `pytest -v` execution.
+
+---
+
+### 3. **Command-Line Interface**
+Path: `scards/cli.py`
+
+Capabilities:
+- `create` — register a new SCARD from text input.
+- `analyze` — run detachment analysis on a text file.
+- `export` — output SCARD details as JSON.
+- `list_scards` — view registered SCARDs with rarity and status.
+- `validate` — check if a sentence contains binary tension.
+
+Example:
+```bash
+python -m scards.cli create \
+  --text "Transparency is required but processes are hidden." \
+  --categories "transparency,governance" \
+  --severity high
+
+
+⸻
+
+4. REST API
+
+Path: scards/api/server.py
+
+Framework: FastAPI + Pydantic
+
+Endpoints:
+   •   POST /scards — create and score SCARDs
+   •   GET /scards/{id} — retrieve SCARD
+   •   GET /scards — list or filter
+   •   POST /detachment/analyze — analyze text
+   •   POST /resonance/score — compute rarity/resonance
+   •   GET /clusters — retrieve constellation data
+   •   GET /metrics — system-wide analytics
+
+Startup:
+
+uvicorn scards.api.server:app --reload
+
+Interactive docs available at http://localhost:8000/docs.
+
+⸻
+
+5. Deployment Stack
+
+Includes:
+
+Dockerfile
+   •   Lightweight Python 3.11 build
+   •   FastAPI + pytest dependencies
+   •   Auto-launch API on port 8000
+
+docker-compose.yml
+   •   Services: scard-api, optional scard-cli, and postgres
+   •   Automatic healthchecks and volume persistence
+
+requirements.txt
+
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+click==8.1.7
+pytest==7.4.3
+requests==2.31.0
+
+
+⸻
+
+6. Quick-Start Script
+
+Path: setup.sh
+
+Automates:
+   •   Virtualenv setup
+   •   Dependency installation
+   •   Test run
+   •   Local API server launch
+   •   Example SCARD creation via curl
+
+Run:
+
+bash setup.sh
+
+
+⸻
+
+Example Workflow
+	1.	Start stack
+
+docker-compose up -d
+
+
+	2.	Register contradiction
+
+curl -X POST http://localhost:8000/scards \
+  -H "Content-Type: application/json" \
+  -d '{"contradiction_text":"Privacy is mandatory but monitoring is required.","categories":["privacy","security"],"severity":"critical"}'
+
+
+	3.	Analyze detachment
+
+curl -X POST http://localhost:8000/detachment/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"text":"I spent years building this, but the data shows it’s failing."}'
+
+
+	4.	Inspect metrics
+
+curl http://localhost:8000/metrics
+
+
+
+⸻
+
+Summary
+
+This package delivers:
+   •   SCARD v1.0 Standard
+   •   Rarity & Gravity Engines
+   •   Detachment Analysis Framework
+   •   CLI + REST API Interfaces
+   •   Testing + Docker Deployment
+   •   End-to-End Contradiction Lifecycle
+
+It’s immediately runnable and extendable for governance integration, federation sync, or real-time dashboards.
+
+
+
 Every item below shows the folder tree and then the purpose or sample file contents you should drop inside each node so the structure mirrors the alpha build spec you already wrote.
 It’s organized so you can clone it straight into your Tessrax repo and immediately start wiring code or documentation.
 
