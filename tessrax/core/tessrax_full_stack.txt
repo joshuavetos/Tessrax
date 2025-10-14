@@ -1,3 +1,200 @@
+Exactly. That’s the next phase of metabolic evolution — moving from random entropy to graded adversarial escalation.
+
+Here’s how you’d wire it in without breaking the existing Tessrax structure:
+
+⸻
+
+🔥 entropy_agent_v2.py — Adversarial Escalation Extension
+
+Add this into the same directory (tessrax/core/entropy_agent_v2.py).
+It extends your EntropyAgent with difficulty levels, hybrid contradiction synthesis, and a maturity metric.
+
+⸻
+
+
+# tessrax/core/entropy_agent_v2.py
+"""
+Tessrax Entropy Agent v2.0 — Adversarial Escalation Mode
+--------------------------------------------------------
+Enhances EntropyAgent with progressive difficulty,
+cross-domain hybrid synthesis, and maturity tracking.
+
+Core Innovation:
+    • Difficulty Ladder (L1–L4)
+    • Cross-domain synthesis (novel contradictions)
+    • Maturity index = max difficulty survived w/o destabilization
+
+Author: Tessrax LLC
+"""
+
+import random
+import hashlib
+import json
+from datetime import datetime
+from tessrax.core.entropy_agent import EntropyAgent
+
+
+class EntropyAgentV2(EntropyAgent):
+    """Extends base entropy agent with adversarial escalation."""
+
+    def __init__(self, *args, max_level: int = 4, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.max_level = max_level
+        self.current_level = 1
+        self.maturity_score = 0
+
+    # ------------------------------------------------------------
+    # Level Configuration
+    # ------------------------------------------------------------
+
+    def _get_domain_pool(self, level: int):
+        """Map difficulty level to domain pool."""
+        mapping = {
+            1: ["philosophy"],
+            2: ["governance"],
+            3: ["ethics", "economics"],
+            4: ["cross"],  # hybrid synthesis
+        }
+        return mapping.get(level, ["philosophy"])
+
+    # ------------------------------------------------------------
+    # Hybrid Contradiction Generator (Level 4)
+    # ------------------------------------------------------------
+
+    def _synthesize_cross_domain(self) -> dict:
+        """Create a hybrid contradiction by fusing two archetypes."""
+        dom1, dom2 = random.sample(list(self.entropy_library.keys()), 2)
+        a = random.choice(self.entropy_library[dom1])
+        b = random.choice(self.entropy_library[dom2])
+        claim = a["claim"]
+        counter = f"If {a['counter'].rstrip('.')}, yet {b['claim'].lower()}, what holds?"
+        hybrid = {
+            "domain": f"{dom1}+{dom2}",
+            "synthetic": True,
+            "entropy_vector": "hybrid_synthesis",
+            "old_claim": claim,
+            "new_claim": counter,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        hybrid["source_hash"] = hashlib.sha256(json.dumps(hybrid, sort_keys=True).encode()).hexdigest()
+        return hybrid
+
+    # ------------------------------------------------------------
+    # Difficulty Escalation
+    # ------------------------------------------------------------
+
+    def escalate(self):
+        """Increase difficulty level if system stable."""
+        self.current_level = min(self.current_level + 1, self.max_level)
+        return self.current_level
+
+    def deescalate(self):
+        """Reduce difficulty if instability detected."""
+        self.current_level = max(self.current_level - 1, 1)
+        return self.current_level
+
+    def generate_probe(self, domain: str = None):
+        """
+        Override: difficulty-aware probe generation.
+        If at Level 4, synthesize cross-domain hybrid.
+        """
+        if self.current_level >= 4:
+            return self._synthesize_cross_domain()
+
+        domain_pool = self._get_domain_pool(self.current_level)
+        domain = domain or random.choice(domain_pool)
+        return super().generate_probe(domain)
+
+    # ------------------------------------------------------------
+    # Adversarial Cycle
+    # ------------------------------------------------------------
+
+    def run_adversarial_cycle(self):
+        """
+        Runs one adversarial cycle:
+        1. Generate probe at current difficulty
+        2. Inject and observe equilibrium
+        3. Adjust difficulty based on stability
+        4. Log maturity metric
+        """
+        result = self.run_cycle()
+        state = result["equilibrium"]["state"]
+
+        # Adjust difficulty based on metabolic state
+        if state == "stable":
+            self.escalate()
+            self.maturity_score = max(self.maturity_score, self.current_level)
+        elif state in ("overheated", "stagnant"):
+            self.deescalate()
+
+        record = {
+            "type": "adversarial_cycle",
+            "level": self.current_level,
+            "maturity_score": self.maturity_score,
+            "state": state,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        self.ledger.add_event(record)
+
+        return {
+            "cycle_result": result,
+            "level": self.current_level,
+            "maturity_score": self.maturity_score,
+        }
+
+
+# ------------------------------------------------------------
+# CLI Entrypoint
+# ------------------------------------------------------------
+
+if __name__ == "__main__":
+    from tessrax.core.memory import load_ledger_and_engine
+
+    ledger, engine = load_ledger_and_engine()
+    agent = EntropyAgentV2(ledger, engine)
+    print("\n🚀 Running Tessrax Entropy Agent v2 (Adversarial Mode)\n")
+
+    for i in range(8):
+        report = agent.run_adversarial_cycle()
+        print(json.dumps(report, indent=2))
+
+
+⸻
+
+⚙️ What It Adds
+
+1. Difficulty Ladder
+   •   L1: Abstract reasoning (philosophy)
+   •   L2: Structural contradictions (governance)
+   •   L3: Ethical/economic paradoxes (value-heavy)
+   •   L4: Hybrid synthesis — combines two archetypes to form unseen contradictions.
+
+2. Adaptive Escalation
+   •   Escalates difficulty if equilibrium remains stable.
+   •   De-escalates if system overheats or stagnates.
+   •   Records every shift in the ledger.
+
+3. Maturity Index
+   •   Tracks the highest difficulty level reached without destabilization.
+   •   Serves as an emergent “resilience score.”
+
+⸻
+
+🧩 Integration
+   •   Plug it in place of your EntropyAgent wherever it’s referenced.
+   •   The difficulty level will auto-adjust each cycle; you can visualize maturity_score alongside SVI/EYR in your dashboard.
+
+⸻
+
+🧠 Result
+
+Tessrax now has:
+   •   Chaos that learns restraint
+   •   Stability that earns its limits
+   •   Self-evolving difficulty—turning entropy management into a measurable skill.
+
+Would you like me to add the companion Maturity Tracker visualization (small module that graphs difficulty level vs SVI/EYR over time)? It’s a tight extension of the dashboard you already have.
+
 Excellent — this closes the metabolic loop by showing how Tessrax breathes chaos and stability in real time.
 Below is the full, runnable module for your repo:
 tessrax/core/entropy_dashboard.py
