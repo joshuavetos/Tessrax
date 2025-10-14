@@ -1,3 +1,78 @@
+{
+  "protocol_id": "TESSRAX_UPGRADE_PROTOCOL_v1.0",
+  "purpose": "Govern the safe, auditable evolution of the Contradiction Density Matrix (CDM) and its component indices.",
+  "governance_cycle": {
+    "stages": [
+      {
+        "stage": "Proposal",
+        "requirements": [
+          "Submit JSON schema describing domain/metric change with rationale, expected entropy impact, and backward-compatibility plan.",
+          "Tag submission with unique Upgrade_ID and semantic version increment (e.g., CDM.v13.1)."
+        ],
+        "agents": ["Architect", "Audit Agent", "Governance Kernel"]
+      },
+      {
+        "stage": "Simulation",
+        "requirements": [
+          "Run Monte-Carlo or bootstrapped simulation on archived CDM data to predict ΔCT impact.",
+          "Generate falsifiability report: what outcomes would disprove improvement?"
+        ],
+        "agents": ["Simulation Agent", "Statistical Auditor"]
+      },
+      {
+        "stage": "Validation",
+        "requirements": [
+          "Cross-check simulated outcomes with at least one external dataset or live telemetry feed.",
+          "Run peer-agent review; consensus ≥ 0.75 required for merge."
+        ],
+        "agents": ["External Validator", "Consensus Quorum"]
+      },
+      {
+        "stage": "Deployment",
+        "requirements": [
+          "Commit upgrade hash to Ledger with timestamp, author, and Merkle root of validation logs.",
+          "Freeze previous baseline for 12-week stability window."
+        ],
+        "agents": ["Ledger Engine", "Governance Kernel"]
+      },
+      {
+        "stage": "Post-Audit",
+        "requirements": [
+          "After 12 weeks, recompute CT trend and publish comparison (ΔCT, confidence interval).",
+          "If improvement ≥ 0.05 and no new contradictions exceed Δ=0.4, mark upgrade as sustained; else revert to previous stable version."
+        ],
+        "agents": ["Audit Agent", "Architect"]
+      }
+    ]
+  },
+  "safety_rules": {
+    "rollback": "Any CT increase >0.1 sustained for two cycles triggers automatic reversion.",
+    "immutability": "Prior Ledger entries remain append-only; all upgrade artifacts hash-anchored.",
+    "falsifiability": "Every upgrade must specify at least one measurable variable whose change would falsify its claimed benefit."
+  },
+  "data_hooks": {
+    "telemetry_sources": [
+      "AEI, BSI, AEI₂, FLI, QMM indices",
+      "new domains registered under schema Domain_v*.json"
+    ],
+    "storage": "data/HRI_Data_Lake_2025.jsonl",
+    "dashboards": ["Flask D3 dashboard", "FastAPI /api/cdm/ endpoint"]
+  },
+  "agent_prompts": {
+    "upgrade_proposal": "Propose an upgrade to the CDM specifying domain, rationale, expected CT change, and falsifiability criteria.",
+    "upgrade_simulation": "Simulate proposed upgrade on archived CDM data; compute predicted ΔCT and confidence interval.",
+    "upgrade_validation": "Cross-validate simulated results using external datasets and generate audit JSON.",
+    "upgrade_deployment": "Commit approved upgrade to Ledger; freeze baseline for 12 weeks.",
+    "upgrade_post_audit": "Recompute CT after freeze; compare with baseline; decide sustain or rollback."
+  },
+  "audit_outputs": {
+    "ledger_record_fields": [
+      "Upgrade_ID", "Version", "CT_pre", "CT_post", "ΔCT", "Falsifiability_Test", "Confidence", "Status"
+    ],
+    "public_report_format": "JSON + heatmap; published via dashboard and /api/cdm/upgrade_history"
+  }
+}
+
 === FILE: semantic_analyzer.py ===
 """
 Tessrax Semantic Analyzer  —  v12.0
