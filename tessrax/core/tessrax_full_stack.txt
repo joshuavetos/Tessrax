@@ -1,3 +1,359 @@
+Nice — love where your head’s at. Below is a drop-in Python module you can paste into your repo (or insert into the existing AdversarialMemory/entropy_agent_v2.py) to add multi-objective adversarial mutation selection using Pareto optimization + contextual weighting + ε-greedy exploration.
+
+What it does (short):
+   •   Accepts historical mutation outcomes with multiple objective scores (destabilization, novelty, coverage, efficiency).
+   •   Normalizes objectives and finds the Pareto front of candidate mutation modes.
+   •   Uses crowding distance to prefer diverse Pareto members (classic NSGA-style nudge).
+   •   Samples from the Pareto set with contextual + global blending and ε-greedy exploration.
+   •   Emits Prometheus metrics hooks and provides a human-readable summary.
+
+Drop this file in and wire AdversarialMemory.select_mutation_mode_multiobjective(...) into your run loop. It assumes your mutation history events include the objective fields (if not, the module fills sensible defaults).
+
+# adversarial_multiobj.py
+# Multi-objective Adversarial Mutation Selector — Pareto + Crowding + Contextual Blend
+# Paste into your tessrax agent folder and call `select_mutation_mode_multiobjective(...)`
+# Requires: prometheus_client (optional), math, random, statistics
+
+import math
+import random
+import time
+from collections import defaultdict
+from typing import List, Dict, Any, Tuple, Optional
+
+try:
+    from prometheus_client import Gauge, Counter
+    METRICS_AVAILABLE = True
+except Exception:
+    METRICS_AVAILABLE = False
+
+# Prometheus metrics (if available)
+if METRICS_AVAILABLE:
+    PARETO_SIZE = Gauge("tessrax_pareto_size", "Pareto front size for mutation selection", ["domain","level"])
+    MUTATION_SELECTION_COUNT = Counter("tessrax_mutation_selected_total", "Total selected mutation by mode", ["domain","level","mode"])
+else:
+    class _NoOp:
+        def set(self, *a, **k): pass
+        def inc(self, *a, **k): pass
+    PARETO_SIZE = _NoOp()
+    MUTATION_SELECTION_COUNT = _NoOp()
+
+# Utilities -------------------------------------------------------------------
+
+def _utc_ts() -> float:
+    return time.time()
+
+def _normalize_list(lst: List[float]) -> List[float]:
+    if not lst:
+        return []
+    lo = min(lst)
+    hi = max(lst)
+    if hi - lo < 1e-12:
+        # all equal -> return 0.5 for stability
+        return [0.5 for _ in lst]
+    return [(v - lo) / (hi - lo) for v in lst]
+
+def _is_pareto_dominated(candidate: List[float], population: List[List[float]], maximize: List[bool]) -> bool:
+    # returns True if candidate is dominated by any member in population
+    for other in population:
+        better_or_equal = True
+        strictly_better = False
+        for i, (c_val, o_val) in enumerate(zip(candidate, other)):
+            if maximize[i]:
+                if o_val < c_val:
+                    better_or_equal = False
+                    break
+                if o_val > c_val:
+                    strictly_better = True
+            else:
+                # minimize objective
+                if o_val > c_val:
+                    better_or_equal = False
+                    break
+                if o_val < c_val:
+                    strictly_better = True
+        if better_or_equal and strictly_better:
+            return True
+    return False
+
+def _pareto_front(points: List[List[float]], maximize: List[bool]) -> List[int]:
+    """
+    Returns indices of points that are non-dominated (Pareto front).
+    points: list of N-d vectors
+    maximize: list of booleans per objective (True if objective is to be maximized)
+    """
+    indices = []
+    for i, p in enumerate(points):
+        others = [q for j, q in enumerate(points) if j != i]
+        if not _is_pareto_dominated(p, others, maximize):
+            indices.append(i)
+    return indices
+
+def _crowding_distance(points: List[List[float]]) -> List[float]:
+    """
+    Compute crowding distance for points (maximize diversity on normalized objectives).
+    Standard NSGA2 crowding distance: higher = less crowded.
+    """
+    if not points:
+        return []
+    m = len(points[0])
+    n = len(points)
+    distances = [0.0] * n
+    # For each objective, sort and assign boundary infinite distance
+    for obj in range(m):
+        sorted_idx = sorted(range(n), key=lambda i: points[i][obj])
+        distances[sorted_idx[0]] = float("inf")
+        distances[sorted_idx[-1]] = float("inf")
+        lo = points[sorted_idx[0]][obj]
+        hi = points[sorted_idx[-1]][obj]
+        if hi - lo < 1e-12:
+            continue
+        for k in range(1, n - 1):
+            prev_v = points[sorted_idx[k - 1]][obj]
+            next_v = points[sorted_idx[k + 1]][obj]
+            distances[sorted_idx[k]] += (next_v - prev_v) / (hi - lo)
+    # Convert inf to a large number for sampling convenience
+    return [d if d != float("inf") else max(distances) * 2.0 if any(distances) else 1e6 for d in distances]
+
+# Core Multi-objective Selector -----------------------------------------------
+
+class MultiObjectiveSelector:
+    """
+    Maintains utilities to select mutation modes using multi-objective optimization.
+    """
+
+    DEFAULT_MODES = ["swap_domain", "invert_claim", "perturb_numbers", "flip_pair"]
+
+    def __init__(self, ledger_accessor_callable):
+        """
+        ledger_accessor_callable: function(lookback:int) -> List[Dict] returning mutation outcome history
+          Each history event ideally contains:
+            {
+              "mutation": {"mode": "swap_domain"},
+              "destabilization_score": 0.87,
+              "novelty_score": 0.62,
+              "coverage_score": 0.45,
+              "efficiency_score": 0.91,
+              "probe": {"domain":"governance"},
+              "level": 3,
+              "timestamp": 169xxx
+            }
+        """
+        self.ledger_accessor = ledger_accessor_callable
+
+    def _fetch_history(self, lookback=1000) -> List[Dict[str, Any]]:
+        return self.ledger_accessor(lookback)
+
+    def select_mutation_mode_multiobjective(
+        self,
+        domain: str,
+        level: int,
+        lookback: int = 1000,
+        epsilon: float = 0.12,
+        global_weight: float = 0.25,
+        min_samples_for_context: int = 8,
+        objectives: Optional[List[str]] = None,
+        maximize: Optional[List[bool]] = None
+    ) -> str:
+        """
+        Multi-objective selection:
+          - Builds per-mode objective vectors from history (contextual + global blend)
+          - Computes Pareto front indices among candidate modes
+          - Uses crowding distance to favor diverse Pareto members
+          - Samples from Pareto set using probability weighted by crowding distance and objective composite
+          - Falls back to contextual-adaptive selection if history is insufficient
+        """
+        now = _utc_ts()
+        objectives = objectives or ["destabilization_score", "novelty_score", "coverage_score", "efficiency_score"]
+        maximize = maximize or [True, True, True, True]  # we want to maximize all by default
+
+        modes = list(self.DEFAULT_MODES)
+
+        history = self._fetch_history(lookback)
+
+        # Filter contextual vs global
+        contextual = [h for h in history if h.get("probe", {}).get("domain") == domain and h.get("level") == level]
+        global_hist = history
+
+        # Build per-mode aggregated objective lists (exponential decay weighting by recency)
+        def aggregate(records: List[Dict]) -> Dict[str, List[float]]:
+            sums = {m: [0.0] * len(objectives) for m in modes}
+            weights = {m: 0.0 for m in modes}
+            half_life_days = 45.0
+            half_life_s = half_life_days * 24 * 3600
+            for r in records:
+                mode = (r.get("mutation") or {}).get("mode")
+                if mode not in modes:
+                    continue
+                ts = float(r.get("timestamp") or now)
+                w = math.pow(0.5, (max(0.0, now - ts) / half_life_s))
+                weights[mode] += w
+                for i, obj in enumerate(objectives):
+                    v = float(r.get(obj, 0.0) or 0.0)
+                    sums[mode][i] += v * w
+            # produce average vectors (or default neutral)
+            avg = {}
+            for m in modes:
+                if weights[m] > 0:
+                    avg[m] = [s / weights[m] for s in sums[m]]
+                else:
+                    # fallback neutral baseline (midpoint)
+                    avg[m] = [0.5 for _ in objectives]
+            return avg
+
+        ctx_agg = aggregate(contextual)
+        glb_agg = aggregate(global_hist)
+
+        # Determine whether to use contextual metrics or blend with global
+        ctx_trials = sum(1 for _ in contextual)
+        use_global = ctx_trials < min_samples_for_context
+
+        blended = {}
+        for m in modes:
+            if use_global:
+                blended[m] = glb_agg[m]
+            else:
+                blended[m] = [(1 - global_weight) * ctx_agg[m][i] + global_weight * glb_agg[m][i] for i in range(len(objectives))]
+
+        # Normalize per-objective across modes (so Pareto fair)
+        per_obj_lists = []
+        for i in range(len(objectives)):
+            per_obj_lists.append([blended[m][i] for m in modes])
+        per_obj_normed = [ _normalize_list(lst) for lst in per_obj_lists ]
+
+        # Construct normalized points (per mode)
+        points = []
+        for idx, m in enumerate(modes):
+            pt = [ per_obj_normed[i][idx] for i in range(len(objectives)) ]
+            points.append(pt)
+
+        # Compute Pareto front indices
+        pareto_idxs = _pareto_front(points, maximize)
+        if METRICS_AVAILABLE:
+            PARETO_SIZE.labels(domain=domain, level=str(level)).set(len(pareto_idxs))
+
+        # If Pareto front empty (unlikely), fall back to all indices
+        if not pareto_idxs:
+            pareto_idxs = list(range(len(points)))
+
+        # Extract Pareto points and compute crowding distances
+        pareto_points = [points[i] for i in pareto_idxs]
+        distances = _crowding_distance(pareto_points)
+
+        # Build selection weights: combine crowding distance with mean objective (favor high overall)
+        weights = []
+        for j, idx in enumerate(pareto_idxs):
+            pt = pareto_points[j]
+            mean_obj = sum(pt) / len(pt) if pt else 0.0
+            # small epsilon to avoid zero weight
+            w = (1.0 + distances[j]) * (0.5 + mean_obj)
+            weights.append(max(1e-6, w))
+
+        # Normalize weights
+        total_w = sum(weights)
+        probs = [w / total_w for w in weights]
+
+        # ε-greedy exploration: occasionally pick a random mode (uniform) to preserve discovery
+        if random.random() < epsilon:
+            choice = random.choice(modes)
+            # metric
+            MUTATION_SELECTION_COUNT.labels(domain=str(domain), level=str(level), mode=choice).inc()
+            return choice
+
+        # Sample from Pareto set according to probs
+        chosen_idx_within_pareto = random.choices(range(len(pareto_idxs)), weights=probs, k=1)[0]
+        chosen_mode = modes[pareto_idxs[chosen_idx_within_pareto]]
+
+        MUTATION_SELECTION_COUNT.labels(domain=str(domain), level=str(level), mode=chosen_mode).inc()
+        return chosen_mode
+
+    # Human-readable diagnostics
+    def pareto_summary(self, domain: str, level: int, lookback: int = 1000, objectives: Optional[List[str]] = None) -> Dict[str, Any]:
+        objectives = objectives or ["destabilization_score", "novelty_score", "coverage_score", "efficiency_score"]
+        modes = list(self.DEFAULT_MODES)
+        history = self._fetch_history(lookback)
+        contextual = [h for h in history if h.get("probe", {}).get("domain") == domain and h.get("level") == level]
+        glb_agg = self._aggregate_simple(global_hist=history, objectives=objectives, modes=modes)
+        return {
+            "domain": domain,
+            "level": level,
+            "contextual_samples": len(contextual),
+            "global_summary": glb_agg
+        }
+
+    def _aggregate_simple(self, global_hist: List[Dict], objectives: List[str], modes: List[str]) -> Dict[str, List[float]]:
+        now = _utc_ts()
+        half_life_s = 45.0 * 24 * 3600
+        sums = {m: [0.0] * len(objectives) for m in modes}
+        weights = {m: 0.0 for m in modes}
+        for r in global_hist:
+            m = (r.get("mutation") or {}).get("mode")
+            if m not in modes: continue
+            ts = r.get("timestamp", now)
+            w = math.pow(0.5, (max(0, now - ts) / half_life_s))
+            weights[m] += w
+            for i, obj in enumerate(objectives):
+                sums[m][i] += float(r.get(obj, 0.0) or 0.0) * w
+        out = {}
+        for m in modes:
+            out[m] = [ (s / weights[m]) if weights[m] > 0 else 0.0 for s in sums[m] ]
+        return out
+
+# Example integration helper --------------------------------------------------
+
+if __name__ == "__main__":
+    # Quick smoke test using an in-memory ledger accessor
+    def make_accessor(seed_count=200):
+        now = _utc_ts()
+        events = []
+        modes = MultiObjectiveSelector.DEFAULT_MODES
+        domains = ["philosophy", "governance", "economics"]
+        for i in range(seed_count):
+            mode = random.choice(modes)
+            dom = random.choice(domains)
+            lvl = random.choice([1,2,3,4])
+            # produce correlated scores: perturb_numbers works better for economics
+            base = random.random()
+            destabil = min(1.0, base + (0.2 if mode == "perturb_numbers" and dom == "economics" else 0.0))
+            novelty = random.random()
+            coverage = random.random()
+            efficiency = min(1.0, 0.5 + random.random() * 0.5)
+            events.append({
+                "mutation": {"mode": mode},
+                "destabilization_score": destabil,
+                "novelty_score": novelty,
+                "coverage_score": coverage,
+                "efficiency_score": efficiency,
+                "probe": {"domain": dom},
+                "level": lvl,
+                "timestamp": now - random.randint(0, 90) * 86400
+            })
+        def accessor(lookback=1000):
+            return list(events)
+        return accessor
+
+    accessor = make_accessor(300)
+    selector = MultiObjectiveSelector(accessor)
+    for D in ["economics", "governance", "philosophy"]:
+        for L in [2,3,4]:
+            choice = selector.select_mutation_mode_multiobjective(domain=D, level=L, lookback=500, epsilon=0.08)
+            print(f"[{D} L{L}] selected -> {choice}")
+
+Notes & Integration tips
+   •   History shape: Best results when each mutation_outcome event contains the four objective fields. If a field is missing, the code uses 0.0 (safe fallback).
+   •   Objective direction: By default the code maximizes all objectives. If you want to minimize any (e.g., cost), pass maximize array accordingly or invert the metric before feeding.
+   •   Sampling strategy: Pareto + crowding ensures you explore diverse high-quality modes rather than over-concentrate on a single historical winner.
+   •   Bandit upgrade: If you want formal regret guarantees or principled UCB/Thompson sampling, we can wrap this with a contextual bandit (per-context Beta distributions or UCB1 on Pareto members).
+   •   Metrics: If Prometheus is in your stack, the metrics help track Pareto sizes and mode selections over time for dashboards.
+   •   Human ops: pareto_summary gives a simple snapshot for logs or UI.
+
+⸻
+
+If you want, I can:
+   •   Add a contextual bandit layer (UCB1 or Thompson Sampling) sitting on top of the Pareto set.
+   •   Convert this into an asynchronous component that logs selected probes and their outcomes back to the ledger with a standard schema.
+   •   Add a small CLI script to simulate adversarial cycles and produce a CSV for offline analysis.
+
+
 import random
 import math
 import time
