@@ -1,3 +1,195 @@
+Perfect.
+Here’s your Tessrax Integration Patch Manifest — a line-for-line wiring plan that connects every module you just shared into the existing v12.0 architecture.
+
+This assumes your current repo root is the standard one (with /core, /domains, /dashboard, /demo, etc.).
+You can copy each section directly into the corresponding file.
+
+⸻
+
+🔹 1. core/__init__.py
+
+Add the new rigor and quantitative domains to the runtime import map.
+
+# ─── Tessrax Core Imports ───────────────────────────────
+from core import (
+    contradiction_engine,
+    metabolism_adapter,
+    governance_kernel,
+    world_receipt_protocol,
+    semantic_analyzer
+)
+
+# ─── New Modules ─────────────────────────────────────────
+from core import rigor                    # Rigor Layer v1.0
+from core import structured_memory_cell   # Structured Semantic Memory
+from core.domains import AI_Orchestration_101
+from core.domains import quantitative_audit
+
+
+⸻
+
+🔹 2. core/governance_kernel.py
+
+Connect the Rigor Layer and semantic analyzer to the kernel.
+
+# ─── Imports ─────────────────────────────────────────────
+from core.rigor import (
+    HierarchyOfDifferences,
+    TelosAwareSelfGoverningArchitecture,
+    CharitableReasoningProtocol,
+    ObserverRelativityAndSelfAuditDesign,
+    OntologicalModelEquilibriaAndInvariants,
+    MultiScaleReconciliationFramework,
+)
+from core.semantic_contradiction_analyzer import SemanticContradictionAnalyzer
+
+# ─── Initialize Extensions ───────────────────────────────
+self.semantic_analyzer = SemanticContradictionAnalyzer(ledger_path="governance_kernel_ledger.jsonl")
+self.rigor_modules = {
+    "differences": HierarchyOfDifferences,
+    "telos": TelosAwareSelfGoverningArchitecture,
+    "charity": CharitableReasoningProtocol,
+    "observer": ObserverRelativityAndSelfAuditDesign,
+    "invariants": OntologicalModelEquilibriaAndInvariants,
+    "scales": MultiScaleReconciliationFramework
+}
+
+Then inside the evaluation loop:
+
+# Before appending to ledger
+semantic_report = self.semantic_analyzer.analyze(event_payload.get("description", ""))
+event_payload["semantic_type"] = semantic_report["type"]
+
+
+⸻
+
+🔹 3. core/memory.py
+
+Wire the Structured Semantic Memory Cell as the memory substrate.
+
+import json, os
+from core.structured_memory_cell import StructuredMemoryCellSchema  # new alias
+
+class TessraxMemory:
+    def __init__(self, path="data/memory_cells.json"):
+        self.path = path
+        self.cells = []
+        if os.path.exists(path):
+            self.cells = json.load(open(path))
+        else:
+            with open(path, "w") as f: json.dump([], f)
+
+    def add_cell(self, cell: dict):
+        self.cells.append(cell)
+        with open(self.path, "w") as f: json.dump(self.cells, f, indent=2)
+
+    def activate(self, query: str):
+        # apply the structured memory activation pseudocode
+        from core.structured_memory_cell import propagate_activation
+        graph = self._build_relation_graph()
+        return propagate_activation(query, graph)
+
+
+⸻
+
+🔹 4. core/metabolism_adapter.py
+
+Expose the new quantitative audit pipeline.
+
+from core.domains.quantitative_audit.claims_extractor import ClaimExtractor
+from core.domains.quantitative_audit.claims_contradiction_detector import ClaimContradictionDetector
+from core.domains.quantitative_audit.governance_evaluator import GovernanceEvaluator
+from core.domains.quantitative_audit.audit_visualizer import AuditVisualizer
+
+class MetabolismAdapter:
+    def __init__(self):
+        self.extractor = ClaimExtractor()
+        self.detector = ClaimContradictionDetector(tolerance=5.0)
+        self.evaluator = GovernanceEvaluator()
+        self.visualizer = AuditVisualizer()
+
+    def ingest_texts(self, texts):
+        claims = self.extractor.extract_claims(texts)
+        contradictions = self.detector.analyze(claims)
+        if contradictions:
+            for c in contradictions:
+                self.evaluator.evaluate(c, policy_type="environmental")
+            self.visualizer.render_graph(claims, contradictions)
+        return contradictions or []
+
+
+⸻
+
+🔹 5. core/world_receipt_protocol.py
+
+Expose AI_Orchestration_101 knowledge API as a public route.
+
+from domains.AI_Orchestration_101.foundations_loader import app as ai_orchestration_app
+
+# Mount as sub-application
+main_app.mount("/learn", ai_orchestration_app)
+
+
+⸻
+
+🔹 6. core/semantic_analyzer.py
+
+Link semantic contradictions to governance kernel reporting.
+
+from core.semantic_contradiction_analyzer import SemanticContradictionAnalyzer
+
+analyzer = SemanticContradictionAnalyzer()
+
+def analyze_text(text: str):
+    report = analyzer.analyze(text)
+    if report["type"] != "none":
+        print(f"[SEMANTIC] {report['type']}: {report['summary']}")
+    return report
+
+
+⸻
+
+🔹 7. demo/README_demo.md
+
+Add new section at bottom for the quantitative/semantic demos.
+
+## 🧾 Quantitative and Semantic Demos
+
+```bash
+# Numeric claims → contradiction → governance ledger → visualization
+python core/domains/quantitative_audit/claims_contradiction_detector.py
+
+# Paradox detection and logging
+python core/semantic_contradiction_analyzer.py
+
+---
+
+### 🔹 8. Optional: `requirements.txt` Update
+Append missing libraries:
+
+fastapi
+uvicorn
+graphviz
+networkx
+numpy
+
+---
+
+### 🧠 Outcome
+Once you apply these patches:
+- Tessrax can parse human or institutional claims,
+- detect numeric or logical contradictions,
+- evaluate them under governance policy,
+- visualize them,
+- log them semantically and numerically,
+- and expose a public `/learn` endpoint for orchestration education.
+
+All while preserving your v12.0 architecture intact.  
+
+---
+
+Would you like me to generate a **fully merged `requirements.txt`** next — including every dependency across these new modules plus your existing engines and dashboard?
+
 Got it. Let’s filter cleanly.
 I compared that legacy stack to your current Tessrax v12 build (Memory / Metabolism / Governance / Trust + SQLite Ledger + Governance Kernel).
 Here’s everything still useful that you don’t already have — the pieces that add functionality or coverage but aren’t duplicates of v12 modules.
