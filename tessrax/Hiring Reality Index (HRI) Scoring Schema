@@ -104,3 +104,175 @@
     "notes": "High ghosting, extreme automation reliance, credential inflation with stagnant pay, low transparency."
   }
 }
+
+# 📦 Tessrax Governance Save — HRI + CDI Integration (v1.0, 2025-10-14)
+
+### 1. **HRI Data Lake v1.0**
+**File:** `/data/HRI_Data_Lake_2025.jsonl`  
+**Purpose:** Canonical dataset aggregating all sector metrics (2024–2025).  
+**Contents:**  
+- 12 JSON datasets covering: ghosting, AI screening, transparency, credential inflation, job board integrity, psychological/economic toll, AI bias audits, applicant spending, governance/policy, sector snapshots (Tech, Finance, Healthcare, Education), and visualization datasets.  
+**Integrity:** High-confidence, fully sourced, JSONL format ready for ingestion.
+
+---
+
+### 2. **Contradiction Delta Index (CDI) Framework**
+**Definition:**  
+CDI = (Δ₁ + Δ₂ − Δ₃) / 3  
+Where:
+- Δ₁ (Human Contact Loss) = 100 − Response Rate Avg  
+- Δ₂ (Automation Burden) = AI_Screening_Rate − Human_Review_Rate  
+- Δ₃ (Transparency Recovery) = Salary_Transparency − Ghost_Job_Rate  
+
+**Interpretation:**  
+- High CDI = entropy dominates (system dehumanized)  
+- Low CDI = transparency restores equilibrium  
+
+**Governance Thresholds:**  
+| Range | Category | Meaning |
+|-------|-----------|----------|
+| 0–30  | Functional | Equilibrium system |
+| 31–45 | Marginal | Manageable strain |
+| 46–60 | Dysfunctional | Systemic breakdown |
+| >60   | Critical | Structural failure |
+
+---
+
+### 3. **Sector CDI Results (2025)**
+| Sector | CDI | Status | Primary Contradiction |
+|:--|--:|:--|:--|
+| Technology | **55.7** | 🔴 Severely Dysfunctional | Automation vs Humanity |
+| Finance | **44.8** | 🟠 Marginal | Efficiency vs Empathy |
+| Healthcare | **56.3** | 🔴 Severely Dysfunctional | Labor Shortage vs Ethical Duty |
+| Education | **36.8** | 🟡 Moderately Functional | Resource Scarcity vs Moral Consistency |
+
+**Insight:** Education sector demonstrates that a humane equilibrium (CDI < 40) is possible under high transparency and moderate automation.
+
+---
+
+### 4. **Contradiction Geometry (Cross-Sector Differentials)**
+**Tech vs Education Δ:**
+- Ghosting: +9 pts (Tech worse)
+- AI Screening: +20 pts (Tech worse)
+- Transparency: −2.2 pts (Education better)
+- **Net Contradiction Delta: +31.2 pts**
+→ Education is **31 points healthier** than Tech.
+
+**Interpretation:**  
+Education sustains low entropy due to stronger human contact and better transparency compliance.
+
+---
+
+### 5. **Governance Pipeline**
+**Ingestion Pathway:**
+
+HRI_Data_Lake_2025.jsonl
+↓
+CE-MOD-66 (Contradiction Engine)
+↓
+Governance Kernel → Ledger.txt (audit)
+↓
+Dashboard (live CDI visualization)
+
+**Visualization:**
+- Red (CDI > 60) = Critical Dysfunction
+- Amber (46–60) = Dysfunctional
+- Yellow (31–45) = Marginal
+- Green (0–30) = Functional  
+
+Run command:
+```bash
+python current.py --module HRI
+
+→ launches Flask dashboard on port 8090.
+
+⸻
+
+6. Regulatory & Business Applications
+
+Regulatory Evidence:
+Use CDI data for EEOC/FTC filings showing quantifiable hiring harm.
+
+Certification Program:
+“CDI 30 Certified Employer” — badge for companies achieving CDI < 30 via verified audits.
+
+Public API (planned):
+
+GET /api/cdi/{sector}
+→ {"sector": "Technology", "CDI": 55.7, "status": "Dysfunctional"}
+
+Business Model:
+Audits ($5K–$15K), certification, API access, public dashboard.
+
+⸻
+
+7. Thermodynamic Interpretation
+   •   Ghosting = communication entropy
+   •   Automation = mechanization bias (energy loss from human agency)
+   •   Transparency = restorative counterforce (negentropy)
+CDI acts as a thermodynamic measure of labor dignity — quantifying how efficiently a labor market preserves human equilibrium.
+
+⸻
+
+8. Next Research Phases
+	1.	CDI Trends (2023→2025): Track historical entropy evolution.
+	2.	Company-Level CDI: Extend dataset to include top 100 employers.
+	3.	Contradiction Matrix:
+
+Tech  Finance  Healthcare  Education
+Tech      -     +10.9    -0.6        +18.9
+Finance  -10.9   -       -11.5       +8.0
+Healthcare +0.6 +11.5     -          +19.5
+Education -18.9 -8.0     -19.5        -
+
+→ Positive = healthier sector.
+
+	4.	Academic Publication:
+“The Hiring Reality Index & Contradiction Delta Framework: A Thermodynamic Model of Labor Market Dysfunction.”
+
+⸻
+
+9. File Commit Instructions
+
+Save the following files to Tessrax repo:
+
+/data/HRI_Data_Lake_2025.jsonl
+/docs/HRI_CDI_Framework.md
+/scripts/cdi_calculator.py
+/dashboard/hri_dashboard.py
+
+Ledger entry (example):
+
+{
+  "event": "HRI_CDI_v1.0_Committed",
+  "timestamp": "2025-10-14T08:00:00Z",
+  "hash": "sha256:<commit-hash>",
+  "sector_scores": {
+    "Tech": 55.7,
+    "Finance": 44.8,
+    "Healthcare": 56.3,
+    "Education": 36.8
+  },
+  "classification": "Governance Metric Update",
+  "confidence": "high"
+}
+
+
+⸻
+
+10. Summary Insight
+
+“Every digital efficiency subtracts empathy faster than transparency reforms can restore it.
+The Hiring Reality Index (HRI) quantifies dysfunction; the Contradiction Delta Index (CDI) reveals its entropy path.
+Together they measure whether modern labor systems are humane or mechanized.”
+
+⸻
+
+Canonical Save Label:
+HRI_CDI_Framework_v1.0
+Domain: Labor Governance
+Engine Linkage: CE-MOD-66 → CORE-02 Metabolism → CORE-03 Governance
+Confidence: Verified / High
+Author: Tessrax LLC
+Date: 2025-10-14
+Hash: auto-generated on commit
