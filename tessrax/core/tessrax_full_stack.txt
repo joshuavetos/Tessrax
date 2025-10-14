@@ -1,3 +1,444 @@
+# tessrax/core/entropy_agent_v2.py
+"""
+Tessrax Entropy Agent v2.1 — Adversarial Memory + Escalation
+------------------------------------------------------------
+Extends EntropyAgent with:
+  - Difficulty Ladder (L1–L4)
+  - Adversarial memory: ledger-backed record of destabilizing probes
+  - Targeted Level-4 synthesis from historic top destabilizers
+  - Mutation routines: domain swap, claim inversion, minor perturbation
+  - Ledger event schema includes probe_hash and destabilization_score
+
+Usage:
+  - Replace or supplement your existing EntropyAgent with EntropyAgentV2.
+  - Ensure your ledger exposes add_event(event: dict) and query_events(filter_fn) -> List[dict]
+  - Ensure an entropy_library structure exists: { domain_name: [ { "claim": "...", "counter": "..." , ... }, ... ] }
+
+Author: Tessrax LLC (code authored for Josh's Tessrax)
+Version: v2.1
+"""
+
+import random
+import hashlib
+import json
+from datetime import datetime, timezone
+from typing import Dict, Any, List, Optional
+
+# Try to import base EntropyAgent if available in your codebase.
+# If not present, EntropyAgentV2 assumes the minimal interface used below.
+try:
+    from tessrax.core.entropy_agent import EntropyAgent
+except Exception:
+    # Minimal fallback base class so this file is copy-paste runnable for testing.
+    class EntropyAgent:
+        def __init__(self, ledger=None, entropy_library: Dict[str, List[Dict[str, Any]]] = None):
+            self.ledger = ledger
+            self.entropy_library = entropy_library or {}
+        def generate_probe(self, domain: str = None) -> Dict[str, Any]:
+            domain = domain or random.choice(list(self.entropy_library.keys()) or ["philosophy"])
+            pool = self.entropy_library.get(domain, [])
+            if not pool:
+                return {"domain": domain, "claim": "X", "counter": "not X", "synthetic": False}
+            return random.choice(pool)
+        def run_cycle(self) -> Dict[str, Any]:
+            # Dummy cycle that returns an equilibrium and probe for testing
+            probe = self.generate_probe()
+            equilibrium = {"state": random.choice(["stable", "overheated", "stagnant"]), "EYR": random.random()}
+            return {"probe": probe, "equilibrium": equilibrium}
+
+# Helper functions ---------------------------------------------------------
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+def _hash_obj(obj: Any) -> str:
+    canonical = json.dumps(obj, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+# Adversarial Memory helper ------------------------------------------------
+
+class AdversarialMemory:
+    """
+    Ledger-backed utility to query and mutate historic adversarial cycle events.
+
+    Required ledger contract:
+      - add_event(event: dict) -> None
+      - query_events(filter_fn: Callable[[dict], bool]) -> List[dict]
+        (If ledger has no query API, this class will attempt to scan ledger storage files
+         or expose a fallback query via ledger.get_all_events(verify=False).)
+    """
+
+    def __init__(self, ledger):
+        self.ledger = ledger
+
+    def _safe_query(self) -> List[dict]:
+        """
+        Attempt several introspection strategies to retrieve ledger events.
+        """
+        # Preferred: ledger.query_events if implemented
+        if hasattr(self.ledger, "query_events"):
+            try:
+                return list(self.ledger.query_events(lambda e: True))
+            except Exception:
+                pass
+
+        # Secondary: ledger.get_all_events(verify=False)
+        if hasattr(self.ledger, "get_all_events"):
+            try:
+                return list(self.ledger.get_all_events(verify=False))
+            except Exception:
+                pass
+
+        # Last resort: if ledger is simple in-memory list named 'events' or 'ledger'
+        if hasattr(self.ledger, "events"):
+            return list(self.ledger.events)
+        if hasattr(self.ledger, "ledger"):
+            return list(self.ledger.ledger)
+
+        # Nothing found — return empty
+        return []
+
+    def top_destabilizing_probes(self, limit: int = 5, since_ts: Optional[str] = None) -> List[dict]:
+        """
+        Return top `limit` probes historically with highest destabilization_score.
+        Filters for events with type == 'adversarial_cycle' and a destabilization_score field.
+        """
+        events = self._safe_query()
+        candidates = []
+        for ev in events:
+            try:
+                if ev.get("type") != "adversarial_cycle":
+                    continue
+                # allow old ledger schema compat: destabilization_score or destabilization
+                score = ev.get("destabilization_score") or ev.get("destabilization") or 0.0
+                ts = ev.get("timestamp") or ev.get("ts")
+                if since_ts and ts and ts < since_ts:
+                    continue
+                candidates.append((float(score), ev))
+            except Exception:
+                continue
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        return [c[1] for c in candidates[:limit]]
+
+    def fetch_by_probe_hash(self, probe_hash: str) -> Optional[dict]:
+        """Return the ledger event that contains the given probe_hash, if any."""
+        events = self._safe_query()
+        for ev in events:
+            if ev.get("probe_hash") == probe_hash:
+                return ev
+        return None
+
+    # ---------------------------------------------------
+    # Mutation utilities
+    # ---------------------------------------------------
+
+    def mutate_probe(self, probe_event: dict, mutation_mode: str = "swap_domain") -> dict:
+        """
+        Mutate a historical probe event to create a new synthetic adversarial probe.
+
+        Modes:
+          - swap_domain: pick a different domain and keep claim structure
+          - invert_claim: invert the claim/counter strings
+          - perturb_numbers: if numeric values present, nudge them
+          - cross_inject: splice half of probe A and half of probe B (if event provides both)
+        """
+        base_probe = probe_event.get("probe") or probe_event.get("payload") or probe_event.get("probe_payload") or {}
+        mutated = dict(base_probe)  # shallow copy
+
+        mode = mutation_mode or "swap_domain"
+        if mode == "swap_domain":
+            original_domain = mutated.get("domain", "unknown")
+            # find alternative domain from ledger's entropy_library if available on probe_event
+            alt_domain = mutated.get("domain_alt") or ("governance" if original_domain != "governance" else "philosophy")
+            mutated["domain"] = alt_domain
+            mutated["mutation"] = {"mode": "swap_domain", "from": original_domain, "to": alt_domain}
+        elif mode == "invert_claim":
+            # naive invert: toggle 'is' vs 'is not', prepend 'not' or remove 'not'
+            c = mutated.get("claim", "")
+            inv = ""
+            if " not " in c or "n't " in c:
+                inv = c.replace(" not ", " ").replace("n't ", " ")
+            else:
+                inv = "not " + c
+            mutated["claim"] = inv
+            mutated["mutation"] = {"mode": "invert_claim"}
+        elif mode == "perturb_numbers":
+            # find first number in string and nudge it ±10%
+            import re
+            def nudge(s):
+                m = re.search(r"(\d+(\.\d+)?)", s)
+                if not m: 
+                    return s
+                val = float(m.group(1))
+                delta = val * (random.uniform(-0.10, 0.10))
+                new = round(val + delta, 3)
+                return s[:m.start(1)] + str(new) + s[m.end(1):]
+            mutated["claim"] = nudge(mutated.get("claim", ""))
+            mutated["counter"] = nudge(mutated.get("counter", ""))
+            mutated["mutation"] = {"mode": "perturb_numbers"}
+        else:
+            # default fallback: flip claim/counter
+            mutated["claim"], mutated["counter"] = mutated.get("counter", ""), mutated.get("claim", "")
+            mutated["mutation"] = {"mode": "flip_pair"}
+
+        mutated["synthetic"] = True
+        mutated["mutated_from_probe_hash"] = probe_event.get("probe_hash")
+        mutated["mutated_at"] = _utc_now_iso()
+        mutated["mutate_hash"] = _hash_obj(mutated)
+        return mutated
+
+# EntropyAgentV2 -----------------------------------------------------------
+
+class EntropyAgentV2(EntropyAgent):
+    """
+    Extends EntropyAgent with adversarial memory and targeted Level-4 probes.
+    """
+
+    def __init__(self, ledger=None, entropy_library: Dict[str, List[Dict[str, Any]]] = None, max_level: int = 4, **kwargs):
+        super().__init__(ledger=ledger, entropy_library=entropy_library)
+        self.max_level = max_level
+        self.current_level = 1
+        self.maturity_score = 0
+        self.memory = AdversarialMemory(ledger) if ledger is not None else None
+
+    # ------------------------------------------------------------
+    # Difficulty mapping
+    # ------------------------------------------------------------
+    def _get_domain_pool(self, level: int):
+        mapping = {
+            1: ["philosophy"],
+            2: ["governance"],
+            3: ["ethics", "economics"],
+            4: ["cross"],  # handled specially
+        }
+        return mapping.get(level, ["philosophy"])
+
+    # ------------------------------------------------------------
+    # Top-probe synthesis for Level 4
+    # ------------------------------------------------------------
+    def _synthesize_from_top_destabilizers(self, top_n: int = 5, mutate_count: int = 3) -> List[dict]:
+        """
+        Create a list of mutated probes based on historic top destabilizing probes.
+        Returns up to `mutate_count` mutated probes.
+        """
+        if not self.memory:
+            # fallback: simple hybrids
+            return [self._synthesize_cross_domain() for _ in range(mutate_count)]
+
+        top = self.memory.top_destabilizing_probes(limit=top_n)
+        if not top:
+            return [self._synthesize_cross_domain() for _ in range(mutate_count)]
+
+        mutated_probes = []
+        for i in range(min(mutate_count, len(top))):
+            probe_event = top[i]
+            # Choose a mutation strategy
+            mode = random.choice(["swap_domain", "invert_claim", "perturb_numbers", "flip_pair"])
+            mutated = self.memory.mutate_probe(probe_event, mutation_mode=mode)
+            mutated_probes.append(mutated)
+
+        # If fewer than requested, pad with hybrids
+        while len(mutated_probes) < mutate_count:
+            mutated_probes.append(self._synthesize_cross_domain())
+        return mutated_probes
+
+    def _synthesize_cross_domain(self) -> dict:
+        """Fallback cross-domain hybrid synthesis (simple combination)."""
+        domains = list(self.entropy_library.keys() or ["philosophy", "governance", "ethics"])
+        if len(domains) < 2:
+            # duplicate domain if only one exists
+            d1 = domains[0]
+            d2 = d1
+        else:
+            d1, d2 = random.sample(domains, 2)
+        a = random.choice(self.entropy_library.get(d1, [{"claim": "X", "counter": "not X"}]))
+        b = random.choice(self.entropy_library.get(d2, [{"claim": "Y", "counter": "not Y"}]))
+        hybrid = {
+            "domain": f"{d1}+{d2}",
+            "synthetic": True,
+            "entropy_vector": "hybrid_synthesis",
+            "probe": a,
+            "probe2": b,
+            "claim": a.get("claim", "") + " while " + b.get("claim", "").lower(),
+            "counter": b.get("counter", ""),
+            "timestamp": _utc_now_iso()
+        }
+        hybrid["source_hash"] = _hash_obj(hybrid)
+        return hybrid
+
+    # ------------------------------------------------------------
+    # Probe generator override
+    # ------------------------------------------------------------
+    def generate_probe(self, domain: str = None) -> dict:
+        """
+        If current_level >= 4, prefer targeted synthesized probes derived from top destabilizers.
+        Otherwise, default to base behavior with domain pool selected by difficulty.
+        """
+        if self.current_level >= 4:
+            # attempt to produce one mutated probe from history
+            mutated_list = self._synthesize_from_top_destabilizers(top_n=8, mutate_count=1)
+            if mutated_list:
+                return mutated_list[0]
+            # fallback:
+            return self._synthesize_cross_domain()
+
+        # Non-Level-4 behavior: choose domain from ladder
+        domain_pool = self._get_domain_pool(self.current_level)
+        domain = domain or random.choice(domain_pool)
+        # If domain flagged as 'cross' pick a simple hybrid
+        if domain == "cross":
+            return self._synthesize_cross_domain()
+        return super().generate_probe(domain)
+
+    # ------------------------------------------------------------
+    # Adversarial cycle with ledger recording including destabilization_score
+    # ------------------------------------------------------------
+    def run_adversarial_cycle(self) -> Dict[str, Any]:
+        """
+        Runs one adversarial cycle:
+          1. Generate a probe at current difficulty (maybe mutated using history)
+          2. Inject and observe equilibrium (calls run_cycle or custom-run)
+          3. Compute destabilization_score (EYR or SVI surrogate)
+          4. Record event to ledger with probe_hash and destabilization_score
+          5. Adjust difficulty based on equilibrium state
+          6. Return a rich cycle report
+        """
+        # 1) Generate probe
+        probe = self.generate_probe()
+
+        # 2) Run cycle (assuming run_cycle uses the probe or that you inject it before calling)
+        # If your base run_cycle does not accept a probe, you may need to modify that method upstream.
+        # We'll attempt to call run_cycle with probe if supported.
+        try:
+            cycle_result = self.run_cycle_with_probe(probe)
+        except Exception:
+            # Fallback to legacy run_cycle that doesn't accept probe
+            cycle_result = self.run_cycle()
+            # attach probe to result for bookkeeping
+            cycle_result["probe"] = probe
+
+        equilibrium = cycle_result.get("equilibrium", {})
+        state = equilibrium.get("state", "unknown")
+
+        # 3) Compute destabilization_score: prefer explicit EYR or SVI in equilibrium, else proxy
+        destabil_score = 0.0
+        if "EYR" in equilibrium:
+            destabil_score = float(equilibrium["EYR"])
+        elif "SVI" in equilibrium:
+            destabil_score = float(equilibrium["SVI"])
+        else:
+            # proxy: map 'overheated' -> high, 'stagnant' -> medium, 'stable' -> low
+            mapping = {"overheated": 0.9, "stagnant": 0.6, "stable": 0.1, "unknown": 0.2}
+            destabil_score = float(mapping.get(state, 0.2))
+
+        # 4) Build event and hash
+        event = {
+            "type": "adversarial_cycle",
+            "level": int(self.current_level),
+            "probe": probe,
+            "probe_hash": _hash_obj(probe),
+            "destabilization_score": float(destabil_score),
+            "equilibrium": equilibrium,
+            "state": state,
+            "maturity_score": int(self.maturity_score),
+            "timestamp": _utc_now_iso(),
+        }
+
+        # 5) Append to ledger (best-effort)
+        try:
+            if hasattr(self.ledger, "add_event"):
+                self.ledger.add_event(event)
+            else:
+                # try fallback append to list
+                if hasattr(self.ledger, "events"):
+                    self.ledger.events.append(event)
+                elif hasattr(self.ledger, "ledger"):
+                    self.ledger.ledger.append(event)
+        except Exception as e:
+            # ledger append should not break the agent; log minimally
+            print(f"[WARN] ledger append failed: {e}")
+
+        # 6) Adjust difficulty and maturity
+        if state == "stable":
+            self.current_level = min(self.current_level + 1, self.max_level)
+            self.maturity_score = max(self.maturity_score, self.current_level)
+        elif state in ("overheated", "stagnant"):
+            self.current_level = max(self.current_level - 1, 1)
+
+        # Return rich report
+        return {
+            "cycle_event": event,
+            "cycle_result": cycle_result,
+            "level": self.current_level,
+            "maturity_score": self.maturity_score,
+        }
+
+    # ------------------------------------------------------------
+    # Helper: try to call run_cycle with probe if base supports it
+    # ------------------------------------------------------------
+    def run_cycle_with_probe(self, probe: dict) -> dict:
+        """
+        Attempts to run a cycle while injecting the probe.
+        If parent class implements run_cycle(probe=...), that will be used.
+        """
+        # Prefer parent implementation that accepts probe
+        parent = getattr(super(), "run_cycle", None)
+        if parent is None:
+            raise NotImplementedError("No run_cycle available on base class.")
+
+        try:
+            return parent(probe=probe)
+        except TypeError:
+            # parent doesn't accept probe arg — call fallback
+            return parent()
+
+# ------------------------------------------------------------
+# CLI / Quick test harness
+# ------------------------------------------------------------
+if __name__ == "__main__":
+    # Minimal in-memory ledger implementation for testing
+    class InMemoryLedger:
+        def __init__(self):
+            self.events = []
+        def add_event(self, e: dict):
+            self.events.append(e)
+        def get_all_events(self, verify=False):
+            return list(self.events)
+        def query_events(self, fn):
+            return [e for e in self.events if fn(e)]
+    # Minimal entropy library sample
+    sample_library = {
+        "philosophy": [
+            {"claim": "Truth is correspondence", "counter": "Truth is coherence", "domain": "philosophy"},
+            {"claim": "Freedom is absolute", "counter": "Freedom is constrained", "domain": "philosophy"},
+        ],
+        "governance": [
+            {"claim": "Transparency builds trust", "counter": "Transparency exposes harm", "domain": "governance"},
+            {"claim": "Centralized control ensures compliance", "counter": "Centralization concentrates failure", "domain": "governance"},
+        ],
+        "ethics": [
+            {"claim": "Minimize harm always", "counter": "Maximize overall good", "domain": "ethics"},
+        ],
+        "economics": [
+            {"claim": "Markets allocate resources efficiently", "counter": "Markets fail under externalities", "domain": "economics"},
+        ]
+    }
+
+    ledger = InMemoryLedger()
+    agent = EntropyAgentV2(ledger=ledger, entropy_library=sample_library, max_level=4)
+
+    print("\n🚀 Running EntropyAgentV2 quick demo (5 cycles)\n")
+    for i in range(5):
+        r = agent.run_adversarial_cycle()
+        print(f"Cycle {i+1} | Level {r['level']} | Maturity {r['maturity_score']} | State {r['cycle_event']['state']} | Destabilization {r['cycle_event']['destabilization_score']:.3f}")
+    print("\nLedger events recorded:", len(ledger.events))
+    # Show top destabilizers found
+    mem = AdversarialMemory(ledger)
+    top = mem.top_destabilizing_probes(limit=3)
+    print("\nTop destabilizing probes (sample):")
+    for t in top:
+        print(f" - probe_hash={t.get('probe_hash')} score={t.get('destabilization_score')}")
+
 Exactly. That’s the next phase of metabolic evolution — moving from random entropy to graded adversarial escalation.
 
 Here’s how you’d wire it in without breaking the existing Tessrax structure:
