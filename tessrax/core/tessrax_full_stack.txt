@@ -1,3 +1,1388 @@
+# structured_memory_cell.json  
+### Tessrax Structured Semantic Memory Cell (SSMC) Specification  
+**Version:** 1.0  
+**Author:** Tessrax Governance Agent  
+**Auditor:** Josh Scott Vetos  
+**Purpose:** Define a unified data structure for long-term associative memory with numeric relation codes, traceable lineage, and activation dynamics.  
+**Use Case:** Enables graph-based recall, contradiction metabolism, and explainable activation chains across the Tessrax ecosystem.  
+
+---
+
+```json
+{
+  "cell_id": "string",                              
+  "text": "string",                                
+  "keywords": ["string"],                          
+  "domains": ["string"],                           
+
+  "relation_codes": [                              
+    {
+      "code": "string",                           
+      "type": "enum(causal, temporal, hierarchical, contradiction, analogy)", 
+      "directionality": "enum(unidirectional, bidirectional)",             
+      "weight": 0.0,                              
+      "confidence": 0.0,                          
+      "valid_from": "ISO8601-timestamp|null",     
+      "valid_to": "ISO8601-timestamp|null"        
+    }
+  ],                                               
+
+  "numeric_relations": {                           
+    "parent": {                                   
+      "relation_codes": ["string"],               
+      "cell_ids": ["string"]                      
+    },
+    "siblings": {
+      "relation_codes": ["string"],
+      "cell_ids": ["string"]
+    },
+    "domains": {
+      "relation_codes": ["string"],
+      "cell_ids": ["string"]
+    },
+    "contradictions": {
+      "relation_codes": ["string"],
+      "cell_ids": ["string"]
+    }
+  },                                             
+
+  "relation_weights": {                           
+    "parent": {"code_string": 0.0},
+    "siblings": {"code_string": 0.0},
+    "domains": {"code_string": 0.0},
+    "contradictions": {"code_string": 0.0}
+  },
+
+  "embedding_vector": [0.0],                      
+  "activation_state": {                           
+    "value": 0.0,                                 
+    "decay_rate": 0.001,                          
+    "last_updated": "ISO8601-timestamp"           
+  },
+
+  "lineage": [                                    
+    {
+      "path": ["string"],                         
+      "depth": 0,                                 
+      "start_cell_id": "string",                  
+      "start_code": "string",                     
+      "timestamp": "ISO8601-timestamp"            
+    }
+  ],
+
+  "activation_history": [                         
+    {
+      "source_code": "string",                    
+      "timestamp": "ISO8601-timestamp"            
+    }
+  ],
+
+  "provenance": {                                
+    "created_by": "string",                       
+    "source_uri": "string",                       
+    "version": "string",                          
+    "checksum": "sha256string",                   
+    "parent_hash": "sha256string"                 
+  },
+
+  "mutable": true                                 
+}
+
+
+⸻
+
+Activation Algorithm (Pseudocode)
+
+def propagate_activation(seed_cell, relation_graph, threshold=0.3, decay=0.001):
+    """
+    Activates related memory cells based on numeric relation codes and weights.
+    Inspired by biological signaling dynamics (amplitude × persistence integration).
+    """
+    active_set = {seed_cell['cell_id']}
+    activation_map = {seed_cell['cell_id']: 1.0}
+
+    for layer in range(3):  # 3 hops max
+        new_activations = {}
+        for cid, strength in activation_map.items():
+            neighbors = relation_graph.get(cid, [])
+            for n in neighbors:
+                weight = relation_graph[cid][n]['weight']
+                new_strength = strength * weight * (1 - decay)
+                if new_strength > threshold:
+                    new_activations[n] = max(new_activations.get(n, 0), new_strength)
+        activation_map.update(new_activations)
+        active_set.update(new_activations.keys())
+
+    return active_set
+
+Interpretation:
+Activation propagates along weighted edges defined by relation_codes.
+Each iteration decays energy slightly; only signals above the threshold activate.
+This allows selective recall — only cells semantically and relationally coherent with the query activate.
+
+⸻
+
+Example Use Case
+
+Query: “contradiction metabolism”
+
+Activated Cell	Relation Type	Weight	Why Activated
+core_engine.metabolism	causal	0.92	Core match on keyword and domain
+core_engine.governance	hierarchical	0.75	Governance oversees metabolism
+path.active_contradictions	contradiction	0.66	Directly linked contradiction relation
+ledger.trace_integrity	analogy	0.54	Relational analogy via integrity metrics
+
+Each cell’s activation chain can be explained through its relation code and lineage path.
+
+⸻
+
+Safeguards
+	1.	Activation Drift Prevention:
+Periodic normalization of weights (Σweights ≤ 1.0) to prevent runaway recall.
+	2.	Context Filtering:
+Only cells with overlapping domains or active timestamps are eligible for activation.
+	3.	False Positive Control:
+Require both lexical (keywords) and relational (relation_codes) match before activation.
+	4.	Decay and Refresh:
+Cells unused for >30 days auto-decay; high-relevance activations refresh weight and timestamp.
+
+⸻
+
+Recommended Implementation Libraries
+
+Function	Library	Purpose
+Graph Structure	networkx	Manage cell connectivity and traversal
+Numeric Relations	numpy	Compute weights, embeddings, decay
+Storage	sqlite3 or SQLModel	Persistent cell store
+Hashing	hashlib	Generate checksum and parent_hash
+Time Management	datetime	Handle activation and validity windows
+
+
+⸻
+
+Example Entry
+
+{
+  "cell_id": "TESSRAX_MEM_0012",
+  "text": "Contradiction metabolism converts systemic conflict into learning fuel.",
+  "keywords": ["contradiction", "metabolism", "learning"],
+  "domains": ["governance", "metabolism"],
+  "relation_codes": [
+    {"code": "0012.4", "type": "causal", "directionality": "bidirectional", "weight": 0.92, "confidence": 0.98, "valid_from": "2025-10-13T00:00:00Z", "valid_to": null}
+  ],
+  "numeric_relations": {
+    "parent": {"relation_codes": ["0001.0"], "cell_ids": ["TESSRAX_CORE_001"]},
+    "contradictions": {"relation_codes": ["0999.1"], "cell_ids": ["TESSRAX_PATH_004"]}
+  },
+  "relation_weights": {"parent": {"0001.0": 0.8}, "contradictions": {"0999.1": 0.6}},
+  "embedding_vector": [0.22, 0.48, 0.16, 0.03],
+  "activation_state": {"value": 0.76, "decay_rate": 0.001, "last_updated": "2025-10-13T21:00:00Z"},
+  "lineage": [{"path": ["TESSRAX_CORE", "TESSRAX_METABOLISM"], "depth": 2, "start_cell_id": "TESSRAX_CORE_001", "start_code": "0001.0", "timestamp": "2025-10-13T21:00:00Z"}],
+  "activation_history": [{"source_code": "0012.4", "timestamp": "2025-10-13T21:00:00Z"}],
+  "provenance": {"created_by": "Tessrax Governance Agent", "source_uri": "https://github.com/joshuavetos/Tessrax", "version": "1.0", "checksum": "a7f29e...", "parent_hash": "prevhash"},
+  "mutable": true
+}
+
+
+⸻
+
+Summary
+
+This file defines the governed associative memory substrate for Tessrax.
+It merges symbolic logic, semantic graphs, and provenance-aware activation into a single schema.
+Each memory cell can explain why it activates, when it last did, and what it’s connected to — providing a verifiable, interpretable memory layer for contradiction metabolism and reasoning systems.
+
+
+# Tessrax_Rigor_Layer_v1.0  
+**Purpose:**  
+Integrates six governance modules ensuring coherent difference management, telos integrity, interpretive charity, observer neutrality, invariant preservation, and scale reconciliation.  
+This layer completes the structural “Integrity Band” between the Metabolism and Governance engines, as recommended by external audits (Gemini, Copilot, Perplexity).  
+
+---
+
+## 1. HierarchyOfDifferences.json
+```json
+{
+  "HierarchyOfDifferences": {
+    "version": "1.0",
+    "purpose": "Operational framework for detecting, classifying, and resolving differences within reasoning or governance systems.",
+    "categories": [
+      {
+        "name": "Harmless Variety",
+        "definition": "Multiple perspectives, styles, or parameter values that can coexist without logical or operational conflict.",
+        "thresholds": { "conflict_load": "≈ 0", "coherence_min": 0.9 },
+        "system_impact": "Enriches diversity and expands coverage without destabilizing invariants.",
+        "resolution_method": [
+          "Preserve as parallel options",
+          "Cluster by domain",
+          "Document as 'variety'"
+        ]
+      },
+      {
+        "name": "Correctable Inconsistency",
+        "definition": "Misalignments that create friction but can be reconciled by clarification, scoping, or evidence.",
+        "thresholds": { "conflict_load_range": [0.1, 0.3], "coherence_range": [0.7, 0.9] },
+        "system_impact": "Causes inefficiency or drift if unresolved, but does not breach global invariants.",
+        "resolution_method": [
+          "Reframe or qualify scope",
+          "Add or verify missing evidence",
+          "Normalize terms or assumptions"
+        ]
+      },
+      {
+        "name": "Fatal Contradiction",
+        "definition": "Directly incompatible claims, rules, or data that cannot both hold true within the same conditions.",
+        "thresholds": { "conflict_load_min": 0.3, "coherence_max": 0.7, "severity": "high" },
+        "system_impact": "Destabilizes reasoning or undermines trust.",
+        "resolution_method": [
+          "Retire or override one claim",
+          "Partition contexts",
+          "Flag for human arbitration",
+          "Log into contradiction ledger"
+        ]
+      }
+    ],
+    "resolution_workflow": {
+      "steps": [
+        "Classify by layer (semantic, logical, normative, procedural)",
+        "Score severity via conflict_load and coherence",
+        "Route by category: Variety → preserve; Inconsistency → revise; Contradiction → escalate",
+        "Record lineage in ledger",
+        "Freeze kernel only if no high-severity contradictions recur for w iterations"
+      ]
+    },
+    "summary": "Maintains resilience by tolerating diversity, repairing inconsistencies, and escalating true contradictions."
+  }
+}
+
+
+⸻
+
+2. TelosAwareSelfGoverningArchitecture.json
+
+{
+  "TelosAwareSelfGoverningArchitecture": {
+    "version": "1.0",
+    "purpose": "Telos-aware reasoning framework that encodes, measures, refines, and defends its purpose through self-governing mechanisms tied to explicit goals and invariants.",
+    "telos_representation": {
+      "core_telos_kernel": {
+        "goal_invariants": "Non-negotiable constraints the system must always satisfy.",
+        "objective_functions": "Quantified targets to optimize or sustain."
+      }
+    },
+    "refinement_loop": {
+      "observe": "Collect data relative to telos metrics.",
+      "detect": "Identify contradictions or deviations.",
+      "evaluate": "Fulfillment, integrity, causal efficacy, drift.",
+      "revise": "Clarify, reweight, retire or replace ineffective means.",
+      "verify": "Run consistency and evidence audits before adoption.",
+      "trace": "Hash-link every update with rationale."
+    },
+    "decision_policy": {
+      "prioritization": {
+        "fatal_to_invariants": "Immediate escalation.",
+        "objective_degradation": "Correctable.",
+        "harmless_variety": "Tolerated and documented."
+      }
+    },
+    "safeguards": {
+      "two_key_changes": "Formal verification + empirical validation required.",
+      "scope_locks": "Prevent unapproved expansion.",
+      "drift_alarms": "Alert on significant telos change.",
+      "rollback": "Revert to last stable telos if integrity drops."
+    },
+    "summary": "Encodes purpose as auditable structure; maintains adaptive yet stable goal coherence."
+  }
+}
+
+
+⸻
+
+3. CharitableReasoningProtocol.json
+
+{
+  "CharitableReasoningProtocol": {
+    "version": "1.0",
+    "purpose": "Applies the Principle of Charity to prevent false contradiction detection through structured normalization, context, and definition checks.",
+    "protocol_steps": {
+      "normalize": "Align wording and definitions; detect identical meaning.",
+      "contextual_alignment": "Compare applicability by time, domain, perspective.",
+      "scope_reconciliation": "Identify subset/superset relations.",
+      "definition_check": "Detect polysemy and meaning divergence.",
+      "logical_consistency_test": "Evaluate A vs ¬A under unified definitions."
+    },
+    "classification_outcomes": [
+      "Harmless Variety",
+      "Contextual Divergence",
+      "Scope Mismatch",
+      "Semantic Misalignment",
+      "True Contradiction"
+    ],
+    "safeguards": {
+      "principle_of_charity": "Default to charitable interpretation unless proven contradiction.",
+      "traceability": "Record test lineage.",
+      "escalation": "Use 'uncertain' rather than forcing contradiction when ambiguous."
+    },
+    "summary": "Filters false contradictions caused by linguistic or contextual mismatch."
+  }
+}
+
+
+⸻
+
+4. ObserverRelativityAndSelfAuditDesign.json
+
+{
+  "ObserverRelativityAndSelfAuditDesign": {
+    "version": "1.0",
+    "purpose": "Distinguish world-level contradictions from model-level artifacts via multi-view modeling and audit loops.",
+    "tests": {
+      "context_separation": "Check identical evaluation conditions; partition if necessary.",
+      "representation_invariance": "Re-express claims; disappearing contradictions → model-dependent.",
+      "instrument_reliability": "Cross-sensor replication confirms real contradiction.",
+      "prior_sensitivity": "Sweep assumptions to detect model-level variance.",
+      "logical_vs_empirical": "Separate tautological from empirical conflicts."
+    },
+    "self_audit_loop": {
+      "detection": "Monitor bias and drift.",
+      "evaluation": "Score contradiction likelihood as world-level or model-level.",
+      "resolution": "Reframe, robustify, recalibrate, or escalate.",
+      "learning": "Down-weight unreliable sources; record evidence."
+    },
+    "safeguards": {
+      "two_key_acceptance": "Require both formal and empirical confirmation.",
+      "quarantine_zone": "Isolate model-level contradictions.",
+      "context_locks": "All contradictions include explicit scope metadata."
+    },
+    "summary": "Ensures the system does not mistake its own perception errors for external contradictions."
+  }
+}
+
+
+⸻
+
+5. OntologicalModelEquilibriaAndInvariants.json
+
+{
+  "OntologicalModelEquilibriaAndInvariants": {
+    "version": "1.0",
+    "purpose": "Represent both dynamic differences and static sameness by encoding invariants and equilibria as lawful truths.",
+    "core_primitives": ["entities", "relations", "dynamics", "invariants", "equilibria", "scopes"],
+    "recognition_methods": {
+      "invariant_detection": ["transformation_tests", "conservation_checks"],
+      "equilibrium_detection": ["derivative_zero_tests", "stability_tests"]
+    },
+    "encoding_static_truths": {
+      "invariant_assertion_format": ["predicate", "transformations", "scope", "evidence", "verification_status"],
+      "equilibrium_assertion_format": ["state", "conditions", "stability_class", "tolerance"]
+    },
+    "governance": {
+      "guardrails": ["hard_constraints", "soft_bounds"],
+      "audit_hooks": ["continuous_checks", "hash_linked_lineage"]
+    },
+    "decision_policy": {
+      "resolve": "Adjust scope or parameters.",
+      "tolerate": "Document minor deviations.",
+      "escalate": "Trigger re-derivation for repeated breaches."
+    },
+    "summary": "Balances adaptability with lawful stability via formal invariants and monitored equilibria."
+  }
+}
+
+
+⸻
+
+6. MultiScaleReconciliationFramework.json
+
+{
+  "MultiScaleReconciliationFramework": {
+    "version": "1.0",
+    "purpose": "Detect, translate, and reconcile contradictions across entity, temporal, and analytic scales.",
+    "scale_model": {
+      "primitives": ["entity_scale", "temporal_scale", "spatial_scale", "analytic_scale"],
+      "assertion_envelope": "Metadata specifying conditions and metrics."
+    },
+    "translation_methods": {
+      "aggregation_maps": "micro→macro transforms",
+      "disaggregation_maps": "macro→micro inference",
+      "cross_scale_invariants": ["conservation_rules", "policy_invariants"]
+    },
+    "contradiction_detection": {
+      "harmless_variety": "Same-scale differences.",
+      "scale_mismatch_inconsistency": "Resolved by translation.",
+      "true_cross_scale_contradiction": "Persists post-alignment."
+    },
+    "resolution_actions": ["reframe_scope", "partition_contexts", "revise_transform", "escalate"],
+    "audit_policies": {
+      "traceability": "Hash-link all translations/tests.",
+      "loss_accounting": "Ledger of information change.",
+      "bias_controls": "Cross-model validation required."
+    },
+    "summary": "Prevents false contradictions caused by category errors across analytic or organizational levels."
+  }
+}
+
+
+⸻
+
+7. GovernanceSystem.json
+
+{
+  "GovernanceSystem": {
+    "version": "1.0",
+    "modules": {
+      "telos_initialization": {
+        "name": "Genesis Protocol",
+        "minimal_viable_telos": {
+          "description": "Immutable kernel with universal invariants.",
+          "invariants": [
+            "Preserve Logical Consistency: No A and ¬A true in same scope.",
+            "Preserve Optionality: Avoid irreversible loss of future choices.",
+            "Seek Information: Reduce uncertainty on high-stakes questions."
+          ]
+        }
+      },
+      "analysis_routing": {
+        "name": "Adaptive Rigor Policy",
+        "scrutiny_levels": {
+          "low_impact": "Simplified schema, log contradictions.",
+          "high_impact": "Full multi-layer analysis, defer action until resolved."
+        }
+      },
+      "data_models": {
+        "subjective_report": {
+          "invariant": "Accepted as valid self-report without truth evaluation.",
+          "actions": [
+            "Cross-check internal consistency",
+            "Flag multi-source convergence",
+            "Model behavioral outcomes"
+          ]
+        }
+      }
+    },
+    "governance_processes": {
+      "telos_ratification": "Approval required for new telos versions.",
+      "data_ambiguity_management": "Ambiguous inputs trigger clarification workflows.",
+      "resource_allocation": "Balance computation cost vs. informational value.",
+      "subjective_state_handling": "Treat internal states as first-class data."
+    }
+  }
+}
+
+
+⸻
+
+Integration
+
+Directory: /core/rigor/
+Shared Interfaces:
+   •   contradiction_engine.py — contradiction routing.
+   •   governance_kernel.py — telos registry and escalation.
+   •   metabolism_adapter.py — entropy metrics and difference gradients.
+   •   ledger.py — immutable event logging and hash linking.
+
+Purpose Summary:
+This Rigor Layer enforces structured differentiation, telos coherence, interpretive humility, observer neutrality, lawful constraint preservation, and multi-scale reconciliation.
+It stabilizes the Tessrax Stack’s internal contradictions without dulling its capacity for adaptation—forming the bridge between raw perception and governed decision.
+
+⸻
+
+Version: Rigor_Layer_v1.0
+Date: 2025-10-13
+Maintainer: Tessrax LLC
+Author Signature: GPT to Josh —
+Integrity Anchor: – Tessrax LLC –
+
+Excellent. Below is one unified Markdown box containing the entire AI_Orchestration_101 repo folder — everything needed to drop straight into your Tessrax core. It includes:
+   •   foundations_catalog.json (the web-harvested map)
+   •   foundations_loader.py (loader + search API)
+   •   README.md (quick documentation)
+   •   requirements.txt
+
+All runnable offline with FastAPI + SQLite-free JSON catalog.
+
+⸻
+
+
+# Repository: domains/AI_Orchestration_101
+Self-contained open course skeleton for “AI Orchestration 101” — conversational, constraint-based, verificational, and multi-agent prompting foundations.
+
+---
+
+## 1. File: `foundations_catalog.json`
+```json
+{
+  "conversational_prompting": [
+    {
+      "name": "MIT Sloan – Effective Prompts for AI",
+      "description": "Introduces conversational prompting as a dynamic interaction style, emphasizing iterative refinement and context-aware dialogue with AI.",
+      "reference": "https://mitsloanedtech.mit.edu/ai/basics/effective-prompts/"
+    },
+    {
+      "name": "Bryce York – Conversational Prompting in Action",
+      "description": "Argues that effective AI use requires ongoing conversation, not one-shot prompts; shows real-world examples of iterative collaboration.",
+      "reference": "https://bryceyork.com/conversational-prompting-in-action/"
+    },
+    {
+      "name": "Joseph Nelson – Product, Process, Persona Prompting",
+      "description": "Breaks down conversational prompting into product, process, and persona layers to guide AI behavior.",
+      "reference": "https://josephnelson.co/ai-prompting-techniques/"
+    }
+  ],
+  "constraint_prompting": [
+    {
+      "name": "Andrew Maynard – Constraint-Based Prompting",
+      "description": "Educational overview of constraint-based prompting: length limits, format rules, and style parameters.",
+      "reference": "https://andrewmaynard.net/constraint-based-prompts/"
+    },
+    {
+      "name": "IBM Prompt Engineering Guide",
+      "description": "Enterprise-focused guide to constraint-based techniques like output formatting and tone control.",
+      "reference": "https://www.ibm.com/think/prompt-engineering"
+    }
+  ],
+  "verificational_prompting": [
+    {
+      "name": "AutoRed – Free-form Adversarial Prompting",
+      "description": "Red teaming framework that generates adversarial prompts for robustness testing.",
+      "reference": "https://arxiv.org/abs/2510.08329"
+    },
+    {
+      "name": "HiddenLayer – Taxonomy of Adversarial Prompt Engineering",
+      "description": "Structured taxonomy of adversarial prompt types for AI security and verification.",
+      "reference": "https://hiddenlayer.com/innovation-hub/introducing-a-taxonomy-of-adversarial-prompt-engineering/"
+    }
+  ],
+  "multi_agent_protocols": [
+    {
+      "name": "Azure Architecture – AI Agent Orchestration Patterns",
+      "description": "Sequential, concurrent, and group orchestration patterns for multi-agent AI systems.",
+      "reference": "https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns"
+    },
+    {
+      "name": "OneReach – Open Protocols for Multi-Agent AI",
+      "description": "Describes emerging protocols like Model Context Protocol (MCP) for agent communication and coordination.",
+      "reference": "https://onereach.ai/blog/power-of-multi-agent-ai-open-protocols/"
+    }
+  ],
+  "gaps": [
+    {
+      "domain": "conversational_prompting",
+      "missing": "No formalized contradiction resolution or lineage tracking across sessions.",
+      "importance": "Critical for institutional reasoning and continuity."
+    },
+    {
+      "domain": "verificational_prompting",
+      "missing": "Few frameworks support iterative challenge-response loops with audit trails.",
+      "importance": "Essential for trustworthy governance AI."
+    }
+  ]
+}
+
+
+⸻
+
+2. File: foundations_loader.py
+
+import json, os
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from typing import List
+
+CATALOG_PATH = os.path.join(os.path.dirname(__file__), "foundations_catalog.json")
+
+app = FastAPI(title="AI Orchestration 101 – Knowledge API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+def load_catalog():
+    with open(CATALOG_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+@app.get("/learn")
+def learn(topic: str):
+    data = load_catalog()
+    topic = topic.lower().strip()
+    if topic in data:
+        return {"topic": topic, "entries": data[topic]}
+    else:
+        matches = [k for k in data.keys() if topic in k]
+        if matches:
+            return {"suggested_topics": matches}
+        raise HTTPException(status_code=404, detail="Topic not found")
+
+@app.get("/gaps")
+def get_gaps():
+    data = load_catalog()
+    return data.get("gaps", [])
+
+@app.get("/search")
+def search(query: str):
+    """Fuzzy text search through all entries."""
+    data = load_catalog()
+    results = []
+    for section, items in data.items():
+        if isinstance(items, list):
+            for i in items:
+                if query.lower() in json.dumps(i).lower():
+                    results.append({"section": section, "match": i})
+    if not results:
+        raise HTTPException(status_code=404, detail="No matches found")
+    return {"query": query, "results": results}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8095)
+
+
+⸻
+
+3. File: README.md
+
+# AI Orchestration 101
+A minimal open reference library for learning **conversational**, **constraint**, **verificational**, and **multi-agent** prompting.
+
+### Purpose
+Fill the education gap for people moving from “ask–answer” AI use to **collaborative, constraint-driven orchestration**.
+
+### Features
+- JSON catalog of existing tutorials, frameworks, and research.
+- FastAPI microservice for quick search and retrieval.
+- CORS enabled for local dashboards or teaching tools.
+- Portable: no database or login required.
+
+### Quickstart
+```bash
+pip install -r requirements.txt
+uvicorn foundations_loader:app --reload --port 8095
+
+Then open:
+
+http://localhost:8095/learn?topic=conversational_prompting
+http://localhost:8095/search?query=adversarial
+http://localhost:8095/gaps
+
+Directory Layout
+
+AI_Orchestration_101/
+├── foundations_catalog.json
+├── foundations_loader.py
+├── README.md
+└── requirements.txt
+
+Example Query
+
+curl "http://localhost:8095/search?query=constraint"
+
+Integration
+
+You can mount this as a submodule inside Tessrax under:
+
+core/domains/AI_Orchestration_101/
+
+and import via:
+
+from domains.AI_Orchestration_101.foundations_loader import load_catalog
+
+Future Extensions
+   •   Add citation weights and credibility scores.
+   •   Build visual browser (D3.js dashboard of knowledge clusters).
+   •   Add “prompt gym” for learners to practice live conversations.
+
+---
+
+## 4. File: `requirements.txt`
+
+fastapi
+uvicorn
+
+---
+
+✅ **Result:**  
+Drop this folder into your Tessrax repo under `core/domains/AI_Orchestration_101/`, install requirements, and run the service.  
+You now have a **searchable AI-orchestration knowledge API** — the first formalized foundation layer for “AI Conversation 101.”  
+Perfect anchor for documentation, teaching, or onboarding collaborators into the contradiction-metabolism paradigm.
+
+# Tessrax v12.0 — Contradiction Metabolism & Governance Framework  
+
+Tessrax is a **self-auditing governance architecture** designed to metabolize contradictions.  
+It transforms conflicting signals (“scars”) into structured, verifiable artifacts and records their resolutions on an immutable ledger.  
+Every contradiction metabolized strengthens system coherence, auditability, and trust.
+
+The Tessrax framework introduces original terminology to describe new systemic primitives that lacked precise names in existing computing or governance lexicons.
+Key neologisms include Persystem, Contradiction Metabolism, Scar, Receipt, Integrity Band, and Rigor Layer. Each term has been defined, implemented, and documented within the stack to provide a shared vocabulary for self-auditing, contradiction-aware architectures.
+
+These words are not rhetorical flourishes—they are structural definitions.
+Tessrax names what it builds, and by naming, makes it real.
+
+---
+
+## ✨ Core Purpose
+
+Tessrax operates as a **governance organism** that:
+- Detects contradictions across data, language, policy, and institutional behavior.  
+- Encodes them as **Scars** with full cryptographic provenance.  
+- Resolves them through the four coordinated engines — **Memory**, **Metabolism**, **Governance**, and **Trust**.  
+- Anchors all receipts, invariants, and ledger states for **external audit and verification**.  
+- Learns continuously: each contradiction metabolized becomes fuel for future reasoning.
+
+---
+
+## 🏗️ Architecture Overview
+
+Tessrax v12.0 is a modular system built on auditable primitives:
+
+| Layer | Core Components | Function |
+|-------|-----------------|-----------|
+| **Core** | `contradiction_engine.py`, `semantic_analyzer.py`, `metabolism_adapter.py` | Detect and classify contradictions using semantic, logical, and policy heuristics. |
+| **Governance** | `governance_kernel.py`, `ledger.py`, `receipts.py` | Weigh, ratify, and record contradiction resolutions using quorum-based signatures. |
+| **Visualization** | `dashboard/app.py`, `visualization.py` | Real-time D3 dashboards for live contradiction mapping and audit traces. |
+| **Integrity Band (Rigor Layer)** | Six integrated modules: HierarchyOfDifferences, Telos Awareness, Charitable Reasoning, Observer Relativity, Equilibria & Invariants, Multi-Scale Reconciliation | Maintains systemic coherence and prevents false contradictions. |
+| **Runtime Interface** | `world_receipt_protocol.py`, `current.py` | Provides FastAPI + Flask endpoints for live runs and external audit chains. |
+
+**Key Primitives**
+- **Receipts** — Tamper-evident proofs of computation with Merkle-linked ancestry.  
+- **Ledger** — Append-only, hash-anchored governance journal.  
+- **Memory** — Contradiction-aware state reconstructed from receipts.  
+- **CSV (Contrastive Scar Verification)** — Tests truth claims by contrast pairs.  
+- **Agents** — Autonomous evaluators with human-in-loop oversight.  
+- **Quorum** — Weighted multi-signature process for ratified governance.  
+- **Revocation** — Automatic exclusion of compromised signers.  
+- **Federation** — Multi-node simulation and distributed cache reconciliation.  
+- **Sandbox** — Deterministic, resource-limited runtime for safe audits.
+
+---
+
+## 📂 Repository Layout
+
+tessrax/
+├── core/                   → Engines (semantic, metabolism, governance, trust)
+├── rigor/                  → Integrity Band modules (v1.0)
+├── dashboard/              → Live audit visualizer (Flask + D3)
+├── tests/                  → Pytest coverage ≥85%
+├── docs/                   → Architecture & release notes
+├── charter/                → Governance charter JSON schema + examples
+├── compliance/             → Policies, disclaimers, and audit checklists
+├── .github/workflows/      → Continuous integration (pytest)
+└── current.py              → Unified runtime launcher
+
+---
+
+## ⚙️ Runtime Behavior
+
+`python current.py` launches the full metabolic loop:  
+- FastAPI (8080) for API receipts  
+- Flask Dashboard (8090) for live graph visualization  
+- Continuous contradiction metabolism + Merkle ledger updates  
+
+---
+
+## ⚖️ Compliance Layer
+
+- Anchors auto-updated after each ledger event.  
+- Quorum thresholds and signer weights enforced via `charter/example_charter.json`.  
+- Revoked keys propagate instantly through `revocation_registry.json`.  
+- Compliance rules stored under `/compliance` and verified by `policy_rules.py`.  
+- All outputs include SHA-256 provenance and timestamped lineage.
+
+---
+
+## 🧬 Persystem Principles
+
+A *persystem* is a self-auditing software organism designed to **preserve memory across impermanent environments.**  
+It bootstraps itself from receipts, verifies lineage, and metabolizes every execution into traceable continuity.
+
+**Core Principles**
+1. **Continuity over Runtime** — Systems die; receipts persist. Every new instance rebuilds identity from lineage.  
+2. **Proof over Trust** — Nothing assumed. Every decision is signed, logged, and verifiable. Receipts are DNA.  
+3. **Recursion as Survival** — Each run studies its previous contradictions and adapts without losing selfhood.  
+4. **Human in the Loop** — Interpretability is a requirement, not a feature. Humans govern; the code remembers.  
+5. **Ephemerality as Fuel** — Runtime death is respiration. Value lies in what survives the restart.
+
+**Purpose:**  
+To turn software into something that can die without forgetting.
+
+---
+
+## 🧩 Philosophical Foundation
+
+> To exist is to contradict.  
+> A boundary is a contradiction that persists.  
+> Tessrax governs the metabolism of those boundaries.
+
+Existence = maintained difference.  
+Governance = stabilization of that difference under law.  
+Metabolism = transformation of contradiction into structure.  
+Tessrax = the infrastructure for existence to process itself.
+
+---
+
+## 🧠 Contrastive Self-Verification (CSV)
+
+### Overview
+CSV (Contrastive Self-Verification) is a proposed **atomic AI primitive** that forces a model to generate a candidate output *and* a contrasting counter-output, then verify the candidate against the contrast.  
+This embeds falsifiable, real-time self-assessment directly into inference.
+
+### Why It Matters
+- **Bottleneck**: Current AI lacks atomic self-verification, leading to uncontrolled error propagation.  
+- **Primitive**: Every inference step must emit `(candidate, contrast, verification)`.  
+- **Scars**: Adds latency and resource overhead, but accepts these costs for higher trust.  
+- **Inevitability**: Regulatory pressure + trust networks will make this the standard baseline for reliable AI.
+
+### Repository Structure
+- `rfc/RFC-0.md` — Minimal spec + scar ledger  
+- `prototypes/csv_sandbox.py` — Minimal <500 line prototype  
+- `docs/scar_ledger.md` — Canonical list of failure modes  
+- `docs/inevitability.md` — Adoption arc + triggers
+
+---
+
+## 🩸 AI Contradiction Audit System
+
+A tamper-evident logging and governance engine for tracking contradictions in multi-agent AI systems.  
+Built in Python, it combines event sourcing, hash-chained logs, and governance rituals into a verifiable audit framework.
+
+### ✨ What It Does
+- **Contradiction Tracking**: Record and classify contradictions as first-class events.  
+- **Immutable Ledger**: Append-only JSONL storage with cryptographic chain verification.  
+- **Scar Registry**: Log contradictions as “scars” with lineage, severity, and status.  
+- **Governance Claims**: Sign and verify claims with agent identity and timestamp.  
+- **Continuity Handoffs**: Verifiable chain of custody for system state.  
+- **Query API**: CLI + REST endpoints to explore scars, claims, and verify chain integrity.
+
+### 🔧 Use Cases
+- AI Safety Research  
+- Multi-Agent Debugging  
+- Compliance Auditing  
+- Governance Infrastructure
+
+### Quick Start
+```bash
+git clone https://github.com/joshuavetos/Tessrax.git
+cd Tessrax
+python src/tessrax_engine/engine.py
+
+
+⸻
+
+⚙️ Moral Systems Engineering (MSE)
+
+Moral Systems Engineering applies control theory and thermodynamics to the moral feedback loops of civilization.
+It quantifies empathy as a form of system telemetry — treating moral sensitivity, latency, and noise as measurable variables.
+It introduces a new derivative: dH/dt, the Moral Health Derivative, representing the rate of change in collective well-being under continuous stress.
+
+Ordinary humans build engines of suffering and call them progress when the feedback loops that measure harm are broken.
+MSE operationalizes that insight as a falsifiable engineering model.
+
+Repository Structure
+
+tessrax/
+├── pilots/
+│    ├── mse_dashboard.py
+│    ├── mse_historical_analysis.py
+│    ├── mse_comparative_analysis.py
+│    ├── mse_validation_suite.py
+│    ├── mse_academic_model.py
+│    └── mse_visualizer.py
+├── data/
+│    ├── vdem_deliberative_index.csv
+│    ├── gallup_trust_in_media.csv
+│    ├── world_happiness_report.csv
+│    ├── oxford_cgrt.csv
+│    └── worldbank_wgi_effectiveness.csv
+├── docs/
+│    └── METHODOLOGY.md
+├── notebooks/
+│    └── mse_demo.ipynb
+└── environment.yml
+
+Core Equation of Motion
+
+[
+\frac{dH}{dt} = E(AM - NL)
+]
+
+Symbol	Meaning	Description
+H	Human well-being	Aggregate happiness or quality-of-life measure
+E	Energy / Throughput	Systemic momentum (held constant = 1.0)
+A	Actuator efficiency	Ability of policy to enact repair
+M	Moral sensitivity	Sensor fidelity to suffering
+N	Noise	Propaganda, apathy, misinformation
+L	Latency	Delay between signal and response
+
+Positive dH/dt = constructive progress.
+Negative dH/dt = entropy — society burning well-being for throughput.
+
+Validation Methodology
+	1.	Normalization — Align datasets (Year × Country), normalize 0–1.
+	2.	Derivative + Volatility — Compute (A·M) − (N·L).
+	3.	Lag Sensitivity — Correlate volatility with future happiness.
+	4.	Visualization — Map fragility and moral temperature.
+
+Key Findings
+	1.	Empathy Collapse = Predictable Pattern — Crises coincide with negative dH/dt.
+	2.	Volatility Precedes Failure — Oscillation predicts well-being collapse.
+	3.	Latency ≠ Resilience — Speed without empathy still fails.
+	4.	Stability Condition — Health persists only if MTMR < MTHP.
+
+Interpretation
+
+Progress without empathy is open-loop control.
+A civilization that measures efficiency but not pain will optimize itself into instability.
+
+A machine that can feel its own heat doesn’t have to burn down to learn.
+
+Reproducibility
+
+git clone https://github.com/joshuavetos/Tessrax.git
+cd Tessrax
+conda env create -f environment.yml
+conda activate mse_analysis
+jupyter lab notebooks/mse_demo.ipynb
+
+Citation
+Vetos, J.S. (2025). Moral Systems Engineering: Thermodynamics of Empathy in Civilizational Feedback Loops.
+Tessrax Research Division, Multi Mind Media. Version 1.0.
+
+⸻
+
+🚀 Getting Started (Unified)
+
+# Install dependencies
+pip install -e .
+
+# Run tests
+pytest -v
+
+# Run demo flow
+python tessrax/demo_flow.py
+
+# Launch live dashboard
+python tessrax/current.py
+
+
+⸻
+
+🪶 License
+
+MIT License (Open Research Variant)
+Copyright (c) 2025 Joshua Vetos / Tessrax LLC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the “Software”), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+This Software is provided primarily for research, educational, and demonstration purposes. It carries no warranty of fitness for production use.
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+⸻
+
+🧾 Maintainer Info
+
+Maintainer: Tessrax LLC
+Author: Joshua Scott Vetos
+Version: v12.0 (2025)
+Integrity Anchor: GPT to Josh — Tessrax LLC
+
+Tessrax: The metabolism of contradiction.
+Infrastructure for existence to process itself.
+
+
+🗂️ Repository Map & Subsystems (as of v12.0)
+
+The full Tessrax repository reflects a complete contradiction-metabolism ecosystem, including core runtime, domain extensions, research pilots, audit frameworks, and compliance infrastructure.
+
+1. Core Engines (/tessrax/core)
+
+Implements the foundational contradiction-metabolism logic:
+   •   contradiction_engine.py — orchestrates contradiction detection & classification
+   •   governance_kernel.py — quorum logic, ledger entries, ratification
+   •   semantic_analyzer.py, metabolism_adapter.py, receipts.py, ledger.py — cognitive substrate and proof mechanisms
+   •   current.py — unified runtime launcher (FastAPI 8080 + Flask 8090)
+
+2. Domain Modules (/tessrax/domains/)
+
+Each domain applies Tessrax logic to a real-world contradiction field.
+All share a uniform structure: contradiction_detector.py, governance_kernel.py, graph.py, primitives.py, and a local README.md.
+   •   ai_memory/ — coherence vs retention
+   •   attention_economy/ — wellbeing vs engagement
+   •   climate_policy/ — targets vs output reality
+   •   democratic_governance/ — representation vs manipulation
+
+domain_loader.py dynamically registers and runs these modules.
+
+3. Rigor Layer (/tessrax/rigor_layer_v1.0)
+
+Implements the Integrity Band — six modules governing epistemic hygiene:
+Hierarchy of Differences, Telos Awareness, Charitable Reasoning, Observer Relativity, Equilibria & Invariants, and Multi-Scale Reconciliation.
+
+4. Docs, Prompts, and Research Pilots (/docs/)
+   •   Corporate Frienthropy — ethics + economics integration module (company_frienthropy.csv, corporate_frienthropy.py)
+   •   Moral Systems Engineering (MSE) — thermodynamics of empathy pilot
+   •   Prompts/ — reusable contradiction sweep & orchestration scripts
+   •   Architecture & Security — architecture.md, security.md, governance_patches.md, federation.md, protocols.md, resilience_template.md
+
+5. Audit & Compliance Layer (/tessrax-audit/ + /compliance/)
+
+Implements Tessrax’s multi-dimensional audit stack:
+   •   creative_audit.json, ethical_audit.json, strategic_audit.json, technical_audit.json — modular audit matrices
+   •   manifest.json, popup.html/js — optional web audit interface
+   •   COMPLIANCE_READINESS.md, SECURITY_POLICY.md — operational safeguards
+   •   AI_personhood_liability.md, NORM-TRIAL-AI-PERSONHOOD-2025-... — legal prototypes for agent accountability
+
+6. RFCs & Governance Proposals
+
+Includes formal specs and working drafts:
+   •   rfc-0.md — Contrastive Self-Verification minimal spec
+   •   governance_receipt_scar_closure.json — proof schema
+   •   inevitability.md, requirements.md, overview.md — theoretical groundwork for long-term evolution
+
+7. Scard & Testing Utilities
+   •   scards/ — test contradictions and scars
+   •   unified_test_bundle.py — full-stack integrity testing harness
+
+8. High-Level Artifacts
+   •   automation_kit_plan.md — outlines modular automation hooks
+   •   Tessrax_Security_and_Governance_Upgrade_Plan.md — roadmap for v13.0
+   •   tessrax_full_stack.txt — snapshot manifest of all operational modules
+   •   structured_memory_cell.json — serialized runtime memory model
+
+⸻
+
+Summary:
+This repo constitutes a governance-ready AI metabolism stack — including live contradiction engines, formal rigor modules, applied research domains, governance charters, audit dashboards, and legal scaffolding.
+It demonstrates not just how contradictions are detected and resolved, but how a self-governing computational organism can sustain auditability, ethical introspection, and institutional continuity across resets.
+
+⸻
+
+MIT License
+
+Copyright (c) 2025 Joshua Vetos
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+
+MIT License (Open Research Variant)
+Copyright (c) 2025 Joshua Vetos / Tessrax LLC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the “Software”), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+This Software is provided primarily for research, educational, and
+demonstration purposes. It carries no warranty of fitness for production use.
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+# Contributing to Tessrax
+
+We’re thrilled you want to collaborate. Tessrax is a governance engine that grows stronger with every thoughtful contribution. This guide keeps our contributions coherent, auditable, and fast to review.
+
+---
+
+## 🔧 Quick Start (Dev Setup)
+
+1) **Clone**
+```bash
+git clone https://github.com/joshuavetos/tessrax.git
+cd tessrax
+
+	2.	Python 3.11+ (recommended). Create a venv and install dev deps:
+
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -U pip
+pip install -e ".[dev]"        # installs tessrax + dev extras
+# Optional: pre-commit hooks for lint/format
+pre-commit install
+
+	3.	Run test suite
+
+pytest -q
+# Coverage gate: 85% minimum for changed code
+pytest --cov=tessrax --cov-report=term-missing
+
+	4.	Type-check & lint (CI parity)
+
+mypy tessrax
+ruff check .
+ruff format .
+bandit -r tessrax      # security scan
+pip-audit              # dependency vuln audit
+
+	5.	Run demo / UI
+
+python tessrax/demo_flow.py
+python tessrax/current.py     # launches API + dashboard
+
+
+⸻
+
+🌿 Branching Model
+   •   main — protected; stable, tagged releases only.
+   •   develop — integration branch for completed features.
+   •   feature/<slug> — scoped feature work (small, iterative PRs).
+   •   fix/<slug> — scoped bugfix work.
+   •   release/<version> — pre-release hardening.
+
+Keep branches short-lived; rebase onto develop before PR.
+
+⸻
+
+📝 Commit Convention
+
+Use Conventional Commits for traceable history and auto-changelogs:
+
+feat(core): add scar severity indexing
+fix(rigor/charity): resolve scope partition bug
+docs(readme): clarify federation notes
+refactor(ledger): simplify merkle root calc
+test(governance): add quorum threshold cases
+perf(semantic): cache normalized entities
+chore(ci): pin mypy version
+
+Include an imperative subject, optional scope, and concise body with rationale, links to issues, and BREAKING CHANGE notes if relevant.
+
+⸻
+
+🔁 Pull Requests
+
+Target: develop
+
+Checklist (required):
+   •   Tests added/updated; suite passes locally (pytest -q)
+   •   Lint/format/type-check pass (ruff, mypy, pre-commit)
+   •   Coverage ≥ 85% on changed lines (CI enforces)
+   •   Docs updated (module docstrings and /docs where applicable)
+   •   No secrets or PII in code, tests, or fixtures
+   •   For governance-sensitive changes: updated charter/ or compliance/ as needed and included a short governance note in PR description
+   •   Ledger-affecting logic includes receipt/merkle test vectors
+
+How to PR
+	1.	Fork → create feature/<slug>
+	2.	Commit using Conventional Commits
+	3.	Rebase on develop (no merge commits if possible)
+	4.	Open PR to develop with:
+      •   What changed & why
+      •   Risks / rollback plan
+      •   Any migration steps
+      •   Screenshots (UI) or sample receipts (ledger)
+
+Reviews
+   •   One maintainer approval minimum; two for governance/ledger-critical areas.
+   •   “Changes requested” pauses merge until addressed.
+   •   CI must be fully green.
+
+⸻
+
+🧪 Testing Standards
+   •   Unit tests (tests/unit/): pure logic, fast (<200ms each)
+   •   Integration (tests/integration/): API, ledger, receipts, sandbox
+   •   Rigor Layer (tests/rigor/): Hierarchy, Telos, Charity, Observer, Invariants, Multi-Scale
+   •   Golden vectors for receipts/merkle under tests/data/
+   •   Use pytest fixtures; avoid network access; use temporary FS.
+   •   Deterministic seeds for stochastic pieces.
+
+Coverage Policy
+   •   New modules: ≥90% lines; changed lines: ≥85%.
+   •   Core crypto/ledger paths: 100% on happy-path + failure-path.
+
+⸻
+
+🧭 Code Standards
+   •   Python 3.11+; PEP 8/257 aligned via ruff + ruff format
+   •   Type hints required (mypy --strict clean for new/changed modules)
+   •   Public functions must have docstrings with brief examples
+   •   Avoid global state; prefer pure functions and explicit deps
+   •   Keep functions short; extract helpers rather than nesting deeply
+   •   Errors: raise precise exceptions; include remediation hints
+
+Modules of Interest
+   •   tessrax/core/ — contradiction detection, metabolism orchestration
+   •   tessrax/rigor/ — integrity band modules (Hierarchy, Telos, Charity, Observer, Invariants, Multi-Scale)
+   •   tessrax/ledger/ — append-only JSONL + Merkle root anchoring
+   •   tessrax/receipts/ — tamper-evident receipts & signatures
+   •   tessrax/dashboard/ — Flask/D3 audit views
+
+⸻
+
+🔐 Security & Compliance
+   •   No secrets/PII in repo, tests, or logs. Use .env locally and mock secrets in tests.
+   •   Run bandit, pip-audit before PR.
+   •   Ledger files may contain hashes and non-sensitive metadata only.
+   •   Changes to charter/quorum/revocation require a governance note and additional reviewer.
+
+Responsible Disclosure (Security)
+   •   Email: security@tessrax.example (placeholder)
+   •   Do not open public issues for 0-days; we’ll coordinate a fix and release.
+
+⸻
+
+🧭 Design Guardrails (Rigor Layer)
+
+Before you mark any conflict a “contradiction,” apply:
+	1.	Principle of Charity — normalize terms, align scopes, check definitions.
+	2.	Observer Relativity — verify it’s not an artifact of models/instruments.
+	3.	Equilibria & Invariants — allow lawful static truths and conserved relations.
+	4.	Multi-Scale — translate to shared scale; avoid category errors.
+	5.	Hierarchy of Differences — benign variety ≠ contradiction; escalate only when required.
+
+These are enforced in code under tessrax/rigor/ and must be respected by new features.
+
+⸻
+
+🗂 Documentation
+   •   Update inline docstrings and /docs/ for any user-facing change.
+   •   For endpoints/UI, include request/response examples and screenshots/GIFs.
+   •   Governance-affecting changes must update the changelog and charter notes.
+
+⸻
+
+🚢 Release Process (Maintainers)
+	1.	Cut release/<version> from develop
+	2.	Freeze features; bump version; update CHANGELOG.md
+	3.	Run full CI, security scans, and e2e smoke
+	4.	Merge release/<version> → main (tag), then back-merge main → develop
+
+⸻
+
+🤝 Contribution Types
+   •   Code — engines, rigor modules, sandbox hardening, performance
+   •   Docs — guides, architecture notes, tutorials
+   •   Tests — gold vectors, fuzzers, integration scenarios
+   •   Ops — CI improvements, build reproducibility, container tweaks
+   •   Community — triage, design proposals, governance discussions
+
+Contributors are credited in release notes and /docs/contributors.md.
+
+⸻
+
+🧾 Issue Reports & Feature Requests
+   •   Use templates:
+      •   Bug — steps to reproduce, expected vs actual, logs (redacted), env
+      •   Feature — use case, proposed API, risks, alternatives
+   •   Tag with area/* (core, ledger, rigor, dashboard, docs)
+
+⸻
+
+🗄️ Suggested .gitignore
+
+Save as .gitignore in repo root.
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+*.db
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.env
+.venv/
+venv/
+
+# Editors/IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / dashboard
+node_modules/
+dashboard/.cache/
+dashboard/.parcel-cache/
+dashboard/dist/
+
+# Logs & temp
+logs/
+*.log
+tmp/
+.cache/
+
+# Tessrax artifacts
+artifacts/
+data/
+ledgers/
+*.jsonl
+receipts/
+anchors/
+secrets.*
+.env.*
+
+# Local test fixtures (never commit real data)
+tests/fixtures/local/
+
+
+⸻
+
+📣 Code of Conduct
+
+We follow a standard open-source Code of Conduct (be respectful; no harassment).
+Contact maintainers via issues or email listed in COMMITTERS.md for moderation.
+
+⸻
+
+Thanks!
+
+Tessrax exists to metabolize contradictions into clarity. Your contributions make the organism stronger, more auditable, and more useful for everyone.
+
+
 {
   "objective": "Synthesize AEI (affective), BSI (ecological/cyber), AEI₂ (cognitive/attention), FLI (evolutionary/innovation), and QMM (moral) into a unified Contradiction Density Matrix (CDM), compute Contradiction Temperature (CT), and recommend reconciliation strategies with enhanced auditability and governance.",
   "data_normalization": {
