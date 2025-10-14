@@ -1,3 +1,247 @@
+# --- Insert / replace into your entropy_agent_v2.py ---
+
+import random
+from typing import List, Dict, Any, Optional
+
+# --- AdversarialMemory: add helpers for mutation history -----------------
+
+class AdversarialMemory:
+    # ... keep existing methods ...
+
+    def _mutation_history(self, lookback: Optional[int] = None) -> List[dict]:
+        """
+        Return a list of ledger events that represent prior mutation outcomes.
+        We look for events with type == 'adversarial_cycle' and a mutation outcome
+        payload, or explicit 'mutation_outcome' events if recorded separately.
+        """
+        events = self._safe_query()
+        history = []
+        for ev in reversed(events):  # reverse to prefer recent events first
+            if ev.get("type") == "adversarial_cycle":
+                # some cycles include a 'mutation_outcome' payload or 'probe' with mutation metadata
+                mut = ev.get("mutation_outcome") or (ev.get("probe") or {}).get("mutation")
+                if mut is not None:
+                    entry = {
+                        "event": ev,
+                        "mutation": mut,
+                        "destabilization_score": float(ev.get("destabilization_score", 0.0)),
+                        "probe_hash": ev.get("probe_hash"),
+                        "ts": ev.get("timestamp"),
+                    }
+                    history.append(entry)
+            elif ev.get("type") == "mutation_outcome":
+                # alternative schema: explicit mutation_outcome events
+                history.append({
+                    "event": ev,
+                    "mutation": ev.get("mutation", {}),
+                    "destabilization_score": float(ev.get("destabilization_score", 0.0)),
+                    "probe_hash": ev.get("probe_hash"),
+                    "ts": ev.get("timestamp"),
+                })
+            if lookback and len(history) >= lookback:
+                break
+        return history
+
+    def select_mutation_mode(self, lookback: int = 500) -> str:
+        """
+        Select mutation mode weighted by historical effectiveness.
+        If no history, pick randomly from default set.
+        """
+        modes = ["swap_domain", "invert_claim", "perturb_numbers", "flip_pair"]
+        mode_scores = {m: 0.0 for m in modes}
+
+        history = self._mutation_history(lookback)
+        if not history:
+            return random.choice(modes)
+
+        # Accumulate scores by mode
+        for h in history:
+            mutation = h.get("mutation") or {}
+            mode = mutation.get("mode")
+            score = h.get("destabilization_score", 0.0)
+            if mode in mode_scores:
+                mode_scores[mode] += score
+
+        total = sum(mode_scores.values())
+        if total <= 0:
+            # fallback: small smoothing + randomization
+            # add uniform tiny weights to break ties
+            return random.choice(modes)
+
+        weights = [mode_scores[m] / total for m in modes]
+        # Use random.choices to sample according to weights
+        chosen = random.choices(modes, weights=weights, k=1)[0]
+        return chosen
+
+    def record_mutation_outcome(self, mutated_probe: dict, destabilization_score: float, extra: Optional[dict] = None):
+        """
+        Best-effort append of a mutation outcome record to the ledger so the agent
+        can learn which mutation strategies are effective.
+        Schema:
+        {
+          "type": "mutation_outcome",
+          "mutation": mutated_probe.get("mutation"),
+          "mutate_hash": mutated_probe.get("mutate_hash"),
+          "probe_hash": mutated_probe.get("mutated_from_probe_hash") or mutated_probe.get("probe_hash"),
+          "destabilization_score": float,
+          "timestamp": iso
+        }
+        """
+        event = {
+            "type": "mutation_outcome",
+            "mutation": mutated_probe.get("mutation", {}),
+            "mutate_hash": mutated_probe.get("mutate_hash") or _hash_obj(mutated_probe),
+            "probe_hash": mutated_probe.get("mutated_from_probe_hash") or mutated_probe.get("probe_hash"),
+            "destabilization_score": float(destabilization_score),
+            "timestamp": _utc_now_iso(),
+        }
+        if extra:
+            event["meta"] = extra
+        try:
+            if hasattr(self.ledger, "add_event"):
+                self.ledger.add_event(event)
+            elif hasattr(self.ledger, "events"):
+                self.ledger.events.append(event)
+            elif hasattr(self.ledger, "ledger"):
+                self.ledger.ledger.append(event)
+        except Exception as e:
+            # be conservative: ledger failures should not break learning
+            print(f"[WARN] failed to record mutation outcome to ledger: {e}")
+
+# --- EntropyAgentV2: use select_mutation_mode in synthesis ----------------
+
+class EntropyAgentV2(EntropyAgent):
+    # ... existing __init__ ...
+
+    def _synthesize_from_top_destabilizers(self, top_n: int = 5, mutate_count: int = 3) -> List[dict]:
+        """
+        Create mutated probes — now chooses mutation mode using historical effectiveness.
+        """
+        if not self.memory:
+            return [self._synthesize_cross_domain() for _ in range(mutate_count)]
+
+        top = self.memory.top_destabilizing_probes(limit=top_n)
+        if not top:
+            return [self._synthesize_cross_domain() for _ in range(mutate_count)]
+
+        mutated_probes = []
+        for i in range(min(mutate_count, len(top))):
+            probe_event = top[i]
+            # select mode by learned weights
+            mode = self.memory.select_mutation_mode(lookback=500)
+            mutated = self.memory.mutate_probe(probe_event, mutation_mode=mode)
+            mutated_probes.append(mutated)
+
+        while len(mutated_probes) < mutate_count:
+            mutated_probes.append(self._synthesize_cross_domain())
+        return mutated_probes
+
+    def run_adversarial_cycle(self) -> Dict[str, Any]:
+        """
+        Extended run_adversarial_cycle that records mutation_outcome entries (if synthetic probes were used).
+        """
+        probe = self.generate_probe()
+
+        # If probe is synthetic and has mutated_from_probe_hash, it was a mutation attempt.
+        mutated_from_hash = probe.get("mutated_from_probe_hash") or probe.get("mutated_from")
+
+        try:
+            cycle_result = self.run_cycle_with_probe(probe)
+        except Exception:
+            cycle_result = self.run_cycle()
+            cycle_result["probe"] = probe
+
+        equilibrium = cycle_result.get("equilibrium", {})
+        state = equilibrium.get("state", "unknown")
+
+        destabil_score = 0.0
+        if "EYR" in equilibrium:
+            destabil_score = float(equilibrium["EYR"])
+        elif "SVI" in equilibrium:
+            destabil_score = float(equilibrium["SVI"])
+        else:
+            mapping = {"overheated": 0.9, "stagnant": 0.6, "stable": 0.1, "unknown": 0.2}
+            destabil_score = float(mapping.get(state, 0.2))
+
+        event = {
+            "type": "adversarial_cycle",
+            "level": int(self.current_level),
+            "probe": probe,
+            "probe_hash": _hash_obj(probe),
+            "destabilization_score": float(destabil_score),
+            "equilibrium": equilibrium,
+            "state": state,
+            "maturity_score": int(self.maturity_score),
+            "timestamp": _utc_now_iso(),
+        }
+
+        try:
+            if hasattr(self.ledger, "add_event"):
+                self.ledger.add_event(event)
+            elif hasattr(self.ledger, "events"):
+                self.ledger.events.append(event)
+            elif hasattr(self.ledger, "ledger"):
+                self.ledger.ledger.append(event)
+        except Exception as e:
+            print(f"[WARN] ledger append failed: {e}")
+
+        # If probe was synthetic (mutated), record mutation outcome linking mut mode -> destabil score
+        if probe.get("synthetic") and probe.get("mutation"):
+            try:
+                if self.memory:
+                    self.memory.record_mutation_outcome(probe, destabil_score, extra={"cycle_event_hash": event.get("probe_hash")})
+            except Exception as e:
+                print(f"[WARN] failed to persist mutation outcome: {e}")
+
+        # adjust difficulty same as before
+        if state == "stable":
+            self.current_level = min(self.current_level + 1, self.max_level)
+            self.maturity_score = max(self.maturity_score, self.current_level)
+        elif state in ("overheated", "stagnant"):
+            self.current_level = max(self.current_level - 1, 1)
+
+        return {
+            "cycle_event": event,
+            "cycle_result": cycle_result,
+            "level": self.current_level,
+            "maturity_score": self.maturity_score,
+        }
+
+# --- CLI test snippet: short-run demonstrating learning -------------------
+
+if __name__ == "__main__":
+    class InMemoryLedger:
+        def __init__(self):
+            self.events = []
+        def add_event(self, e: dict):
+            self.events.append(e)
+        def get_all_events(self, verify=False):
+            return list(self.events)
+        def query_events(self, fn):
+            return [e for e in self.events if fn(e)]
+
+    sample_library = {
+        "philosophy": [{"claim":"Truth is X","counter":"Truth is Y","domain":"philosophy"}],
+        "governance": [{"claim":"Open=trust","counter":"Open=harm","domain":"governance"}],
+        "ethics": [{"claim":"Minimize harm","counter":"Maximize good","domain":"ethics"}],
+        "economics": [{"claim":"Markets efficient","counter":"Markets fail","domain":"economics"}],
+    }
+
+    ledger = InMemoryLedger()
+    agent = EntropyAgentV2(ledger=ledger, entropy_library=sample_library, max_level=4)
+
+    # simulate multiple cycles where many mutated probes will be created and scored
+    for i in range(30):
+        result = agent.run_adversarial_cycle()
+    # show learned weights
+    mem = AdversarialMemory(ledger)
+    print("Mutation mode sample (weighted choice):", mem.select_mutation_mode())
+
+    # Show top mutation outcomes recorded
+    print("Recorded mutation outcomes (sample):")
+    for ev in [e for e in ledger.events if e.get("type")=="mutation_outcome"][:8]:
+        print(f" - mode={ev['mutation'].get('mode')} score={ev['destabilization_score']}")
+
 # tessrax/core/entropy_agent_v2.py
 """
 Tessrax Entropy Agent v2.1 — Adversarial Memory + Escalation
