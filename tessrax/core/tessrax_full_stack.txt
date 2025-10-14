@@ -1,3 +1,359 @@
+import random
+import math
+import time
+from typing import List, Dict, Any, Optional
+
+# --- Helpers (if not already present in your codebase) -------------------
+
+def _utc_now_ts() -> float:
+    return time.time()
+
+def _time_decay_weight(ts_event: float, now_ts: float, half_life_sec: float) -> float:
+    """
+    Exponential time decay weight.
+    weight = 0.5 ** ((now - ts) / half_life)
+    """
+    if half_life_sec <= 0:
+        return 1.0
+    age = max(0.0, now_ts - ts_event)
+    exponent = age / max(1e-6, half_life_sec)
+    return math.pow(0.5, exponent)
+
+# --- Contextual mutation selection: add to AdversarialMemory class -------
+
+class AdversarialMemory:
+    """
+    Assumes `self.ledger` exists and is queryable via get_all_events() or similar.
+    Uses ledger events of type 'adversarial_cycle' and/or 'mutation_outcome'.
+    """
+
+    DEFAULT_MODES = ["swap_domain", "invert_claim", "perturb_numbers", "flip_pair"]
+
+    # reuse or implement _safe_query() that returns full event list in chronological order
+    def _safe_query(self) -> List[Dict[str, Any]]:
+        """
+        Return events list from ledger in chronological order (oldest first).
+        Provides multiple fallbacks to support in-memory or file-backed ledgers.
+        """
+        if not hasattr(self, "ledger") or self.ledger is None:
+            return []
+        try:
+            if hasattr(self.ledger, "get_all_events"):
+                return list(self.ledger.get_all_events(verify=False) or [])
+            if hasattr(self.ledger, "events"):
+                return list(self.ledger.events)
+            if hasattr(self.ledger, "ledger"):
+                return list(self.ledger.ledger)
+            if hasattr(self.ledger, "query_events"):
+                return list(self.ledger.query_events(lambda e: True))
+        except Exception:
+            try:
+                return list(self.ledger.get_all_events())  # last-ditch
+            except Exception:
+                return []
+        return []
+
+    def _mutation_history(self, lookback: Optional[int] = None) -> List[dict]:
+        """
+        Collect mutation-related events from the ledger.
+        Newest-last ordering is preserved (chronological).
+        """
+        events = self._safe_query()
+        history = []
+        for ev in events:
+            if ev.get("type") in ("adversarial_cycle", "mutation_outcome"):
+                # unify fields
+                mutation = None
+                if ev.get("type") == "mutation_outcome":
+                    mutation = ev.get("mutation") or ev.get("probe", {}).get("mutation") or {}
+                else:  # adversarial_cycle
+                    mutation = ev.get("mutation_outcome") or (ev.get("probe") or {}).get("mutation") or {}
+
+                entry = {
+                    "event": ev,
+                    "mutation": mutation or {},
+                    "destabilization_score": float(ev.get("destabilization_score", 0.0)),
+                    "probe_domain": (ev.get("probe") or {}).get("domain") or (ev.get("event") or {}).get("domain"),
+                    "level": int(ev.get("level")) if ev.get("level") is not None else None,
+                    "timestamp": float(ev.get("timestamp_ts") if ev.get("timestamp_ts") else (ev.get("ts") or (_utc_now_ts()))),
+                }
+                history.append(entry)
+            if lookback and len(history) >= lookback:
+                break
+        return history
+
+    def select_mutation_mode_contextual(
+        self,
+        domain: str,
+        level: int,
+        lookback: int = 1000,
+        epsilon: float = 0.08,
+        decay_half_life_days: float = 30.0,
+        min_trials: int = 5
+    ) -> str:
+        """
+        Choose a mutation mode weighted by historical effectiveness within a given context (domain+level).
+        Args:
+            domain: domain string to filter events (e.g., "governance", "ethics")
+            level: adversarial difficulty level (int)
+            lookback: max number of ledger events to scan (most recent first)
+            epsilon: exploration probability (epsilon-greedy)
+            decay_half_life_days: half-life for time-decay on past outcomes (days)
+            min_trials: minimum number of contextual trials before trusting contextual weights
+        Returns:
+            chosen mode (one of DEFAULT_MODES)
+        """
+
+        modes = list(self.DEFAULT_MODES)
+        now_ts = _utc_now_ts()
+        half_life_sec = decay_half_life_days * 24.0 * 3600.0
+
+        history = self._mutation_history(lookback=lookback)
+        # Filter to context: exact match on domain and level (allow None-safe)
+        relevant = [
+            h for h in history
+            if (h.get("level") == level) and (h.get("probe_domain") == domain)
+        ]
+
+        # If inadequate contextual trials, fall back to more relaxed filter (same domain any level)
+        if len(relevant) < min_trials:
+            relaxed = [h for h in history if (h.get("probe_domain") == domain)]
+            if len(relaxed) >= min_trials:
+                relevant = relaxed
+
+        # If still too few, fall back to global history
+        use_global = False
+        if len(relevant) < min_trials:
+            relevant = history  # global
+            use_global = True
+
+        # Build weighted scores with time-decay
+        mode_scores = {m: 0.0 for m in modes}
+        mode_counts = {m: 0 for m in modes}
+
+        for h in relevant:
+            mutation = h.get("mutation") or {}
+            mode = mutation.get("mode")
+            if mode not in mode_scores:
+                continue
+            score = float(h.get("destabilization_score") or 0.0)
+            ts = float(h.get("timestamp") or now_ts)
+            decay_w = _time_decay_weight(ts, now_ts, half_life_sec)
+            weighted = score * decay_w
+            mode_scores[mode] += weighted
+            mode_counts[mode] += 1
+
+        total_weight = sum(mode_scores.values())
+
+        # Exploration: epsilon-greedy
+        if random.random() < epsilon or total_weight == 0:
+            # choose uniformly among modes, but bias towards ones with at least one trial
+            nonzero = [m for m, c in mode_counts.items() if c > 0]
+            candidates = nonzero if nonzero else modes
+            return random.choice(candidates)
+
+        # Normalize weights to probabilities
+        probs = []
+        for m in modes:
+            probs.append(mode_scores[m] / total_weight if total_weight > 0 else 1.0 / len(modes))
+
+        chosen = random.choices(modes, weights=probs, k=1)[0]
+        return chosen
+
+    # Optional utility to surface contextual stats for monitoring
+    def contextual_mode_stats(self, domain: str, level: int, lookback: int = 1000) -> Dict[str, Any]:
+        history = self._mutation_history(lookback=lookback)
+        relevant = [h for h in history if (h.get("level") == level) and (h.get("probe_domain") == domain)]
+        stats = {"domain": domain, "level": level, "total_relevant": len(relevant), "modes": {}}
+        now_ts = _utc_now_ts()
+        for m in self.DEFAULT_MODES:
+            stats["modes"][m] = {"count": 0, "weighted_score": 0.0}
+        for h in relevant:
+            mut = h.get("mutation") or {}
+            mode = mut.get("mode")
+            if mode in stats["modes"]:
+                stats["modes"][mode]["count"] += 1
+                stats["modes"][mode]["weighted_score"] += h.get("destabilization_score", 0.0) * _time_decay_weight(h.get("timestamp", now_ts), now_ts, 30*24*3600)
+        return stats
+
+# --- Small CLI demo to show usage --------------------------------------
+
+if __name__ == "__main__":
+    # Minimal in-memory ledger mock
+    class InMemLedger:
+        def __init__(self):
+            self.events = []
+        def add_event(self, e):
+            self.events.append(e)
+        def get_all_events(self, verify=False):
+            return list(self.events)
+
+    ledger = InMemLedger()
+    mem = AdversarialMemory()
+    mem.ledger = ledger
+
+    # create some synthetic mutation_outcome events for different contexts
+    now = _utc_now_ts()
+    examples = [
+        {"type":"mutation_outcome","mutation":{"mode":"swap_domain"},"destabilization_score":0.9,"probe":{"domain":"governance"},"level":3,"timestamp": now - 86400*2},
+        {"type":"mutation_outcome","mutation":{"mode":"invert_claim"},"destabilization_score":0.7,"probe":{"domain":"philosophy"},"level":2,"timestamp": now - 86400*10},
+        {"type":"mutation_outcome","mutation":{"mode":"perturb_numbers"},"destabilization_score":0.95,"probe":{"domain":"economics"},"level":4,"timestamp": now - 86400*1},
+        {"type":"mutation_outcome","mutation":{"mode":"swap_domain"},"destabilization_score":0.6,"probe":{"domain":"governance"},"level":3,"timestamp": now - 86400*40},
+        {"type":"mutation_outcome","mutation":{"mode":"perturb_numbers"},"destabilization_score":0.4,"probe":{"domain":"economics"},"level":4,"timestamp": now - 86400*200},
+    ]
+    for e in examples:
+        # convert to ledger-friendly format
+        e["timestamp"] = e["timestamp"]
+        ledger.add_event(e)
+
+    # sample contextual choices
+    print("Contextual choice (governance, level 3):", mem.select_mutation_mode_contextual("governance", 3))
+    print("Contextual choice (philosophy, level 2):", mem.select_mutation_mode_contextual("philosophy", 2))
+    print("Contextual choice (economics, level 4):", mem.select_mutation_mode_contextual("economics", 4))
+
+    # print stats
+    print("Governance-3 stats:", mem.contextual_mode_stats("governance", 3))
+
+# --------------------------------------------------------------------
+#   ADVERSARIAL MEMORY v3.2 — Contextual + Adaptive Mutation Selector
+# --------------------------------------------------------------------
+
+import random, math, time
+from collections import defaultdict
+from prometheus_client import Gauge, Counter
+
+# Prometheus metrics (registers automatically if Prometheus is active)
+MUTATION_MODE_SCORE  = Gauge("tessrax_mutation_mode_weighted_score", "Weighted score per mutation mode", ["domain","level","mode"])
+MUTATION_MODE_COUNT  = Counter("tessrax_mutation_mode_events_total", "Number of mutation outcomes recorded", ["domain","level","mode"])
+MUTATION_MODE_WEIGHT = Gauge("tessrax_mutation_mode_probability", "Current selection probability per context", ["domain","level","mode"])
+
+def _utc_ts(): return time.time()
+
+def _exp_decay_weight(ts_event, now_ts, half_life_s):
+    if half_life_s <= 0: return 1.0
+    return math.pow(0.5, (max(0, now_ts - ts_event) / half_life_s))
+
+class AdversarialMemory:
+    DEFAULT_MODES = ["swap_domain","invert_claim","perturb_numbers","flip_pair"]
+
+    # your _safe_query() + _mutation_history() from earlier here …
+
+    # --- Adaptive contextual selection --------------------------------
+    def select_mutation_mode_adaptive(
+        self,
+        domain:str,
+        level:int,
+        lookback:int=1000,
+        base_epsilon:float=0.12,
+        half_life_days:float=45.0,
+        global_weight:float=0.25,
+        min_trials:int=6
+    ) -> str:
+        """
+        Context-aware + auto-calibrating mutation selection.
+        • Weights recent contextual success (domain,level)
+        • Blends with global success memory
+        • Decays old samples exponentially
+        • Lowers epsilon as trial count grows
+        """
+        now = _utc_ts()
+        half_life = half_life_days * 24*3600
+        modes = list(self.DEFAULT_MODES)
+        hist = self._mutation_history(lookback)
+        # separate contextual and global histories
+        ctx = [h for h in hist if h.get("probe_domain")==domain and h.get("level")==level]
+        glb = hist
+
+        # compute weighted sums
+        def agg(records):
+            sums, counts = defaultdict(float), defaultdict(int)
+            for r in records:
+                m = (r.get("mutation") or {}).get("mode")
+                if m not in modes: continue
+                score = float(r.get("destabilization_score") or 0.0)
+                ts = float(r.get("timestamp") or now)
+                w = _exp_decay_weight(ts, now, half_life)
+                sums[m]+=score*w; counts[m]+=1
+            return sums, counts
+
+        ctx_s, ctx_c = agg(ctx)
+        glb_s, glb_c = agg(glb)
+        ctx_total = sum(ctx_c.values())
+
+        # dynamic epsilon: less exploration as trials increase
+        epsilon = max(0.02, base_epsilon * (1.0 / math.sqrt(max(1, ctx_total))))
+        use_global = ctx_total < min_trials
+
+        combined = {}
+        for m in modes:
+            local = ctx_s[m]/max(1,ctx_c[m])
+            global_ = glb_s[m]/max(1,glb_c[m])
+            combined[m] = (1-global_weight)*local + global_weight*global_ if not use_global else global_
+
+        # normalize to probabilities
+        total = sum(max(0.001,v) for v in combined.values())
+        probs = [max(0.001,v)/total for v in combined.values()]
+
+        # register metrics
+        for i,m in enumerate(modes):
+            MUTATION_MODE_SCORE.labels(domain=str(domain),level=str(level),mode=m).set(combined[m])
+            MUTATION_MODE_COUNT.labels(domain=str(domain),level=str(level),mode=m).inc(0)
+            MUTATION_MODE_WEIGHT.labels(domain=str(domain),level=str(level),mode=m).set(probs[i])
+
+        # ε-greedy exploration
+        if random.random() < epsilon:
+            return random.choice(modes)
+        return random.choices(modes,weights=probs,k=1)[0]
+
+    # --- optional: log helper for human-readable summary ---------------
+    def print_contextual_summary(self,domain:str,level:int,lookback:int=500):
+        now=_utc_ts()
+        hist=self._mutation_history(lookback)
+        ctx=[h for h in hist if h.get("probe_domain")==domain and h.get("level")==level]
+        if not ctx:
+            print(f"No contextual history for {domain}:{level}")
+            return
+        sums,counts=defaultdict(float),defaultdict(int)
+        for h in ctx:
+            m=(h.get("mutation") or {}).get("mode")
+            if not m: continue
+            age_days=(now-h.get("timestamp",now))/86400
+            sums[m]+=h.get("destabilization_score",0)
+            counts[m]+=1
+        print(f"--- Context summary [{domain} L{level}] ---")
+        for m in self.DEFAULT_MODES:
+            if counts[m]:
+                avg=sums[m]/counts[m]
+                print(f"{m:<18} n={counts[m]:<4} mean={avg:.3f}")
+        print("------------------------------------------------")
+
+# --------------------------------------------------------------------
+# Example quick test (runs standalone)
+# --------------------------------------------------------------------
+if __name__=="__main__":
+    class InMemLedger:
+        def __init__(self): self.events=[]
+        def add_event(self,e): self.events.append(e)
+        def get_all_events(self,verify=False): return list(self.events)
+    import random
+    ledger=InMemLedger(); mem=AdversarialMemory(); mem.ledger=ledger
+    now=_utc_ts()
+    # seed random contextual mutation outcomes
+    for i in range(60):
+        ledger.add_event({
+            "type":"mutation_outcome",
+            "mutation":{"mode":random.choice(mem.DEFAULT_MODES)},
+            "destabilization_score":random.random(),
+            "probe":{"domain":random.choice(["governance","economics","philosophy"])},
+            "level":random.choice([2,3,4]),
+            "timestamp":now-random.randint(0,60)*86400
+        })
+    for d in ["governance","economics"]:
+        for L in [2,3,4]:
+            choice=mem.select_mutation_mode_adaptive(d,L)
+            print(f"Chosen for {d} L{L}: {choice}")
+            mem.print_contextual_summary(d,L)
+
 # --- Insert / replace into your entropy_agent_v2.py ---
 
 import random
