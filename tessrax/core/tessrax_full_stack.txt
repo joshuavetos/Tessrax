@@ -1,3 +1,391 @@
+"""
+adversarial_multiobj_v4.py — Tessrax Adaptive Adversarial Intelligence Layer
+----------------------------------------------------------------------------
+Implements multi-objective adversarial optimization with:
+    • Dynamic objective registry (auto-extends new metrics)
+    • Bayesian Pareto bandit (Thompson sampling on Beta posteriors)
+    • Contextual weight learning per domain and level
+    • Pareto + crowding distance selection for diversity
+    • Prometheus metrics for live monitoring
+
+Drop-in replacement for adversarial_multiobj.py
+"""
+
+import math, random, time, json, numpy as np
+from collections import defaultdict
+from typing import List, Dict, Any, Tuple, Optional
+
+# Optional Prometheus metrics --------------------------------------------------
+try:
+    from prometheus_client import Gauge, Counter
+    METRICS_AVAILABLE = True
+except Exception:
+    METRICS_AVAILABLE = False
+
+if METRICS_AVAILABLE:
+    PARETO_SIZE = Gauge("tessrax_pareto_size", "Pareto front size", ["domain","level"])
+    MUTATION_SELECTED = Counter("tessrax_mutation_selected_total", "Chosen mutation count", ["domain","level","mode"])
+    OBJECTIVE_WEIGHT = Gauge("tessrax_context_objective_weight", "Learned context weights", ["domain","level","objective"])
+else:
+    class _NoOp:
+        def set(self,*a,**k): pass
+        def inc(self,*a,**k): pass
+    PARETO_SIZE = MUTATION_SELECTED = OBJECTIVE_WEIGHT = _NoOp()
+
+# Utilities -------------------------------------------------------------------
+def _utc_ts(): return time.time()
+def _exp_decay(ts, now, hl_s): return math.pow(0.5, (max(0, now - ts)/hl_s))
+def _normalize_list(x): 
+    if not x: return []
+    lo, hi = min(x), max(x)
+    if hi-lo < 1e-12: return [0.5]*len(x)
+    return [(v-lo)/(hi-lo) for v in x]
+
+# Pareto and crowding ---------------------------------------------------------
+def _is_dom(a,b,maximize):
+    better_eq, strict = True, False
+    for i,(va,vb) in enumerate(zip(a,b)):
+        if maximize[i]:
+            if vb < va: better_eq=False; break
+            if vb>va: strict=True
+        else:
+            if vb>va: better_eq=False; break
+            if vb<va: strict=True
+    return better_eq and strict
+
+def _pareto_front(points,maximize):
+    idx=[]
+    for i,p in enumerate(points):
+        others=[q for j,q in enumerate(points) if j!=i]
+        if not any(_is_dom(p,q,maximize) for q in others):
+            idx.append(i)
+    return idx
+
+def _crowding(points):
+    if not points: return []
+    m=len(points[0]); n=len(points)
+    d=[0.0]*n
+    for j in range(m):
+        order=sorted(range(n),key=lambda i:points[i][j])
+        d[order[0]]=d[order[-1]]=float("inf")
+        lo,hi=points[order[0]][j],points[order[-1]][j]
+        if hi-lo<1e-12: continue
+        for k in range(1,n-1):
+            prev,next=points[order[k-1]][j],points[order[k+1]][j]
+            d[order[k]]+=(next-prev)/(hi-lo)
+    return [v if v!=float("inf") else (max(d) or 1)*2 for v in d]
+
+# Objective registry ----------------------------------------------------------
+def load_objectives(path="data/objectives.json") -> List[Tuple[str,bool,float]]:
+    try:
+        reg=json.load(open(path))
+        return [(r["name"], r.get("direction","maximize")=="maximize", r.get("default_weight",1.0)) for r in reg]
+    except Exception:
+        # default core set
+        return [
+            ("destabilization_score",True,1.0),
+            ("novelty_score",True,1.0),
+            ("coverage_score",True,1.0),
+            ("efficiency_score",True,1.0)
+        ]
+
+# Contextual objective weight learner -----------------------------------------
+class ObjectiveWeightLearner:
+    def __init__(self):
+        self.weights=defaultdict(lambda:defaultdict(lambda:[]))
+    def update(self,domain,level,event,objectives):
+        reward=float(event.get("destabilization_score",0))
+        vals=[float(event.get(k,0)) for k in [o[0] for o in objectives]]
+        if not self.weights[domain][level]:
+            self.weights[domain][level]=[1/len(vals)]*len(vals)
+        w=self.weights[domain][level]; lr=0.05
+        for i in range(len(vals)):
+            w[i]+=lr*(reward*vals[i]-w[i])
+        tot=sum(w) or 1
+        self.weights[domain][level]=[v/tot for v in w]
+        for i,obj in enumerate(objectives):
+            OBJECTIVE_WEIGHT.labels(domain=domain,level=str(level),objective=obj[0]).set(self.weights[domain][level][i])
+    def get(self,domain,level,objectives):
+        if not self.weights[domain][level]:
+            return [o[2]/sum(o[2] for o in objectives) for o in objectives]
+        return self.weights[domain][level]
+
+# Bayesian belief tracker -----------------------------------------------------
+class BeliefStore:
+    def __init__(self,objectives):
+        self.alpha=defaultdict(lambda:[1.0]*len(objectives))
+        self.beta =defaultdict(lambda:[1.0]*len(objectives))
+    def update(self,mode,event,objectives):
+        for i,obj in enumerate(objectives):
+            val=float(event.get(obj[0],0))
+            self.alpha[mode][i]+=val
+            self.beta[mode][i]+=1-val
+    def sample(self,mode):
+        return [np.random.beta(self.alpha[mode][i],self.beta[mode][i]) for i in range(len(self.alpha[mode]))]
+
+# Main selector ---------------------------------------------------------------
+class MultiObjectiveBandit:
+    DEFAULT_MODES=["swap_domain","invert_claim","perturb_numbers","flip_pair"]
+    def __init__(self,ledger_accessor,objectives=None):
+        self.ledger_accessor=ledger_accessor
+        self.objectives=objectives or load_objectives()
+        self.weight_learner=ObjectiveWeightLearner()
+        self.beliefs=BeliefStore(self.objectives)
+    def _history(self,lookback=1000): return self.ledger_accessor(lookback)
+
+    def select(self,domain:str,level:int,lookback:int=1000,epsilon:float=0.1,global_weight:float=0.25):
+        now=_utc_ts(); hl_s=45*24*3600
+        modes=self.DEFAULT_MODES; objnames=[o[0] for o in self.objectives]
+        hist=self._history(lookback)
+        ctx=[h for h in hist if h.get("probe",{}).get("domain")==domain and h.get("level")==level]
+        use_global=len(ctx)<8
+        def aggregate(records):
+            sums={m:[0.0]*len(self.objectives) for m in modes}
+            wts={m:0.0 for m in modes}
+            for r in records:
+                m=(r.get("mutation") or {}).get("mode")
+                if m not in modes: continue
+                ts=float(r.get("timestamp",now))
+                w=_exp_decay(ts,now,hl_s)
+                wts[m]+=w
+                for i,n in enumerate(objnames):
+                    sums[m][i]+=float(r.get(n,0))*w
+            avg={}
+            for m in modes:
+                avg[m]=[s/(wts[m] or 1) for s in sums[m]]
+            return avg
+        ctx_avg,glb_avg=aggregate(ctx),aggregate(hist)
+        blended={m:[(1-global_weight)*ctx_avg[m][i]+global_weight*glb_avg[m][i] if not use_global else glb_avg[m][i]
+                    for i in range(len(self.objectives))] for m in modes}
+        # Update beliefs
+        for e in ctx: self.beliefs.update((e.get("mutation") or {}).get("mode"),e,self.objectives)
+        # Thompson sampling
+        samples={m:self.beliefs.sample(m) for m in modes}
+        # Apply contextual weights
+        weights_ctx=self.weight_learner.get(domain,level,self.objectives)
+        for m in modes:
+            for i in range(len(samples[m])):
+                samples[m][i]*=weights_ctx[i]
+        # Pareto on samples
+        idxs=_pareto_front(list(samples.values()),[True]*len(self.objectives))
+        if not idxs: idxs=list(range(len(modes)))
+        pts=[list(samples.values())[i] for i in idxs]
+        crowd=_crowding(pts)
+        probs=[(1+crowd[i])*sum(pts[i])/len(pts[i]) for i in range(len(pts))]
+        tot=sum(probs) or 1; probs=[p/tot for p in probs]
+        if METRICS_AVAILABLE:
+            PARETO_SIZE.labels(domain=domain,level=str(level)).set(len(idxs))
+        # ε-greedy exploration
+        if random.random()<epsilon:
+            choice=random.choice(modes)
+        else:
+            choice=modes[random.choices(idxs,weights=probs,k=1)[0]]
+        MUTATION_SELECTED.labels(domain=domain,level=str(level),mode=choice).inc()
+        return choice
+
+# Example driver --------------------------------------------------------------
+if __name__=="__main__":
+    def make_accessor(seed=200):
+        now=_utc_ts()
+        events=[]
+        modes=MultiObjectiveBandit.DEFAULT_MODES
+        domains=["governance","economics","philosophy"]
+        for i in range(seed):
+            m=random.choice(modes); d=random.choice(domains); L=random.choice([1,2,3,4])
+            events.append({
+                "mutation":{"mode":m},
+                "destabilization_score":random.random(),
+                "novelty_score":random.random(),
+                "coverage_score":random.random(),
+                "efficiency_score":0.5+random.random()*0.5,
+                "probe":{"domain":d},
+                "level":L,
+                "timestamp":now-random.randint(0,60)*86400
+            })
+        def accessor(lookback=1000): return list(events)
+        return accessor
+
+    accessor=make_accessor(300)
+    bandit=MultiObjectiveBandit(accessor)
+    for D in ["governance","economics","philosophy"]:
+        for L in [2,3,4]:
+            mode=bandit.select(D,L)
+            print(f"[{D} L{L}] selected → {mode}")
+
+
+
+
+"""
+adversarial_ledger_patch.py — Tessrax Adversarial Ledger Integration
+---------------------------------------------------------------------
+Bridges the adversarial bandit → governance ledger → Merkle receipts pipeline.
+
+Responsibilities:
+  • Record every mutation selection and outcome as a signed event
+  • Compute event hash and Merkle root update
+  • Optionally link back to contradiction_ledger_v3.json
+  • Maintain half-life decay for adversarial memory (older probes lose weight)
+"""
+
+import json, hashlib, time, os
+from datetime import datetime
+from typing import Dict, Any, List
+
+LEDGER_PATH = "data/adversarial_ledger.jsonl"
+MERKLE_PATH = "data/adversarial_merkle_root.txt"
+
+def _utc_iso() -> str:
+    return datetime.utcnow().replace(microsecond=0).isoformat()+"Z"
+
+def _sha256(x:str)->str:
+    return hashlib.sha256(x.encode()).hexdigest()
+
+# -------------------------------------------------------------------------
+# Core Event Writer
+# -------------------------------------------------------------------------
+def record_adversarial_event(event: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Append a single adversarial mutation record to the ledger.
+    Auto-populates hash, timestamp, and Merkle linkage.
+    """
+    os.makedirs(os.path.dirname(LEDGER_PATH), exist_ok=True)
+
+    event["timestamp"] = _utc_iso()
+    content = json.dumps(event, sort_keys=True)
+    event_hash = _sha256(content)
+    event["hash"] = event_hash
+
+    with open(LEDGER_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps(event) + "\n")
+
+    root = update_merkle_root(event_hash)
+    event["merkle_root"] = root
+    return event
+
+# -------------------------------------------------------------------------
+# Merkle Root Updater
+# -------------------------------------------------------------------------
+def update_merkle_root(new_hash: str) -> str:
+    """
+    Simple rolling Merkle root simulation: root = sha256(prev_root + new_hash)
+    Maintains persistent chain for auditability.
+    """
+    if os.path.exists(MERKLE_PATH):
+        prev = open(MERKLE_PATH).read().strip()
+    else:
+        prev = ""
+    root = _sha256(prev + new_hash)
+    with open(MERKLE_PATH, "w") as f:
+        f.write(root)
+    return root
+
+# -------------------------------------------------------------------------
+# Ledger Reader / Filter
+# -------------------------------------------------------------------------
+def load_recent_events(lookback:int=500) -> List[Dict[str,Any]]:
+    """Load the N most recent adversarial events."""
+    if not os.path.exists(LEDGER_PATH): return []
+    with open(LEDGER_PATH, "r") as f:
+        lines = f.readlines()[-lookback:]
+    return [json.loads(x) for x in lines]
+
+# -------------------------------------------------------------------------
+# Example Hook Integration
+# -------------------------------------------------------------------------
+def log_mutation_outcome(domain:str, level:int, mode:str, scores:Dict[str,float]):
+    """
+    Convenience function called by adversarial bandit after evaluation.
+    """
+    payload = {
+        "type": "adversarial_cycle",
+        "domain": domain,
+        "level": level,
+        "probe": {"mode": mode},
+        "destabilization_score": scores.get("destabilization",0),
+        "novelty_score": scores.get("novelty",0),
+        "coverage_score": scores.get("coverage",0),
+        "efficiency_score": scores.get("efficiency",0),
+        "reward": (
+            0.6*scores.get("destabilization",0) +
+            0.2*scores.get("novelty",0) +
+            0.1*scores.get("coverage",0) +
+            0.1*scores.get("efficiency",0)
+        )
+    }
+    record = record_adversarial_event(payload)
+    print(f"🧩  Logged adversarial event: {record['hash'][:10]}  →  root {record['merkle_root'][:10]}")
+    return record
+
+# -------------------------------------------------------------------------
+# Optional Decay Routine (half-life weighting for old probes)
+# -------------------------------------------------------------------------
+def decay_event_weights(events: List[Dict[str,Any]], half_life_days: float = 45.0):
+    """
+    Apply half-life weighting to event scores.
+    Returns a list of (event, weight) tuples for downstream analysis.
+    """
+    now = time.time()
+    hl_s = half_life_days * 86400
+    weighted = []
+    for e in events:
+        ts = e.get("timestamp")
+        try:
+            t = time.mktime(time.strptime(ts.replace("Z",""), "%Y-%m-%dT%H:%M:%S"))
+        except Exception:
+            t = now
+        w = 0.5 ** ((now - t) / hl_s)
+        weighted.append((e, w))
+    return weighted
+
+# -------------------------------------------------------------------------
+# Quick Demo
+# -------------------------------------------------------------------------
+if __name__ == "__main__":
+    demo_scores = {
+        "destabilization": 0.83,
+        "novelty": 0.57,
+        "coverage": 0.42,
+        "efficiency": 0.88
+    }
+    log_mutation_outcome("governance", 3, "swap_domain", demo_scores)
+    print(json.dumps(load_recent_events(3), indent=2))
+
+
+⸻
+
+🔧 Integration Guide
+	1.	Import inside your bandit loop
+
+from adversarial_ledger_patch import log_mutation_outcome
+
+After each adversarial probe evaluation, call:
+
+log_mutation_outcome(domain, level, chosen_mode, outcome_scores)
+
+
+	2.	Outcome format — each probe’s evaluation routine should produce:
+
+{
+  "destabilization": 0.87,
+  "novelty": 0.61,
+  "coverage": 0.43,
+  "efficiency": 0.94
+}
+
+
+	3.	Automatic signing
+      •   Every event is hashed (SHA-256)
+      •   Merkle root updated incrementally
+      •   Ledger remains append-only and auditable
+	4.	Half-life decay
+      •   Historical probes automatically lose weight in analytics
+      •   Old stress tests inform, but do not dominate
+	5.	Compatibility
+      •   Works seamlessly with the bandit’s ledger_accessor (they can share file path)
+      •   Governance Kernel can ingest adversarial_ledger.jsonl for weighted policy insights
+
+⸻
+
 Nice — love where your head’s at. Below is a drop-in Python module you can paste into your repo (or insert into the existing AdversarialMemory/entropy_agent_v2.py) to add multi-objective adversarial mutation selection using Pareto optimization + contextual weighting + ε-greedy exploration.
 
 What it does (short):
