@@ -1,0 +1,106 @@
+{
+  "schema_id": "HRI-2025-V1",
+  "title": "Hiring Reality Index (HRI) Scoring Schema",
+  "version": "1.0",
+  "compiled_by": "Tessrax LLC",
+  "description": "A structured scoring system for quantifying contradictions, fairness, and transparency in 2024–2025 hiring ecosystems.",
+  "domain": "Employment Governance / Job Market Analysis",
+  "metrics": [
+    {
+      "id": "HRI-COMM",
+      "name": "Communication Integrity Score",
+      "definition": "Measures responsiveness, feedback rates, and ghosting prevalence in hiring pipelines.",
+      "inputs": {
+        "response_rate": "Percent of applications receiving any reply",
+        "ghosting_rate": "Percent of applications receiving no response",
+        "median_reply_delay_days": "Average time to first contact in days",
+        "rejection_notice_rate": "Percent of applicants receiving formal rejections"
+      },
+      "calculation": "score = ((response_rate - ghosting_rate) * 0.5) + (rejection_notice_rate * 0.3) - (median_reply_delay_days * 0.02)",
+      "weight": 0.25,
+      "interpretation": "Higher = timely, respectful communication. Lower = systemic ghosting and neglect."
+    },
+    {
+      "id": "HRI-AUTO",
+      "name": "Automation Fairness Score",
+      "definition": "Evaluates the ratio of automated to human-reviewed candidate decisions and AI bias transparency.",
+      "inputs": {
+        "ai_screening_usage": "Percent of employers using AI/ATS filters",
+        "human_review_rate": "Percent of candidates reviewed manually",
+        "bias_audit_compliance": "Percent of AI tools audited for fairness"
+      },
+      "calculation": "score = (human_review_rate * 0.6) + (bias_audit_compliance * 0.4) - (ai_screening_usage * 0.2)",
+      "weight": 0.20,
+      "interpretation": "Higher = balanced automation with human oversight; Lower = opaque algorithmic gatekeeping."
+    },
+    {
+      "id": "HRI-TRANS",
+      "name": "Transparency Index",
+      "definition": "Assesses salary disclosure, benefit visibility, and job authenticity (fake/ghost postings).",
+      "inputs": {
+        "salary_disclosure_rate": "Percent of listings with pay ranges",
+        "offer_accuracy_rate": "Percent of offers within disclosed ranges",
+        "ghost_job_rate": "Percent of listings with no intent to hire",
+        "duplicate_listing_rate": "Percent of duplicates in job boards"
+      },
+      "calculation": "score = ((salary_disclosure_rate + offer_accuracy_rate) / 2) - ((ghost_job_rate + duplicate_listing_rate) / 2)",
+      "weight": 0.20,
+      "interpretation": "Higher = transparent and truthful postings; Lower = deceptive or misleading job boards."
+    },
+    {
+      "id": "HRI-CRED",
+      "name": "Credential Equity Score",
+      "definition": "Compares rising credential requirements against actual wage growth and accessibility.",
+      "inputs": {
+        "credential_growth_rate": "Percent increase in required degrees/certs (2015–2025)",
+        "real_wage_growth": "Inflation-adjusted wage growth for same roles",
+        "degree_rollback_rate": "Percent of postings removing degree requirements"
+      },
+      "calculation": "score = ((real_wage_growth * 0.6) + (degree_rollback_rate * 0.4)) - (credential_growth_rate * 0.3)",
+      "weight": 0.15,
+      "interpretation": "Higher = fair skill recognition; Lower = gatekeeping inflation."
+    },
+    {
+      "id": "HRI-ECON",
+      "name": "Economic Burden Index",
+      "definition": "Quantifies the cost of wasted labor hours, paywall participation, and applicant exploitation.",
+      "inputs": {
+        "avg_hours_per_app": "Average applicant hours per job submission",
+        "apps_per_hire": "Average applications needed per successful hire",
+        "avg_hourly_value": "Estimated economic value per hour of applicant labor",
+        "avg_annual_spend": "Mean annual spend on job search services per applicant"
+      },
+      "calculation": "cost = ((avg_hours_per_app * apps_per_hire * avg_hourly_value) + avg_annual_spend); score = 100 - (cost / 100)",
+      "weight": 0.10,
+      "interpretation": "Higher = efficient, low-cost search; Lower = exploitative or inefficient system."
+    },
+    {
+      "id": "HRI-PSYCH",
+      "name": "Wellbeing Impact Score",
+      "definition": "Measures emotional, mental, and psychological toll of the job search process.",
+      "inputs": {
+        "stress_rate": "Percent of seekers reporting high stress or anxiety",
+        "burnout_rate": "Percent reporting severe exhaustion",
+        "hope_retention_rate": "Percent maintaining confidence or optimism after 60 days"
+      },
+      "calculation": "score = ((hope_retention_rate * 0.5) + ((100 - stress_rate) * 0.25) + ((100 - burnout_rate) * 0.25))",
+      "weight": 0.10,
+      "interpretation": "Higher = humane hiring experience; Lower = emotionally damaging environment."
+    }
+  ],
+  "composite_calculation": "HRI_total = Σ(metric_score * metric_weight)",
+  "scale": {
+    "0-20": "Exploitative / Broken System",
+    "21-40": "Severely Dysfunctional",
+    "41-60": "Marginally Functional",
+    "61-80": "Ethically Stable",
+    "81-100": "Transparent & Humane"
+  },
+  "example_output": {
+    "sample_year": 2025,
+    "sector": "Technology",
+    "HRI_total": 37.4,
+    "status": "Severely Dysfunctional",
+    "notes": "High ghosting, extreme automation reliance, credential inflation with stagnant pay, low transparency."
+  }
+}
