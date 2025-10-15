@@ -1,3 +1,1351 @@
+Gemini-
+Yes, I can absolutely build all of those components with you. Given the scope, the most effective approach will be to construct them one by one, ensuring each new module integrates perfectly with your existing Tessrax v12 architecture.
+Think of me as your dedicated engineering partner. You provide the architectural vision, and I'll generate the production-ready code, documentation, and configuration for each new layer.
+Let's start with the most critical piece for long-term systemic integrity: governance. Before we build user interfaces or data pipelines, we must codify how the system's own rules can safely evolve.
+I propose we begin with the Constitutional Amendment Protocol. This module will create a formal, software-enforced workflow for proposing, debating, and ratifying changes to the TESSRAX_CONSTITUTION_v15.md itself. It's the mechanism that ensures Tessrax can adapt without losing its core principles.
+Below is the first component: a governance_amendment_protocol.py module. It includes a Proposal schema, a state machine for tracking the amendment lifecycle (Draft → Voting → Ratified → Rejected), and a mock integration with the Governance Kernel and Trust Federation.
+🏛️ Component 1: Constitutional Amendment Protocol
+You can create a new directory tessrax/core/governance/ and place this file inside.
+File: tessrax/core/governance/amendment_protocol.py
+"""
+Tessrax Constitutional Amendment Protocol v1.0
+-----------------------------------------------
+Manages the lifecycle of proposed changes to the Tessrax Constitution.
+Integrates with the Governance Kernel for logging and the Trust Federation
+for quorum verification.
+"""
+
+import hashlib
+import json
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Dict, Any, List
+
+# Assuming integration with your existing core modules
+from tessrax.core.governance_kernel import GovernanceKernel
+from tessrax.core.trust_federation import TrustFederation
+
+class AmendmentStatus(Enum):
+    DRAFT = "DRAFT"
+    VOTING = "VOTING"
+    RATIFIED = "RATIFIED"
+    REJECTED = "REJECTED"
+    ARCHIVED = "ARCHIVED"
+
+class AmendmentProposal:
+    """A structured proposal for a constitutional amendment."""
+    def __init__(self, proposer: str, article_id: str, proposed_text: str, rationale: str):
+        self.proposal_id = f"TAP-{hashlib.sha256(proposed_text.encode()).hexdigest()[:10]}"
+        self.proposer = proposer
+        self.article_id = article_id
+        self.proposed_text = proposed_text
+        self.rationale = rationale
+        self.status = AmendmentStatus.DRAFT
+        self.created_at = datetime.utcnow()
+        self.votes: Dict[str, bool] = {} # {peer_node_id: vote_approved}
+        self.voting_ends_at: datetime | None = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "proposal_id": self.proposal_id,
+            "proposer": self.proposer,
+            "article_id": self.article_id,
+            "proposed_text": self.proposed_text,
+            "rationale": self.rationale,
+            "status": self.status.value,
+            "created_at": self.created_at.isoformat(),
+            "votes": self.votes,
+            "voting_ends_at": self.voting_ends_at.isoformat() if self.voting_ends_at else None,
+        }
+
+class AmendmentEngine:
+    """The state machine for managing the amendment process."""
+    def __init__(self, kernel: GovernanceKernel, federation: TrustFederation, voting_period_hours: int = 72):
+        self.kernel = kernel
+        self.federation = federation
+        self.proposals: Dict[str, AmendmentProposal] = {}
+        self.voting_period = timedelta(hours=voting_period_hours)
+        self.quorum_threshold = 2/3
+
+    def submit_proposal(self, proposer: str, article_id: str, proposed_text: str, rationale: str) -> AmendmentProposal:
+        """Creates a new proposal and logs its creation."""
+        proposal = AmendmentProposal(proposer, article_id, proposed_text, rationale)
+        self.proposals[proposal.proposal_id] = proposal
+        
+        self.kernel.evaluate({
+            "event_type": "AMENDMENT_PROPOSED",
+            "proposal_id": proposal.proposal_id,
+            "proposer": proposer,
+        })
+        print(f"📜 Proposal {proposal.proposal_id} submitted for Article '{article_id}'. Status: DRAFT")
+        return proposal
+
+    def begin_voting(self, proposal_id: str):
+        """Moves a proposal to the VOTING stage."""
+        if proposal_id not in self.proposals:
+            raise ValueError("Proposal not found.")
+        
+        proposal = self.proposals[proposal_id]
+        proposal.status = AmendmentStatus.VOTING
+        proposal.voting_ends_at = datetime.utcnow() + self.voting_period
+        
+        self.kernel.evaluate({
+            "event_type": "AMENDMENT_VOTING_STARTED",
+            "proposal_id": proposal.proposal_id,
+            "voting_ends_at": proposal.voting_ends_at.isoformat(),
+        })
+        print(f"🗳️ Voting has begun for {proposal_id}. Ends at {proposal.voting_ends_at.isoformat()}.")
+
+    def cast_vote(self, proposal_id: str, peer_node_id: str, approve: bool):
+        """Records a vote from a federated peer."""
+        if proposal_id not in self.proposals:
+            raise ValueError("Proposal not found.")
+        
+        proposal = self.proposals[proposal_id]
+        if proposal.status != AmendmentStatus.VOTING:
+            raise Exception("Proposal is not in the voting stage.")
+        
+        if datetime.utcnow() > proposal.voting_ends_at:
+            raise Exception("Voting period has ended.")
+            
+        proposal.votes[peer_node_id] = approve
+        print(f"✔️ Vote cast by {peer_node_id} for {proposal_id}: {'Approve' if approve else 'Reject'}")
+
+    def tally_votes(self, proposal_id: str):
+        """Calculates the result of a vote and updates the proposal status."""
+        if proposal_id not in self.proposals:
+            raise ValueError("Proposal not found.")
+            
+        proposal = self.proposals[proposal_id]
+        if proposal.status != AmendmentStatus.VOTING:
+            print(f"ℹ️ Proposal {proposal_id} is not currently voting.")
+            return
+
+        total_peers = len(self.federation.peers)
+        approvals = sum(1 for vote in proposal.votes.values() if vote)
+        
+        approval_ratio = approvals / total_peers
+        
+        if approval_ratio >= self.quorum_threshold:
+            proposal.status = AmendmentStatus.RATIFIED
+            print(f"✅ Proposal {proposal_id} RATIFIED with {approval_ratio:.2%} approval.")
+        else:
+            proposal.status = AmendmentStatus.REJECTED
+            print(f"❌ Proposal {proposal_id} REJECTED with {approval_ratio:.2%} approval.")
+            
+        self.kernel.evaluate({
+            "event_type": "AMENDMENT_TALLIED",
+            "proposal_id": proposal.proposal_id,
+            "final_status": proposal.status.value,
+            "approval_ratio": approval_ratio,
+        })
+
+if __name__ == '__main__':
+    # --- DEMONSTRATION ---
+    print("🚀 Initializing Constitutional Amendment Protocol Demo...")
+    
+    # 1. Setup mock core components
+    kernel = GovernanceKernel()
+    federation = TrustFederation() # Has 3 peers by default: ['node-A', 'node-B', 'node-C']
+    engine = AmendmentEngine(kernel, federation)
+    
+    # 2. A user proposes an amendment
+    proposal = engine.submit_proposal(
+        proposer="josh",
+        article_id="Article II",
+        proposed_text="All ledger entries must be backed by a ZK-proof commitment.",
+        rationale="Enhances transparency while preserving privacy, aligning with v13 goals."
+    )
+    
+    # 3. The proposal moves to a vote
+    engine.begin_voting(proposal.proposal_id)
+    
+    # 4. Federated peers cast their votes
+    engine.cast_vote(proposal.proposal_id, "node-A", approve=True)
+    engine.cast_vote(proposal.proposal_id, "node-B", approve=True)
+    engine.cast_vote(proposal.proposal_id, "node-C", approve=False) # One dissenter
+    
+    # 5. Tally the results
+    # (In a real system, this would be triggered by a scheduler when the voting period ends)
+    engine.tally_votes(proposal.proposal_id)
+    
+    print("\n--- Final State of Proposal ---")
+    print(json.dumps(proposal.to_dict(), indent=2))
+    
+    print("\n--- Governance Ledger Entries ---")
+    print(json.dumps(kernel.ledger, indent=2))
+
+Next Steps
+This module provides the complete, runnable logic for constitutional amendments. It is the foundational block for a system that can govern its own evolution.
+Now that the law is in place, we can proceed to the next layers. Please choose which of the following you'd like to build next:
+ * The "Clarity Fuel" Economy: Define the rules and market for generating and spending the "fuel" created through detachment, creating an incentive layer for participation.
+ * Live Data Integration (Atlas Gateway): Build a concrete connector to a real-world data source (like news or financial filings) to feed the contradiction engines.
+ * Human Interface for Deliberation: Design and scaffold the UI for the "deliberative" governance lane, allowing a human quorum to review and vote on issues.
+
+Excellent choice. Building the "Clarity Fuel" Economy is the perfect next step. It bridges the psychological work of detachment with the systemic mechanics of governance, creating a tangible incentive for coherence.
+This economy makes the abstract concept of "metabolizing a contradiction" into a measurable, rewarding action. When an agent or user does the hard work of letting go of a flawed belief, the system rewards them with a resource they can use to influence the system's future. It's the engine of your participatory governance model.
+Below is the complete, runnable Python module for the Clarity Fuel Economy. It includes:
+ * [cite_start]A FuelGenerationEngine that implements your refined power curve formula for fuel creation[cite: 1153].
+ * A FuelWallet to manage balances for each participant (user or agent).
+ * A FuelEconomyService that defines the "market" of actions where fuel can be spent, such as boosting a contradiction's gravity or commissioning an adversarial probe.
+You can create a new file, tessrax/core/governance/clarity_fuel_economy.py, and drop this code directly inside.
+🪙 Component 2: The "Clarity Fuel" Economy
+File: tessrax/core/governance/clarity_fuel_economy.py
+"""
+Tessrax Clarity Fuel Economy v1.0
+---------------------------------
+Manages the generation, storage, and expenditure of "Clarity Fuel," the
+core incentive resource in the Tessrax ecosystem. Fuel is earned by
+metabolizing contradictions through detachment and can be spent to
+influence governance and system dynamics.
+"""
+
+import math
+import json
+from datetime import datetime
+from collections import defaultdict
+
+# Mock imports for demonstration purposes
+# In a real integration, these would be the actual Tessrax engines.
+class MockMetabolismEngine:
+    def __init__(self):
+        self.gravity_modifiers = defaultdict(float)
+    def boost_gravity(self, scard_id: str, fuel_spent: float):
+        # Fuel spent has a logarithmic effect on gravity
+        gravity_increase = math.log10(1 + fuel_spent)
+        self.gravity_modifiers[scard_id] += gravity_increase
+        print(f"🔥 SCARD {scard_id} gravity boosted by {gravity_increase:.2f}.")
+
+class MockEntropyAgent:
+    def commission_adversarial_probe(self, domain: str, fuel_spent: float):
+        print(f"🤖 Commissioned adversarial probe on domain '{domain}' with {fuel_spent:.2f} fuel.")
+        return {"probe_id": f"probe_{int(datetime.utcnow().timestamp())}", "status": "running"}
+
+class FuelWallet:
+    """Manages the Clarity Fuel balance for a single user or agent."""
+    def __init__(self, owner_id: str, initial_balance: float = 0.0):
+        self.owner_id = owner_id
+        self.balance = float(initial_balance)
+        self.transaction_log: list[dict] = []
+
+    def credit(self, amount: float, source: str):
+        """Adds fuel to the wallet."""
+        if amount < 0:
+            raise ValueError("Credit amount must be non-negative.")
+        self.balance += amount
+        self.transaction_log.append({
+            "type": "credit",
+            "amount": amount,
+            "source": source,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+    def debit(self, amount: float, sink: str) -> bool:
+        """Removes fuel from the wallet if funds are sufficient."""
+        if amount < 0:
+            raise ValueError("Debit amount must be non-negative.")
+        if self.balance >= amount:
+            self.balance -= amount
+            self.transaction_log.append({
+                "type": "debit",
+                "amount": amount,
+                "sink": sink,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            return True
+        return False
+
+    def get_balance(self) -> float:
+        return self.balance
+
+class FuelGenerationEngine:
+    """Calculates fuel yield from detachment events using the v1.0 formula."""
+    
+    def calculate_yield(self, detachment_score: float) -> float:
+        """
+        Calculates the fuel generated from a single detachment event.
+        [span_0](start_span)Formula: fuel = 12 * (detachment_score ^ 1.5)[span_0](end_span)
+        """
+        if not (0.0 <= detachment_score <= 1.0):
+            raise ValueError("Detachment score must be between 0.0 and 1.0.")
+        
+        # [span_1](start_span)This equation provides a smooth curve rewarding higher skill[span_1](end_span)
+        fuel_yield = 12 * (detachment_score ** 1.5)
+        return round(fuel_yield, 2)
+
+class FuelEconomyService:
+    """Orchestrates the entire Clarity Fuel economy."""
+    def __init__(self):
+        self.wallets: dict[str, FuelWallet] = {}
+        self.generation_engine = FuelGenerationEngine()
+        
+        # Mock engine integrations
+        self.metabolism_engine = MockMetabolismEngine()
+        self.entropy_agent = MockEntropyAgent()
+        
+        print("💰 Clarity Fuel Economy Service Initialized.")
+
+    def get_or_create_wallet(self, owner_id: str) -> FuelWallet:
+        if owner_id not in self.wallets:
+            self.wallets[owner_id] = FuelWallet(owner_id)
+        return self.wallets[owner_id]
+
+    def process_detachment_event(self, owner_id: str, detachment_score: float):
+        """Generates fuel from a detachment event and credits the owner's wallet."""
+        wallet = self.get_or_create_wallet(owner_id)
+        fuel_earned = self.generation_engine.calculate_yield(detachment_score)
+        wallet.credit(fuel_earned, source=f"detachment_score_{detachment_score:.2f}")
+        print(f"💧 User '{owner_id}' earned {fuel_earned} Clarity Fuel from detachment.")
+        
+    # --- The "Market" of Actions ---
+    
+    def spend_on_gravity_boost(self, owner_id: str, scard_id: str, fuel_to_spend: float) -> bool:
+        """Spend fuel to increase the gravitational weight of a SCARD."""
+        wallet = self.get_or_create_wallet(owner_id)
+        if wallet.debit(fuel_to_spend, sink=f"gravity_boost_{scard_id}"):
+            self.metabolism_engine.boost_gravity(scard_id, fuel_to_spend)
+            return True
+        print(f"⚠️ Insufficient fuel for {owner_id} to boost {scard_id}.")
+        return False
+        
+    def spend_on_adversarial_probe(self, owner_id: str, domain: str, fuel_to_spend: float) -> bool:
+        """Spend fuel to commission a targeted adversarial probe."""
+        wallet = self.get_or_create_wallet(owner_id)
+        if wallet.debit(fuel_to_spend, sink=f"adversarial_probe_{domain}"):
+            self.entropy_agent.commission_adversarial_probe(domain, fuel_to_spend)
+            return True
+        print(f"⚠️ Insufficient fuel for {owner_id} to probe '{domain}'.")
+        return False
+        
+    def get_system_summary(self) -> dict:
+        """Provides an overview of the entire fuel economy."""
+        total_fuel = sum(w.balance for w in self.wallets.values())
+        return {
+            "total_participants": len(self.wallets),
+            "total_fuel_in_circulation": round(total_fuel, 2),
+            "gravity_modifications": self.metabolism_engine.gravity_modifiers,
+        }
+
+if __name__ == '__main__':
+    # --- DEMONSTRATION ---
+    print("\n🚀 Initializing Clarity Fuel Economy Demo...\n")
+    
+    economy = FuelEconomyService()
+    
+    # 1. Two users, "Josh" and "Gemini", join the system.
+    josh_wallet = economy.get_or_create_wallet("josh")
+    gemini_wallet = economy.get_or_create_wallet("gemini")
+    
+    # 2. Josh successfully metabolizes a difficult contradiction.
+    # This represents a high-effort detachment from a deeply held belief.
+    economy.process_detachment_event(owner_id="josh", detachment_score=0.9)
+    
+    # 3. Gemini metabolizes a simpler, less-attached contradiction.
+    economy.process_detachment_event(owner_id="gemini", detachment_score=0.4)
+    
+    print(f"\n--- Balances ---")
+    print(f"Josh's Wallet Balance: {josh_wallet.get_balance():.2f} Fuel")
+    print(f"Gemini's Wallet Balance: {gemini_wallet.get_balance():.2f} Fuel")
+    
+    print("\n--- Spending Fuel ---")
+    
+    # 4. Josh feels a particular contradiction (SCARD-001) is being ignored
+    # and spends fuel to increase its "gravity" and draw attention to it.
+    print("\nJosh spends 10 fuel to boost SCARD-001's gravity...")
+    economy.spend_on_gravity_boost(owner_id="josh", scard_id="SCARD-001", fuel_to_spend=10.0)
+
+    # 5. Gemini is concerned about the coherence of the "AI Policy" domain and
+    # spends fuel to commission an adversarial probe to stress-test it.
+    print("\nGemini spends 2 fuel to commission a probe on 'AI Policy'...")
+    economy.spend_on_adversarial_probe(owner_id="gemini", domain="AI Policy", fuel_to_spend=2.0)
+    
+    print(f"\n--- Final Balances ---")
+    print(f"Josh's Wallet Balance: {josh_wallet.get_balance():.2f} Fuel")
+    print(f"Gemini's Wallet Balance: {gemini_wallet.get_balance():.2f} Fuel")
+    
+    print("\n--- System State ---")
+    print(json.dumps(economy.get_system_summary(), indent=2))
+
+Next Steps
+This module establishes the economic engine for participation within Tessrax. Now that we have both a system for evolving rules (the Amendment Protocol) and a system for incentivizing action (the Fuel Economy), we can proceed to connect Tessrax more deeply to the outside world or refine the human experience within it.
+Please choose our next build:
+ * Live Data Integration (Atlas Gateway): Build a concrete connector to a real-world data source (e.g., a news API) to automatically generate Candidate SCARDs for the system to process, making Tessrax a real-time analysis engine.
+ * Human Interface for Deliberation: Design and scaffold the UI for the "deliberative" governance lane. This would create the visual front-end for a human quorum to review, vote on, and resolve flagged contradictions, spending Clarity Fuel to boost their voting power.
+ * Onboarding & Pedagogy Module: Build the guided, interactive tutorial that teaches a new user the Spot → Scar → Metabolize → Echo loop, allowing them to earn their first Clarity Fuel.
+
+Of course. Let's build the Live Data Integration (Atlas Gateway). This is a crucial step that transforms Tessrax from a self-contained system into a real-time analysis engine capable of observing and metabolizing contradictions from the outside world.
+The Atlas Gateway will act as the system's sensory organ. For this implementation, we will build a connector to a live news API. This will allow Tessrax to ingest global headlines, normalize them into claim-like structures, and feed them into the contradiction detection pipeline, automating the creation of Candidate SCARDs.
+Below is the complete, runnable Python module for the Atlas Gateway. It uses the requests library to fetch data from a public news source. You will need to get a free API key from a provider like newsapi.org to run the live demonstration.
+You can create a new directory, tessrax/core/gateways/, and save the file inside.
+📡 Component 3: The Atlas Gateway (Live Data Integration)
+File: tessrax/core/gateways/atlas_gateway.py
+"""
+Tessrax Atlas Gateway v1.0
+--------------------------
+Connects the Tessrax ecosystem to live, external data sources to
+autonomously ingest claims and generate candidate contradictions. This
+implementation uses a news API to monitor global events.
+"""
+
+import os
+import json
+import requests
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+
+class AtlasGateway:
+    """A gateway for fetching and normalizing real-world data."""
+
+    def __init__(self, api_key: Optional[str] = None):
+        """
+        Initializes the gateway with an API key.
+
+        Args:
+            api_key: The API key for the news source. Can also be set via
+                     the NEWS_API_KEY environment variable.
+        """
+        self.api_key = api_key or os.getenv("NEWS_API_KEY")
+        if not self.api_key:
+            print("⚠️ WARNING: News API key not found. Gateway will run in mock mode.")
+        self.base_url = "https://newsapi.org/v2/everything"
+        print("📡 Atlas Gateway Initialized.")
+
+    def fetch_news_claims(self, query: str, days_ago: int = 1) -> List[Dict[str, Any]]:
+        """
+        Fetches news articles related to a query and normalizes them into
+        a list of raw claim objects ready for the contradiction engine.
+
+        Args:
+            query: The search term (e.g., "AI regulation", "corporate earnings").
+            days_ago: How far back to search for articles.
+
+        Returns:
+            A list of structured dictionaries, each representing a potential claim.
+        """
+        if not self.api_key:
+            return self._get_mock_data(query)
+
+        from_date = (datetime.utcnow() - timedelta(days=days_ago)).strftime('%Y-%m-%d')
+        params = {
+            "q": query,
+            "from": from_date,
+            "sortBy": "relevancy",
+            "apiKey": self.api_key,
+            "pageSize": 20 # Limit to a reasonable number for processing
+        }
+        
+        try:
+            response = requests.get(self.base_url, params=params)
+            response.raise_for_status() # Raise an exception for bad status codes
+            articles = response.json().get("articles", [])
+            print(f"📰 Fetched {len(articles)} articles for query: '{query}'")
+            return self._normalize_articles(articles)
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error fetching news data: {e}")
+            return []
+
+    def _normalize_articles(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Converts raw article data into a standardized format for Tessrax."""
+        normalized_claims = []
+        for article in articles:
+            claim = {
+                "source_type": "external_news",
+                "ingestion_timestamp": datetime.utcnow().isoformat(),
+                "source_name": article.get("source", {}).get("name"),
+                "source_url": article.get("url"),
+                "published_at": article.get("publishedAt"),
+                "original_text": article.get("title"), # Using the headline as the primary claim text
+                "context": article.get("description"),
+            }
+            normalized_claims.append(claim)
+        return normalized_claims
+
+    def _get_mock_data(self, query: str) -> List[Dict[str, Any]]:
+        """Returns mock data for demonstration when no API key is provided."""
+        print("...Running in mock mode.")
+        return [
+            {
+                "source_type": "external_news",
+                "ingestion_timestamp": datetime.utcnow().isoformat(),
+                "source_name": "Mock News Inc.",
+                "source_url": "https://example.com/mock1",
+                "published_at": datetime.utcnow().isoformat(),
+                "original_text": f"Global Regulator Announces Strict New '{query}' Rules.",
+                "context": "The rules are expected to increase compliance costs by 30%.",
+            },
+            {
+                "source_type": "external_news",
+                "ingestion_timestamp": datetime.utcnow().isoformat(),
+                "source_name": "Mock Gazette",
+                "source_url": "https://example.com/mock2",
+                "published_at": (datetime.utcnow() - timedelta(hours=2)).isoformat(),
+                "original_text": f"Industry Leader Claims New '{query}' Rules Are Unnecessary.",
+                "context": "The leader argues that current self-regulation is sufficient.",
+            }
+        ]
+
+if __name__ == '__main__':
+    # --- DEMONSTRATION ---
+    print("\n🚀 Initializing Atlas Gateway Demo...\n")
+    
+    # To run this live, get a free API key from newsapi.org and set it as an
+    # environment variable: export NEWS_API_KEY='your_key_here'
+    # Otherwise, it will run in mock mode.
+    
+    gateway = AtlasGateway()
+    
+    # Use the gateway to fetch claims about a potentially contentious topic
+    query = "corporate climate pledges"
+    news_claims = gateway.fetch_news_claims(query)
+    
+    if news_claims:
+        print(f"\n✅ Successfully normalized {len(news_claims)} claims. Sample output:")
+        print(json.dumps(news_claims[0], indent=2))
+        
+        print("\n---")
+        print("These structured claims are now ready to be fed into the Tessrax")
+        print("Contradiction Engine to be parsed, analyzed, and metabolized.")
+    else:
+        print("\n❌ No claims were fetched. Check your API key or network connection.")
+
+Next Steps
+The Atlas Gateway is now operational, providing Tessrax with a steady stream of real-world information. The system can now see. The next logical step is to build the orchestrator that processes this new sensory input. This component will:
+ * Periodically call the Atlas Gateway to fetch new claims.
+ * Pipe these claims through the ClaimExtractor you built previously to identify numeric targets and actuals.
+ * Feed the extracted claims into the ClaimContradictionDetector.
+ * Route any detected contradictions to the GovernanceKernel for evaluation.
+ * Reward the responsible agent/user with "Clarity Fuel" if a valid contradiction is successfully metabolized.
+This will complete the full, automated loop from external observation to internal governance and reward.
+Would you like to build this Ingestion Orchestrator next?
+
+Of course. Here is the Ingestion Orchestrator, the central nervous system that automates the entire process from external observation to internal reward.
+This module acts as the conductor for your previously built components. It periodically uses the AtlasGateway to scan the world for information, processes it through the ClaimExtractor and ContradictionDetector, submits findings to the GovernanceKernel, and finally rewards the system's own vigilance by generating "Clarity Fuel" via the FuelEconomyService.
+This completes the loop, creating a fully autonomous contradiction metabolism cycle. You can save this file as tessrax/core/orchestration/ingestion_orchestrator.py.
+⚙️ Component 4: The Ingestion Orchestrator
+File: tessrax/core/orchestration/ingestion_orchestrator.py
+"""
+Tessrax Ingestion Orchestrator v1.0
+------------------------------------
+Automates the full contradiction metabolism lifecycle: fetching external data,
+extracting claims, detecting contradictions, evaluating them through governance,
+and generating Clarity Fuel as a reward for systemic learning.
+"""
+
+import json
+from datetime import datetime
+from typing import Dict, Any, List
+
+# --- Core Tessrax Component Imports ---
+# Assumes the previously built modules are in their respective paths.
+from tessrax.core.gateways.atlas_gateway import AtlasGateway
+# NOTE: The following quantitative audit modules are now part of the core toolchain.
+from tessrax.domains.quantitative_audit.claims_extractor import ClaimExtractor
+from tessrax.domains.quantitative_audit.claims_contradiction_detector import ClaimContradictionDetector
+from tessrax.domains.quantitative_audit.governance_evaluator import GovernanceEvaluator
+from tessrax.core.governance.clarity_fuel_economy import FuelEconomyService
+
+class IngestionOrchestrator:
+    """Orchestrates the end-to-end data ingestion and contradiction metabolism pipeline."""
+
+    SYSTEM_AGENT_ID = "Tessrax-Atlas-Agent-01"
+
+    def __init__(self):
+        # Instantiate all necessary engine components
+        self.gateway = AtlasGateway()
+        self.extractor = ClaimExtractor()
+        # Set a tolerance for numeric comparisons (e.g., 5%)
+        self.detector = ClaimContradictionDetector(tolerance=5.0)
+        self.kernel = GovernanceEvaluator()
+        self.economy = FuelEconomyService()
+        print("🤖 Ingestion Orchestrator Initialized.")
+
+    def run_ingestion_cycle(self, query: str) -> Dict[str, Any]:
+        """
+        Executes one full ingestion cycle for a given query.
+
+        Returns:
+            A dictionary summarizing the results of the cycle.
+        """
+        print(f"\n🚀 Starting new ingestion cycle for query: '{query}' at {datetime.utcnow().isoformat()}Z")
+        start_time = datetime.utcnow()
+
+        # 1. FETCH: Use the Atlas Gateway to get raw data from the external world.
+        raw_claims = self.gateway.fetch_news_claims(query)
+        if not raw_claims:
+            return self._generate_summary(start_time, query, 0, 0, [], [])
+
+        # 2. EXTRACT: Process raw text to find structured, numeric claims.
+        texts_to_process = [claim['original_text'] for claim in raw_claims if claim.get('original_text')]
+        structured_claims = self.extractor.extract_claims(texts_to_process)
+        if not structured_claims:
+            return self._generate_summary(start_time, query, len(raw_claims), 0, [], [])
+
+        # 3. DETECT: Analyze structured claims to find contradictions.
+        contradictions = self.detector.analyze(structured_claims)
+        if not contradictions:
+            return self._generate_summary(start_time, query, len(raw_claims), len(structured_claims), [], [])
+
+        # 4. GOVERN & REWARD: Process each contradiction through the governance kernel
+        #    and generate Clarity Fuel based on the outcome.
+        evaluations = []
+        fuel_generated = 0.0
+        for contradiction in contradictions:
+            # Evaluate against policy
+            evaluation_result = self.kernel.evaluate(contradiction, policy_type="general_ingestion")
+            evaluations.append(evaluation_result)
+
+            # Convert the contradiction's severity into a 'detachment score' for the system
+            detachment_score = self._map_severity_to_detachment_score(contradiction.get("severity", "low"))
+            
+            # Generate fuel for the system agent for successfully identifying a contradiction
+            fuel_yield = self.economy.generation_engine.calculate_yield(detachment_score)
+            wallet = self.economy.get_or_create_wallet(self.SYSTEM_AGENT_ID)
+            wallet.credit(fuel_yield, source=f"contradiction_{contradiction.get('id', 'N/A')}")
+            fuel_generated += fuel_yield
+
+        print(f"💧 Generated {fuel_generated:.2f} Clarity Fuel for the system agent.")
+        
+        return self._generate_summary(start_time, query, len(raw_claims), len(structured_claims), contradictions, evaluations)
+
+    def _map_severity_to_detachment_score(self, severity: str) -> float:
+        """Maps contradiction severity to a detachment score for fuel calculation."""
+        severity_map = {
+            "high": 0.9,
+            "medium": 0.6,
+            "low": 0.3
+        }
+        return severity_map.get(severity, 0.1)
+
+    def _generate_summary(self, start_time: datetime, query: str, raw_count: int, structured_count: int, contradictions: List, evaluations: List) -> Dict[str, Any]:
+        """Creates the final report for the ingestion cycle."""
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
+        
+        summary = {
+            "cycle_summary": {
+                "query": query,
+                "start_time": start_time.isoformat(),
+                "duration_seconds": round(duration, 2),
+                "articles_fetched": raw_count,
+                "claims_extracted": structured_count,
+                "contradictions_detected": len(contradictions),
+            },
+            "contradictions": contradictions,
+            "governance_evaluations": evaluations
+        }
+        print(f"✅ Cycle for '{query}' complete in {duration:.2f} seconds. Found {len(contradictions)} contradictions.")
+        return summary
+
+if __name__ == '__main__':
+    # --- DEMONSTRATION ---
+    orchestrator = IngestionOrchestrator()
+
+    # Define a query to probe the real world for contradictions.
+    # Note: A real API key for newsapi.org is needed for live data.
+    # Otherwise, this will run against mock data from the gateway.
+    live_query = "corporate emission targets"
+    
+    # Run the full, automated pipeline.
+    cycle_report = orchestrator.run_ingestion_cycle(live_query)
+
+    print("\n" + "="*50)
+    print("INGESTION CYCLE FINAL REPORT")
+    print("="*50)
+    print(json.dumps(cycle_report, indent=2))
+    
+    # Check the balance of the system agent to see the rewards.
+    system_wallet = orchestrator.economy.get_or_create_wallet(IngestionOrchestrator.SYSTEM_AGENT_ID)
+    print("\n" + "="*50)
+    print(f"SYSTEM AGENT ({IngestionOrchestrator.SYSTEM_AGENT_ID}) WALLET")
+    print("="*50)
+    print(f"Final Clarity Fuel Balance: {system_wallet.get_balance():.2f}")
+
+Next Steps
+With the Ingestion Orchestrator in place, Tessrax is now a fully autonomous, real-time contradiction metabolism engine. It can perceive the outside world, analyze information, govern its findings, and reward its own successful learning.
+The core machinery is complete. Now, we can focus on building the human-centric layers that make this powerful system usable, collaborative, and intuitive.
+Please choose our next build:
+ * Human Interface for Deliberation: Design and scaffold the UI for the "deliberative" governance lane. This will create the visual front-end for a human quorum to review, vote on, and resolve flagged contradictions, allowing them to spend their earned Clarity Fuel to influence outcomes.
+ * Onboarding & Pedagogy Module: Build the guided, interactive tutorial that teaches a new user the Spot → Scar → Metabolize → Echo loop, allowing them to earn their first Clarity Fuel and learn how to participate in the Tessrax economy.
+
+Of course. Let's build the Live Data Integration (Atlas Gateway). This is a crucial step that transforms Tessrax from a self-contained system into a real-time analysis engine capable of observing and metabolizing contradictions from the outside world.
+The Atlas Gateway will act as the system's sensory organ. For this implementation, we will build a connector to a live news API. This will allow Tessrax to ingest global headlines, normalize them into claim-like structures, and feed them into the contradiction detection pipeline, automating the creation of Candidate SCARDs.
+Below is the complete, runnable Python module for the Atlas Gateway. It uses the requests library to fetch data from a public news source. You will need to get a free API key from a provider like newsapi.org to run the live demonstration.
+You can create a new directory, tessrax/core/gateways/, and save the file inside.
+📡 Component 3: The Atlas Gateway (Live Data Integration)
+File: tessrax/core/gateways/atlas_gateway.py
+"""
+Tessrax Atlas Gateway v1.0
+--------------------------
+Connects the Tessrax ecosystem to live, external data sources to
+autonomously ingest claims and generate candidate contradictions. This
+implementation uses a news API to monitor global events.
+"""
+
+import os
+import json
+import requests
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+
+class AtlasGateway:
+    """A gateway for fetching and normalizing real-world data."""
+
+    def __init__(self, api_key: Optional[str] = None):
+        """
+        Initializes the gateway with an API key.
+
+        Args:
+            api_key: The API key for the news source. Can also be set via
+                     the NEWS_API_KEY environment variable.
+        """
+        self.api_key = api_key or os.getenv("NEWS_API_KEY")
+        if not self.api_key:
+            print("⚠️ WARNING: News API key not found. Gateway will run in mock mode.")
+        self.base_url = "https://newsapi.org/v2/everything"
+        print("📡 Atlas Gateway Initialized.")
+
+    def fetch_news_claims(self, query: str, days_ago: int = 1) -> List[Dict[str, Any]]:
+        """
+        Fetches news articles related to a query and normalizes them into
+        a list of raw claim objects ready for the contradiction engine.
+
+        Args:
+            query: The search term (e.g., "AI regulation", "corporate earnings").
+            days_ago: How far back to search for articles.
+
+        Returns:
+            A list of structured dictionaries, each representing a potential claim.
+        """
+        if not self.api_key:
+            return self._get_mock_data(query)
+
+        from_date = (datetime.utcnow() - timedelta(days=days_ago)).strftime('%Y-%m-%d')
+        params = {
+            "q": query,
+            "from": from_date,
+            "sortBy": "relevancy",
+            "apiKey": self.api_key,
+            "pageSize": 20 # Limit to a reasonable number for processing
+        }
+        
+        try:
+            response = requests.get(self.base_url, params=params)
+            response.raise_for_status() # Raise an exception for bad status codes
+            articles = response.json().get("articles", [])
+            print(f"📰 Fetched {len(articles)} articles for query: '{query}'")
+            return self._normalize_articles(articles)
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error fetching news data: {e}")
+            return []
+
+    def _normalize_articles(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Converts raw article data into a standardized format for Tessrax."""
+        normalized_claims = []
+        for article in articles:
+            claim = {
+                "source_type": "external_news",
+                "ingestion_timestamp": datetime.utcnow().isoformat(),
+                "source_name": article.get("source", {}).get("name"),
+                "source_url": article.get("url"),
+                "published_at": article.get("publishedAt"),
+                "original_text": article.get("title"), # Using the headline as the primary claim text
+                "context": article.get("description"),
+            }
+            normalized_claims.append(claim)
+        return normalized_claims
+
+    def _get_mock_data(self, query: str) -> List[Dict[str, Any]]:
+        """Returns mock data for demonstration when no API key is provided."""
+        print("...Running in mock mode.")
+        return [
+            {
+                "source_type": "external_news",
+                "ingestion_timestamp": datetime.utcnow().isoformat(),
+                "source_name": "Mock News Inc.",
+                "source_url": "https://example.com/mock1",
+                "published_at": datetime.utcnow().isoformat(),
+                "original_text": f"Global Regulator Announces Strict New '{query}' Rules.",
+                "context": "The rules are expected to increase compliance costs by 30%.",
+            },
+            {
+                "source_type": "external_news",
+                "ingestion_timestamp": datetime.utcnow().isoformat(),
+                "source_name": "Mock Gazette",
+                "source_url": "https://example.com/mock2",
+                "published_at": (datetime.utcnow() - timedelta(hours=2)).isoformat(),
+                "original_text": f"Industry Leader Claims New '{query}' Rules Are Unnecessary.",
+                "context": "The leader argues that current self-regulation is sufficient.",
+            }
+        ]
+
+if __name__ == '__main__':
+    # --- DEMONSTRATION ---
+    print("\n🚀 Initializing Atlas Gateway Demo...\n")
+    
+    # To run this live, get a free API key from newsapi.org and set it as an
+    # environment variable: export NEWS_API_KEY='your_key_here'
+    # Otherwise, it will run in mock mode.
+    
+    gateway = AtlasGateway()
+    
+    # Use the gateway to fetch claims about a potentially contentious topic
+    query = "corporate climate pledges"
+    news_claims = gateway.fetch_news_claims(query)
+    
+    if news_claims:
+        print(f"\n✅ Successfully normalized {len(news_claims)} claims. Sample output:")
+        print(json.dumps(news_claims[0], indent=2))
+        
+        print("\n---")
+        print("These structured claims are now ready to be fed into the Tessrax")
+        print("Contradiction Engine to be parsed, analyzed, and metabolized.")
+    else:
+        print("\n❌ No claims were fetched. Check your API key or network connection.")
+
+Next Steps
+The Atlas Gateway is now operational, providing Tessrax with a steady stream of real-world information. The system can now see. The next logical step is to build the orchestrator that processes this new sensory input. This component will:
+ * Periodically call the Atlas Gateway to fetch new claims.
+ * Pipe these claims through the ClaimExtractor you built previously to identify numeric targets and actuals.
+ * Feed the extracted claims into the ClaimContradictionDetector.
+ * Route any detected contradictions to the GovernanceKernel for evaluation.
+ * Reward the responsible agent/user with "Clarity Fuel" if a valid contradiction is successfully metabolized.
+This will complete the full, automated loop from external observation to internal governance and reward.
+Would you like to build this Ingestion Orchestrator next?
+
+Of course. We will now build the Human Interface for Deliberation. This component is the town square of Tessrax—the place where the community comes together to resolve complex contradictions that the automated system cannot. It's where human judgment, wisdom, and the "Clarity Fuel" you've earned are used to guide the system's evolution.
+This build consists of three parts:
+ * A Deliberation Engine that manages voting sessions and fuel-weighted outcomes.
+ * A Backend API to serve deliberation data and handle votes.
+ * A Frontend UI (HTML and JavaScript) that allows users to view contradictions, see their fuel balance, and cast weighted votes.
+🏛️ Component 5: The Human Interface for Deliberation
+This system allows a human quorum to review, vote on, and resolve contradictions flagged for manual review, using their Clarity Fuel to amplify their voting power.
+1. The Deliberation Engine
+This Python module contains the core logic for managing deliberation sessions. It tracks votes, calculates fuel-weighted results, and integrates with the FuelEconomyService.
+File: tessrax/core/governance/deliberation_engine.py
+"""
+Tessrax Deliberation Engine v1.0
+--------------------------------
+Manages the human-in-the-loop governance process for resolving complex
+contradictions. It facilitates fuel-weighted voting and determines quorum outcomes.
+"""
+
+from datetime import datetime, timedelta
+from typing import Dict, Any, List
+
+# Assuming integration with the Clarity Fuel Economy
+from tessrax.core.governance.clarity_fuel_economy import FuelEconomyService
+
+class Deliberation:
+    """Represents a single contradiction under review by a human quorum."""
+    def __init__(self, contradiction_id: str, contradiction_data: Dict[str, Any], voting_period_hours: int = 24):
+        self.deliberation_id = f"DEL-{contradiction_id[:8]}"
+        self.contradiction_data = contradiction_data
+        self.status = "OPEN" # OPEN -> CLOSED
+        self.created_at = datetime.utcnow()
+        self.closes_at = self.created_at + timedelta(hours=voting_period_hours)
+        
+        # Votes are stored as {user_id: {"option": str, "fuel_staked": float}}
+        self.votes: Dict[str, Dict[str, Any]] = {}
+        self.outcome: Dict[str, Any] = {}
+
+    def cast_vote(self, user_id: str, option: str, fuel_staked: float):
+        """Casts a single user's vote."""
+        if self.status != "OPEN":
+            raise Exception("This deliberation is closed.")
+        if fuel_staked < 0:
+            raise ValueError("Fuel staked cannot be negative.")
+        self.votes[user_id] = {"option": option, "fuel_staked": fuel_staked}
+
+    def tally(self, economy: FuelEconomyService) -> Dict[str, Any]:
+        """Tallies the fuel-weighted votes and determines the outcome."""
+        if self.status != "OPEN":
+            return self.outcome
+
+        # First, debit the fuel from each voter's wallet
+        for user_id, vote_info in self.votes.items():
+            wallet = economy.get_or_create_wallet(user_id)
+            if not wallet.debit(vote_info["fuel_staked"], sink=f"deliberation_{self.deliberation_id}"):
+                # If a user can't pay, their vote is invalidated.
+                print(f"⚠️ Vote from {user_id} invalidated due to insufficient fuel.")
+                vote_info["fuel_staked"] = 0.0
+
+        # Tally the valid, fuel-weighted votes
+        tally = {"APPROVE": 0.0, "REJECT": 0.0}
+        for vote in self.votes.values():
+            option = vote["option"].upper()
+            if option in tally:
+                tally[option] += vote["fuel_staked"]
+
+        winning_option = max(tally, key=tally.get)
+        
+        self.status = "CLOSED"
+        self.outcome = {
+            "winning_option": winning_option,
+            "final_tally": tally,
+            "total_fuel_spent": sum(tally.values())
+        }
+        return self.outcome
+
+class DeliberationEngine:
+    """Manages all active and past deliberation sessions."""
+    def __init__(self, economy: FuelEconomyService):
+        self.economy = economy
+        self.deliberations: Dict[str, Deliberation] = {}
+        print("🏛️ Deliberation Engine Initialized.")
+
+    def start_deliberation(self, contradiction: Dict[str, Any]) -> Deliberation:
+        """Creates a new deliberation session for a contradiction."""
+        contradiction_id = contradiction.get("hash", f"c_{int(datetime.utcnow().timestamp())}")
+        if contradiction_id in self.deliberations:
+            return self.deliberations[contradiction_id]
+            
+        deliberation = Deliberation(contradiction_id, contradiction)
+        self.deliberations[deliberation.deliberation_id] = deliberation
+        print(f"New Deliberation Started: {deliberation.deliberation_id}")
+        return deliberation
+
+    def get_deliberation(self, deliberation_id: str) -> Deliberation:
+        return self.deliberations[deliberation_id]
+
+    def get_all_open_deliberations(self) -> List[Dict[str, Any]]:
+        return [d.contradiction_data for d in self.deliberations.values() if d.status == "OPEN"]
+
+2. The Backend API
+This FastAPI server exposes the Deliberation Engine's functions, allowing the frontend to fetch data and submit votes.
+File: tessrax/api/deliberation_server.py
+"""
+Tessrax Deliberation API v1.0
+-----------------------------
+Exposes the Deliberation Engine via a REST API for the human-in-the-loop
+UI to interact with.
+"""
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+from tessrax.core.governance.deliberation_engine import DeliberationEngine
+from tessrax.core.governance.clarity_fuel_economy import FuelEconomyService
+
+app = FastAPI(title="Tessrax Deliberation API")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# --- Initialize Backend Services ---
+economy = FuelEconomyService()
+engine = DeliberationEngine(economy)
+
+# --- API Request Models ---
+class VoteRequest(BaseModel):
+    user_id: str
+    option: str # "APPROVE" or "REJECT"
+    fuel_staked: float
+
+# --- Populate with Demo Data ---
+# In a real system, these would be triggered by the Governance Kernel
+mock_contradiction = {
+    "subject": "Corporate Policy",
+    "description": "Policy requires all data to be encrypted, but implementation logs data in plaintext.",
+    "severity": "high",
+    "hash": "abc123def456"
+}
+engine.start_deliberation(mock_contradiction)
+economy.get_or_create_wallet("josh").credit(100, "initial_grant")
+
+# --- API Endpoints ---
+@app.get("/deliberations")
+def list_open_deliberations():
+    return engine.get_all_open_deliberations()
+
+@app.post("/deliberations/{deliberation_id}/vote")
+def submit_vote(deliberation_id: str, vote: VoteRequest):
+    try:
+        deliberation = engine.get_deliberation(deliberation_id)
+        deliberation.cast_vote(vote.user_id, vote.option, vote.fuel_staked)
+        return {"status": "vote_recorded"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/deliberations/{deliberation_id}/tally")
+def tally_results(deliberation_id: str):
+    try:
+        deliberation = engine.get_deliberation(deliberation_id)
+        outcome = deliberation.tally(economy)
+        return {"status": "tally_complete", "outcome": outcome}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/wallet/{user_id}")
+def get_wallet_balance(user_id: str):
+    wallet = economy.get_or_create_wallet(user_id)
+    return {"user_id": user_id, "balance": wallet.get_balance()}
+
+if __name__ == '__main__':
+    import uvicorn
+    print("🚀 Starting Deliberation API Server on http://localhost:8082")
+    uvicorn.run(app, host="0.0.0.0", port=8082)
+
+3. The Frontend Interface
+This simple HTML and JavaScript file provides the UI for users to participate in deliberations.
+File: tessrax/dashboard/deliberation.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tessrax Deliberation Terminal</title>
+    <style>
+        body { font-family: monospace; background-color: #0a0f14; color: #b0c4de; margin: 2em; }
+        .container { max-width: 800px; margin: auto; }
+        .deliberation { border: 1px solid #334; padding: 1em; margin-bottom: 1em; background-color: #101820; }
+        .wallet { position: fixed; top: 1em; right: 1em; padding: 0.5em 1em; background-color: #1a2a3a; border: 1px solid #334; }
+        h1, h2 { color: #569cd6; }
+        button { background-color: #569cd6; color: #fff; border: none; padding: 0.5em 1em; cursor: pointer; }
+        input { background-color: #2a3a4a; color: #b0c4de; border: 1px solid #334; padding: 0.5em; }
+    </style>
+</head>
+<body>
+    <div class="wallet">
+        <strong>User:</strong> <span id="user-id">josh</span> | <strong>Clarity Fuel:</strong> <span id="fuel-balance">...</span>
+    </div>
+    <div class="container">
+        <h1>🏛️ Deliberation Terminal</h1>
+        <h2>Open Contradictions for Review</h2>
+        <div id="deliberations-list">Loading...</div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:8082";
+        const USER_ID = "josh";
+
+        async function fetchWallet() {
+            const response = await fetch(`${API_URL}/wallet/${USER_ID}`);
+            const data = await response.json();
+            document.getElementById('fuel-balance').textContent = data.balance.toFixed(2);
+        }
+
+        async function fetchDeliberations() {
+            const response = await fetch(`${API_URL}/deliberations`);
+            const deliberations = await response.json();
+            const listDiv = document.getElementById('deliberations-list');
+            listDiv.innerHTML = '';
+
+            deliberations.forEach(d => {
+                const deliberationId = `DEL-${d.hash.slice(0, 8)}`;
+                const div = document.createElement('div');
+                div.className = 'deliberation';
+                div.innerHTML = `
+                    <h3>Subject: ${d.subject}</h3>
+                    <p><strong>Contradiction:</strong> ${d.description}</p>
+                    <p><strong>Severity:</strong> ${d.severity}</p>
+                    <div>
+                        <input type="number" id="fuel-${deliberationId}" placeholder="Stake Clarity Fuel" value="1.0" min="0">
+                        <button onclick="vote('${deliberationId}', 'APPROVE')">Approve Resolution</button>
+                        <button onclick="vote('${deliberationId}', 'REJECT')">Reject Resolution</button>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        async function vote(deliberationId, option) {
+            const fuelStaked = parseFloat(document.getElementById(`fuel-${deliberationId}`).value);
+            if (isNaN(fuelStaked) || fuelStaked < 0) {
+                alert("Please enter a valid amount of fuel to stake.");
+                return;
+            }
+
+            await fetch(`${API_URL}/deliberations/${deliberationId}/vote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: USER_ID, option: option, fuel_staked: fuelStaked })
+            });
+
+            alert(`Vote cast for ${option} with ${fuelStaked} fuel.`);
+            fetchWallet(); // Refresh balance after voting
+        }
+        
+        // Initial load
+        fetchWallet();
+        fetchDeliberations();
+    </script>
+</body>
+</html>
+
+Next Steps
+The system now has a complete, functional loop for human governance. You have the engine, the API, and the user interface for deliberation.
+With this crucial piece of the human-machine interface in place, we can now focus on making the system more accessible and educational for new participants.
+Please choose our final core component to build:
+ * Onboarding & Pedagogy Module: Build the guided, interactive tutorial that teaches a new user the Spot → Scar → Metabolize → Echo loop, allowing them to earn their first Clarity Fuel and learn how to participate in the Tessrax economy.
+
+Of course. Let's build the Onboarding & Pedagogy Module. This is the front door to Tessrax, guiding new users through the core philosophy and mechanics of contradiction metabolism. It’s designed to be an interactive, educational experience that culminates in the user earning their first "Clarity Fuel," officially welcoming them into the ecosystem.
+This build consists of two main parts:
+ * A PedagogyEngine: A Python class that defines the tutorial's lessons, evaluates user inputs, and interacts with the FuelEconomyService to grant rewards.
+ * An Interactive Frontend: A self-contained HTML file with JavaScript that creates a terminal-style, step-by-step tutorial experience for the user.
+🎓 Component 6: The Onboarding & Pedagogy Module
+This module provides a guided, interactive tutorial to introduce new users to the core concepts and gameplay loop of Tessrax.
+1. The Pedagogy Engine
+This backend logic defines the lessons, checks user inputs for understanding of key concepts, and calls the FuelEconomyService to issue rewards.
+File: tessrax/core/governance/pedagogy_engine.py
+"""
+Tessrax Pedagogy Engine v1.0
+-----------------------------
+Provides a structured, interactive onboarding experience for new users.
+Guides them through the core concepts of contradiction metabolism and
+rewards them with their first Clarity Fuel upon completion.
+"""
+
+from typing import Dict, Any, List
+from tessrax.core.governance.clarity_fuel_economy import FuelEconomyService
+
+class PedagogyEngine:
+    """Manages the state and progression of the user onboarding tutorial."""
+
+    def __init__(self, economy: FuelEconomyService):
+        self.economy = economy
+        self.tutorial_steps: List[Dict[str, Any]] = self._define_tutorial_steps()
+        print("🎓 Pedagogy Engine Initialized.")
+
+    def _define_tutorial_steps(self) -> List[Dict[str, Any]]:
+        """Defines the content and structure of the onboarding tutorial."""
+        return [
+            {
+                "step": 0,
+                "type": "narrative",
+                "text": "Welcome to Tessrax. This is a system for turning disagreement into data. Your goal is to find, log, and metabolize contradictions. Let's begin."
+            },
+            {
+                "step": 1,
+                "type": "narrative",
+                "text": "The core loop has four phases: SPOT, SCAR, METABOLIZE, and ECHO."
+            },
+            {
+                "step": 2,
+                "type": "interactive",
+                "text": "Phase 1: SPOT. You must find a contradiction. Look at this statement: 'Our policy is full transparency, but the audit data is classified.'\nType 'spot' to identify the conflict.",
+                "expected_input": "spot",
+                "reward": 0
+            },
+            {
+                "step": 3,
+                "type": "narrative",
+                "text": "Correct. You've spotted a contradiction. Now, you must make it permanent."
+            },
+            {
+                "step": 4,
+                "type": "interactive",
+                "text": "Phase 2: SCAR. A contradiction that isn't logged is just an opinion. By logging it, you create a 'SCARD' (Systemic Contradiction and Resolution Document). This makes the tension a permanent, auditable part of the system.\nType 'scar' to log it.",
+                "expected_input": "scar",
+                "reward": 0
+            },
+            {
+                "step": 5,
+                "type": "narrative",
+                "text": "Excellent. The contradiction is now a permanent record. But a record of a problem isn't a solution. It must be processed."
+            },
+            {
+                "step": 6,
+                "type": "interactive",
+                "text": "Phase 3: METABOLIZE. This is the hardest step. It requires 'detachment'—letting go of your attachment to one side of the conflict to see the whole system. By doing so, you convert the energy of the conflict into 'Clarity Fuel'.\nType 'metabolize' to process the contradiction.",
+                "expected_input": "metabolize",
+                "reward": 10.0 # The main reward
+            },
+            {
+                "step": 7,
+                "type": "narrative",
+                "text": "Success. You have metabolized the contradiction and earned 10.0 Clarity Fuel. This fuel is the currency of governance in Tessrax. You can use it to vote on issues and influence the system."
+            },
+            {
+                "step": 8,
+                "type": "interactive",
+                "text": "Phase 4: ECHO. The resolution of a contradiction ripples through the system, creating an 'Echo'. This shows how your action has changed the landscape.\nType 'echo' to complete the loop.",
+                "expected_input": "echo",
+                "reward": 0
+            },
+            {
+                "step": 9,
+                "type": "narrative",
+                "text": "Onboarding complete. You now understand the core loop and have earned your first Clarity Fuel. Welcome to the ecosystem."
+            }
+        ]
+
+    def get_step(self, step_index: int) -> Dict[str, Any]:
+        """Returns the content for a specific tutorial step."""
+        if 0 <= step_index < len(self.tutorial_steps):
+            return self.tutorial_steps[step_index]
+        return {"type": "end", "text": "Tutorial finished."}
+
+    def process_input(self, user_id: str, step_index: int, user_input: str) -> Dict[str, Any]:
+        """Evaluates user input for an interactive step and grants rewards."""
+        step_data = self.get_step(step_index)
+        if step_data.get("type") != "interactive":
+            return {"correct": False, "feedback": "This is not an interactive step."}
+
+        is_correct = user_input.lower().strip() == step_data["expected_input"]
+        feedback = "Correct." if is_correct else f"Incorrect. Please type '{step_data['expected_input']}'."
+
+        if is_correct and step_data["reward"] > 0:
+            wallet = self.economy.get_or_create_wallet(user_id)
+            wallet.credit(step_data["reward"], source="onboarding_tutorial")
+            feedback += f" You have been awarded {step_data['reward']} Clarity Fuel!"
+
+        return {"correct": is_correct, "feedback": feedback}
+
+
+2. The API and Frontend
+This single file contains the FastAPI backend to serve the tutorial and the HTML/JavaScript frontend that creates the interactive experience.
+File: tessrax/api/onboarding_server.py
+"""
+Tessrax Onboarding Server v1.0
+------------------------------
+Provides an interactive, terminal-style tutorial for new users to learn
+the core mechanics of the Tessrax ecosystem.
+"""
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import uvicorn
+
+from tessrax.core.governance.pedagogy_engine import PedagogyEngine
+from tessrax.core.governance.clarity_fuel_economy import FuelEconomyService
+
+# --- Initialize Backend Services ---
+economy = FuelEconomyService()
+pedagogy_engine = PedagogyEngine(economy)
+
+# --- FastAPI App ---
+app = FastAPI(title="Tessrax Onboarding")
+
+# --- API Models ---
+class TutorialInput(BaseModel):
+    user_id: str
+    step: int
+    user_input: str
+
+# --- API Endpoints ---
+@app.get("/tutorial/step/{step_index}", response_model=dict)
+def get_tutorial_step(step_index: int):
+    return pedagogy_engine.get_step(step_index)
+
+@app.post("/tutorial/submit", response_model=dict)
+def submit_tutorial_input(data: TutorialInput):
+    return pedagogy_engine.process_input(data.user_id, data.step, data.user_input)
+
+# --- HTML Frontend ---
+@app.get("/", response_class=HTMLResponse)
+async def get_tutorial_page():
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Tessrax Onboarding</title>
+        <style>
+            body { font-family: 'Courier New', Courier, monospace; background-color: #0c0c0c; color: #00ff41; margin: 0; padding: 20px; }
+            #terminal { width: 100%; height: 90vh; overflow-y: scroll; }
+            .line { margin-bottom: 5px; }
+            .prompt::before { content: '> '; }
+            .system { color: #87d7ff; }
+            input {
+                background-color: transparent;
+                border: none;
+                color: #00ff41;
+                font-family: 'Courier New', Courier, monospace;
+                width: 80%;
+                outline: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="terminal"></div>
+        <div class="line prompt">
+            <input type="text" id="command-input" autofocus>
+        </div>
+
+        <script>
+            const terminal = document.getElementById('terminal');
+            const input = document.getElementById('command-input');
+            const USER_ID = "new_user_" + Date.now();
+            let currentStep = 0;
+
+            function appendLine(text, className = '') {
+                const line = document.createElement('div');
+                line.className = 'line ' + className;
+                line.innerHTML = text.replace(/\\n/g, '<br>'); // Handle newlines
+                terminal.appendChild(line);
+                terminal.scrollTop = terminal.scrollHeight;
+            }
+
+            async function loadStep(stepIndex) {
+                const response = await fetch(`/tutorial/step/${stepIndex}`);
+                const stepData = await response.json();
+
+                if (stepData.type === 'narrative') {
+                    appendLine(stepData.text, 'system');
+                    currentStep++;
+                    loadStep(currentStep);
+                } else if (stepData.type === 'interactive') {
+                    appendLine(stepData.text, 'system');
+                    input.disabled = false;
+                    input.focus();
+                } else if (stepData.type === 'end') {
+                    appendLine(stepData.text, 'system');
+                    input.disabled = true;
+                }
+            }
+
+            async function handleInput() {
+                const command = input.value;
+                appendLine('> ' + command);
+                input.value = '';
+                input.disabled = true;
+
+                const response = await fetch('/tutorial/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: USER_ID, step: currentStep, user_input: command })
+                });
+                const result = await response.json();
+
+                appendLine(result.feedback, 'system');
+
+                if (result.correct) {
+                    currentStep++;
+                    setTimeout(() => loadStep(currentStep), 1000);
+                } else {
+                    input.disabled = false;
+                    input.focus();
+                }
+            }
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleInput();
+                }
+            });
+
+            // Start the tutorial
+            loadStep(currentStep);
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+if __name__ == "__main__":
+    print("🚀 Starting Onboarding Server on http://localhost:8083")
+    uvicorn.run(app, host="0.0.0.0", port=8083)
+
+✅ Final Result
+With this module, your Tessrax project now possesses a complete, end-to-end framework. You have successfully designed and specified the code for:
+ * Core Engines for detecting and metabolizing contradictions.
+ * A Governance System for evolving the system's own rules via a formal amendment protocol.
+ * An Economic System to incentivize participation and coherence through "Clarity Fuel."
+ * A Data Gateway to connect the system to real-world information streams.
+ * A Human Interface for community deliberation and fuel-weighted voting.
+ * An Onboarding System to teach new users the core loop and bring them into the ecosystem.
+
+
+
 1.
 Here is the output identifying logical, temporal, and normative contradictions in government policy statements, budgets, or legislation datasets, following the requested JSON format:
 
