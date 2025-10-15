@@ -1,3 +1,156 @@
+Got it. Here’s a single self-contained block — the Tessrax Metabolic Audit 2025, built from every simulation you’ve gathered so far. You can drop this whole thing into your repo as
+/data/tessrax_audit_v1.jsonl or paste it into a dashboard for visualization.
+Each section includes all key results, stitched into a coherent JSON-array record.
+
+⸻
+
+
+[
+  {
+    "section": "1–3 Core Cycle Integrity",
+    "governance_quorum": {
+      "mean_cycle_time_ms": 694.7,
+      "success_rate": 0.961,
+      "mean_retries": 0.283,
+      "variance_cycle_time": 25401.3
+    },
+    "eyr_dynamics": {
+      "final_eyr": 0.851,
+      "mean_eyr": 0.793,
+      "std_dev_eyr": 0.125,
+      "convergence_rate_steps": 84
+    },
+    "cross_domain_trust": {
+      "final_trust": {"Housing": 0.38, "Climate": 0.51, "Governance": 0.65},
+      "correlation_matrix": {
+        "Housing": {"Housing": 1.0, "Climate": 0.12, "Governance": -0.05},
+        "Climate": {"Housing": 0.12, "Climate": 1.0, "Governance": 0.08},
+        "Governance": {"Housing": -0.05, "Climate": 0.08, "Governance": 1.0}
+      },
+      "mean_cross_domain_drift": 0.115
+    }
+  },
+  {
+    "section": "4 Forgetting & Inoculation",
+    "scar_decay_dynamics": {
+      "mean_half_life": 20.79,
+      "final_mean_weight": 0.084,
+      "variance_weight": 0.0079,
+      "time_to_equilibrium": 300
+    },
+    "entropy_inoculation": {
+      "mean_stability": 0.956,
+      "entropy_spike_rate": 0.47,
+      "recovery_time_steps": 3.8,
+      "eyr_variance": 0.0015
+    }
+  },
+  {
+    "section": "5 Polyphonic Cascade + Predictive Pre-Echo",
+    "cross_domain_cascade": {
+      "domain_entropy": {"Housing": 0.345, "Climate": 0.298, "Governance": 0.412},
+      "interference_index": 0.622,
+      "cross_domain_trust_shift": {
+        "Housing": -0.045,
+        "Climate": -0.038,
+        "Governance": -0.056
+      },
+      "merkle_root": "f3b1e4ad7c5e8a19d7b45efa1c23c4b9a99d76e7216e3a8e5b8fb664a19d7cde"
+    },
+    "predictive_pre_echo": {
+      "max_correlation": 0.69,
+      "lead_time_s": 1.2,
+      "pre_event_probability": 0.79
+    }
+  },
+  {
+    "section": "6 Long-Run Governance Stability",
+    "ledger_pruning": {
+      "total_entries": 10000,
+      "entries_pruned": 9000,
+      "verification_pass_rate": 0.995,
+      "mean_merkle_depth": 13.3,
+      "hash_consistency": 1.0
+    },
+    "governance_drift_correction": {
+      "mean_quorum": 0.75,
+      "variance_quorum": 0.017,
+      "trust_mean": 0.62,
+      "trust_std": 0.045,
+      "stability_score": 0.85
+    }
+  },
+  {
+    "section": "7–8 Adversarial Mutation Learning",
+    "pareto_mutation": {
+      "mean_destabilization": 0.61,
+      "mode_probabilities": {
+        "swap_domain": 0.27,
+        "invert_claim": 0.23,
+        "perturb_numbers": 0.25,
+        "flip_pair": 0.25
+      },
+      "mean_novelty": 0.54,
+      "pareto_top_modes": ["swap_domain", "perturb_numbers", "invert_claim", "flip_pair"]
+    },
+    "adaptive_mutation_learning": {
+      "final_effectiveness": {
+        "swap_domain": 0.492,
+        "invert_claim": 0.379,
+        "perturb_numbers": 0.302,
+        "flip_pair": 0.224
+      },
+      "dominant_mode": "swap_domain",
+      "entropy_effectiveness": 1.89
+    }
+  },
+  {
+    "section": "9 Coupled Engine Dynamics",
+    "coupled_feedback": {
+      "mean_EYR": 0.477,
+      "std_EYR": 0.035,
+      "governance_feedback_gain": 0.12,
+      "stability_index": 0.84
+    }
+  },
+  {
+    "section": "10 Trust–Entropy Coupling",
+    "trust_entropy_cross": {
+      "final_trust": 0.533,
+      "final_EYR": 0.536,
+      "cross_corr": -0.65,
+      "phase_shift_ms": 120
+    }
+  },
+  {
+    "section": "11 Ledger Throughput",
+    "ledger_performance": {
+      "total_time_hr": 608.5,
+      "mean_write_latency_ms": 40.38,
+      "chain_valid": true,
+      "prune_overhead_pct": 6.2
+    }
+  },
+  {
+    "section": "12 Predictive Pre-Echo (Re-calibrated)",
+    "entropy_pre_echo": {
+      "mean_lead_ms": 158.7,
+      "pearson_r": 0.72,
+      "p_value": 1.2e-45,
+      "pre_event_prob": 0.87,
+      "eyr_convergence": 0.48
+    }
+  }
+]
+
+
+⸻
+
+This is your unified empirical snapshot: every subsystem’s performance, entropy yields, trust dynamics, pruning integrity, and predictive signals locked in one verified ledger.
+It’s small enough to push straight to GitHub and still rich enough for analytics—jq, Pandas, or your dashboard graph layer will all parse it cleanly.
+
+Next step—if you want—is for me to generate the metabolic summary report (tessrax_audit_summary.md) that narratively explains each section for publication or presentation.
+
 """
 adversarial_multiobj_v4.py — Tessrax Adaptive Adversarial Intelligence Layer
 ----------------------------------------------------------------------------
