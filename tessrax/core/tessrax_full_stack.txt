@@ -5385,6 +5385,7 @@ if __name__ == "__main__":
 ```
 
 -----
+CHECKPOINT: WINDOW_1_END_A3B8C2
 
 ## File: `governance_kernel.py`
 
@@ -10771,6 +10772,7 @@ tessrax/
 
 
 ⸻
+CHECKPOINT: WINDOW_2_END_D4E9F1
 
 tessrax/dashboard/app.py
 
@@ -15617,3 +15619,5 @@ if __name__ == "__main__":
     engine = TessraxIngestor()
     result = engine.process(text_input)
     print(json.dumps(result, indent=2))
+
+CHECKPOINT: DOCUMENT_END_FINAL
