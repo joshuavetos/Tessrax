@@ -3723,3 +3723,1005 @@ Use it as:
    •   Public Validation Artifact (for GitHub or whitepaper appendices).
 
 Would you like me to generate a companion whitepaper-style summary (≈2 pages) that contextualizes these artifacts as IP proof for submission or investor pitch decks?
+
+# Phase 1 — ledger.py
+"""
+Tessrax Ledger v1.0
+-------------------
+Append-only, hash-chained JSONL ledger for contradiction metabolism logs.
+This module forms the audit backbone for all Tessrax components.
+"""
+
+import json
+import hashlib
+import time
+from pathlib import Path
+from typing import Dict, Any
+
+class Ledger:
+    """Append-only cryptographic ledger."""
+
+    def __init__(self, path: str = "ledger.jsonl"):
+        # Use a path within the Colab environment
+        self.path = Path(f"/content/{path}")
+        self.path.touch(exist_ok=True)
+
+    def _hash(self, record: Dict[str, Any]) -> str:
+        """Compute SHA-256 hash of a record (excluding its hash field)."""
+        rec_copy = {k: v for k, v in record.items() if k != "hash"}
+        return hashlib.sha256(json.dumps(rec_copy, sort_keys=True).encode()).hexdigest()
+
+    def _get_last_hash(self) -> str:
+        """Get hash of the last entry or a default root."""
+        # Check if the file exists and is not empty before trying to read
+        if self.path.exists() and self.path.stat().st_size > 0:
+            try:
+                with self.path.open("r") as f:
+                    # Read all lines and get the last one
+                    lines = f.readlines()
+                    if lines:
+                        last_line = lines[-1]
+                        return json.loads(last_line)["hash"]
+            except Exception as e:
+                print(f"Error reading last hash: {e}")
+        return "0" * 64
+
+    def append(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """Append a new event with cryptographic linkage."""
+        event["timestamp"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        event["prev_hash"] = self._get_last_hash()
+        event["hash"] = self._hash(event)
+        with self.path.open("a") as f:
+            f.write(json.dumps(event) + "\n")
+        return event
+
+    def verify(self) -> bool:
+        """Verify full hash chain integrity."""
+        prev_hash = "0" * 64
+        if not self.path.exists():
+            return False # No ledger to verify
+
+        with self.path.open("r") as f:
+            for line in f:
+                try:
+                    entry = json.loads(line)
+                    expected = hashlib.sha256(
+                        json.dumps({k: v for k, v in entry.items() if k != "hash"}, sort_keys=True).encode()
+                    ).hexdigest()
+                    if entry["prev_hash"] != prev_hash or entry["hash"] != expected:
+                        return False
+                    prev_hash = entry["hash"]
+                except json.JSONDecodeError:
+                    print(f"Skipping invalid JSON line: {line.strip()}")
+                    return False # Or decide how to handle invalid lines
+        return True
+
+# Demonstration
+ledger = Ledger()
+event = {"event_type": "TEST_EVENT", "detail": "Ledger initialized"}
+print("Appended:", ledger.append(event))
+print("Integrity check:", ledger.verify())
+
+# Phase 2 — receipts.py
+"""
+Tessrax Receipts v1.0
+---------------------
+Defines the canonical receipt schema and a helper for writing structured,
+verifiable entries to the Tessrax Ledger.
+"""
+
+import json
+import uuid
+import time
+from typing import Dict, Any
+from pathlib import Path
+
+# Import the working Ledger class from the first phase
+from ledger import Ledger
+
+
+class Receipt:
+    """Immutable data record representing a single Tessrax event."""
+
+    REQUIRED_FIELDS = ["id", "event_type", "timestamp", "data", "hash", "prev_hash"]
+
+    def __init__(self, event_type: str, data: Dict[str, Any]):
+        self.id = str(uuid.uuid4())
+        self.event_type = event_type
+        self.timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        self.data = data
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a dictionary form suitable for the ledger."""
+        return {
+            "id": self.id,
+            "event_type": self.event_type,
+            "timestamp": self.timestamp,
+            "data": self.data,
+        }
+
+
+class ReceiptWriter:
+    """Interface layer between analytic modules and the Ledger."""
+
+    def __init__(self, ledger_path: str = "ledger.jsonl"):
+        self.ledger = Ledger(ledger_path)
+
+    def log(self, event_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create and append a structured receipt to the ledger."""
+        receipt = Receipt(event_type, data)
+        record = receipt.to_dict()
+        appended = self.ledger.append(record)
+        return appended
+
+    def verify_ledger(self) -> bool:
+        """Run a chain integrity check on the ledger."""
+        return self.ledger.verify()
+
+
+# --- Demonstration ---
+if __name__ == "__main__":
+    writer = ReceiptWriter()
+    writer.log("CONTRADICTION_DETECTED", {"description": "Test contradiction A"})
+    writer.log("CONTRADICTION_RESOLVED", {"resolution": "System self-corrected"})
+    print("Ledger verification:", writer.verify_ledger())
+
+    # Peek at the last two receipts
+    path = Path("/content/ledger.jsonl")
+    if path.exists():
+        with path.open("r") as f:
+            lines = f.readlines()[-2:]
+            print("\nRecent receipts:")
+            for l in lines:
+                print(json.dumps(json.loads(l), indent=2))
+
+# Phase 2 — receipts.py
+"""
+Tessrax Receipts v1.0
+---------------------
+Defines the canonical receipt schema and a helper for writing structured,
+verifiable entries to the Tessrax Ledger.
+"""
+
+import json
+import uuid
+import time
+from typing import Dict, Any
+from pathlib import Path
+
+# Import the working Ledger class from the first phase
+# The Ledger class is already defined in the Colab environment from the previous cell.
+# from ledger import Ledger
+
+
+class Receipt:
+    """Immutable data record representing a single Tessrax event."""
+
+    REQUIRED_FIELDS = ["id", "event_type", "timestamp", "data", "hash", "prev_hash"]
+
+    def __init__(self, event_type: str, data: Dict[str, Any]):
+        self.id = str(uuid.uuid4())
+        self.event_type = event_type
+        self.timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        self.data = data
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a dictionary form suitable for the ledger."""
+        return {
+            "id": self.id,
+            "event_type": self.event_type,
+            "timestamp": self.timestamp,
+            "data": self.data,
+        }
+
+
+class ReceiptWriter:
+    """Interface layer between analytic modules and the Ledger."""
+
+    def __init__(self, ledger_path: str = "ledger.jsonl"):
+        # Use the Ledger class already defined in the environment
+        self.ledger = Ledger(ledger_path)
+
+    def log(self, event_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create and append a structured receipt to the ledger."""
+        receipt = Receipt(event_type, data)
+        record = receipt.to_dict()
+        appended = self.ledger.append(record)
+        return appended
+
+    def verify_ledger(self) -> bool:
+        """Run a chain integrity check on the ledger."""
+        return self.ledger.verify()
+
+
+# --- Demonstration ---
+if __name__ == "__main__":
+    writer = ReceiptWriter()
+    writer.log("CONTRADICTION_DETECTED", {"description": "Test contradiction A"})
+    writer.log("CONTRADICTION_RESOLVED", {"resolution": "System self-corrected"})
+    print("Ledger verification:", writer.verify_ledger())
+
+    # Peek at the last two receipts
+    path = Path("/content/ledger.jsonl")
+    if path.exists():
+        with path.open("r") as f:
+            lines = f.readlines()[-2:]
+            print("\nRecent receipts:")
+            for l in lines:
+                print(json.dumps(json.loads(l), indent=2))
+
+# Phase 3 — governance_kernel.py
+"""
+Tessrax Governance Kernel v1.0
+-------------------------------
+Evaluates governance events, applies basic policy checks,
+and logs outcomes to the Tessrax Ledger using ReceiptWriter.
+"""
+
+import json
+from typing import Dict, Any
+
+# Import from previous phases
+# The ReceiptWriter and Ledger classes are already defined in the Colab environment.
+# from receipts import ReceiptWriter
+
+
+class GovernanceKernel:
+    """
+    The Governance Kernel evaluates policy and contradiction events.
+    It determines severity, compliance, and logs them as verifiable receipts.
+    """
+
+    def __init__(self, ledger_path: str = "ledger.jsonl"):
+        # Use the ReceiptWriter class already defined in the environment
+        self.writer = ReceiptWriter(ledger_path)
+        self.rules = {
+            "contradiction": self._rule_contradiction,
+            "policy_violation": self._rule_policy_violation,
+            "system_event": self._rule_system_event,
+        }
+        print("⚙️ Governance Kernel initialized.")
+
+    # --- Rule Definitions ---
+
+    def _rule_contradiction(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Detect and classify contradictions in incoming events."""
+        description = data.get("description", "")
+        if "conflict" in description.lower() or "inconsistent" in description.lower():
+            data["severity"] = "high"
+            data["evaluation"] = "Contradiction detected"
+        else:
+            data["severity"] = "low"
+            data["evaluation"] = "No contradiction found"
+        return data
+
+    def _rule_policy_violation(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply a simple rule check for compliance violations."""
+        policy = data.get("policy", "")
+        action = data.get("action", "")
+        if policy and action and policy.lower() not in action.lower():
+            data["severity"] = "medium"
+            data["evaluation"] = f"Violation of policy: {policy}"
+        else:
+            data["severity"] = "none"
+            data["evaluation"] = "No violation"
+        return data
+
+    def _rule_system_event(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Log normal operational events (for heartbeat, updates, etc.)."""
+        data["severity"] = "info"
+        data["evaluation"] = "System event logged"
+        return data
+
+    # --- Evaluation Interface ---
+
+    def evaluate(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Evaluate an event dictionary with an event_type and data field.
+        Automatically logs the result to the ledger.
+        """
+        event_type = event.get("event_type", "")
+        data = event.get("data", {})
+
+        if event_type in self.rules:
+            result = self.rules[event_type](data)
+        else:
+            result = {"evaluation": "Unknown event type", "severity": "none"}
+
+        # Write the result as a receipt
+        receipt = self.writer.log(event_type.upper(), result)
+        print(f"🧾 Logged event → {receipt['event_type']} ({result.get('evaluation')})")
+        return receipt
+
+
+# --- Demonstration ---
+if __name__ == "__main__":
+    kernel = GovernanceKernel()
+
+    # Test events
+    kernel.evaluate({"event_type": "contradiction", "data": {"description": "Detected conflicting statements"}})
+    kernel.evaluate({"event_type": "policy_violation", "data": {"policy": "NoLeak", "action": "User leaked data"}})
+    kernel.evaluate({"event_type": "system_event", "data": {"message": "Heartbeat OK"}})
+
+    print("\nLedger verification:", kernel.writer.verify_ledger())
+
+    # View last few receipts
+    with open("/content/ledger.jsonl", "r") as f:
+        print("\nRecent receipts:")
+        for line in f.readlines()[-3:]:
+            print(json.dumps(json.loads(line), indent=2))
+
+# Phase 4 — contradiction_engine.py
+"""
+Tessrax Contradiction Engine v1.0
+---------------------------------
+Analyzes textual or numeric claims, detects contradictions,
+and logs results to the Governance Kernel.
+"""
+
+import re
+import json
+from typing import Dict, Any, List, Tuple
+
+# Import existing GovernanceKernel
+# The GovernanceKernel, ReceiptWriter, and Ledger classes are already defined in the Colab environment.
+# from governance_kernel import GovernanceKernel
+
+
+class ContradictionEngine:
+    """
+    Lightweight contradiction detector.
+    Can compare text statements or numeric targets/actuals.
+    """
+
+    def __init__(self, ledger_path: str = "ledger.jsonl"):
+        # Use the GovernanceKernel class already defined in the environment
+        self.kernel = GovernanceKernel(ledger_path)
+        print("🧠 Contradiction Engine initialized.")
+
+    # --- Core Analysis ---
+
+    def detect_textual(self, claims: List[str]) -> List[Dict[str, Any]]:
+        """
+        Compare statements for basic logical contradictions.
+        Looks for negation or antonymic conflict.
+        """
+        contradictions = []
+
+        for i, a in enumerate(claims):
+            for b in claims[i + 1 :]:
+                if self._is_contradiction(a, b):
+                    contradictions.append({
+                        "claim_a": a,
+                        "claim_b": b,
+                        "severity": "high",
+                        "type": "textual",
+                        "explanation": f"Contradictory statements detected: '{a}' vs '{b}'"
+                    })
+        return contradictions
+
+    def detect_numeric(self, target: float, actual: float, tolerance: float = 0.05) -> Dict[str, Any]:
+        """
+        Compare numeric targets and actuals for divergence beyond tolerance.
+        """
+        deviation = abs(target - actual) / max(abs(target), 1e-6)
+        if deviation > tolerance:
+            return {
+                "type": "numeric",
+                "severity": "medium" if deviation < 0.5 else "high",
+                "target": target,
+                "actual": actual,
+                "deviation": round(deviation, 3),
+                "explanation": f"Target {target} vs Actual {actual} → deviation {deviation:.1%}"
+            }
+        return {}
+
+    def _is_contradiction(self, a: str, b: str) -> bool:
+        """
+        Naive contradiction test — detects negations or explicit opposites.
+        """
+        a_low, b_low = a.lower(), b.lower()
+        negations = ["not ", "no ", "never ", "none ", "cannot", "n't"]
+        # Detect direct negation (e.g., "is" vs "is not")
+        for n in negations:
+            if n in a_low and n.replace(" ", "") not in b_low and any(w in b_low for w in a_low.split()):
+                return True
+            if n in b_low and n.replace(" ", "") not in a_low and any(w in a_low for w in b_low.split()):
+                return True
+        # Detect opposing verbs/adjectives
+        opposites = [("increase", "decrease"), ("up", "down"), ("allow", "forbid"), ("safe", "unsafe")]
+        for x, y in opposites:
+            if (x in a_low and y in b_low) or (x in b_low and y in a_low):
+                return True
+        return False
+
+    # --- Governance Integration ---
+
+    def process_claims(self, claims: List[str]):
+        """Analyze a set of claims and log any contradictions."""
+        contradictions = self.detect_textual(claims)
+        if not contradictions:
+            print("✅ No contradictions found.")
+            return
+        for c in contradictions:
+            self.kernel.evaluate({"event_type": "contradiction", "data": c})
+
+    def process_metrics(self, target: float, actual: float):
+        """Check numeric variance and log if needed."""
+        result = self.detect_numeric(target, actual)
+        if result:
+            self.kernel.evaluate({"event_type": "contradiction", "data": result})
+        else:
+            print("✅ Metrics within tolerance — no contradiction logged.")
+
+
+# --- Demonstration ---
+if __name__ == "__main__":
+    engine = ContradictionEngine()
+
+    # Example 1: Text contradictions
+    claims = [
+        "The company is profitable.",
+        "The company is not profitable.",
+        "Profits are increasing rapidly.",
+    ]
+    engine.process_claims(claims)
+
+    # Example 2: Numeric contradiction
+    engine.process_metrics(target=100, actual=160)
+
+    print("\nLedger verification:", engine.kernel.writer.verify_ledger())
+
+    # Show last few entries
+    with open("/content/ledger.jsonl", "r") as f:
+        lines = f.readlines()[-4:]
+        print("\nRecent ledger entries:")
+        for l in lines:
+            print(json.dumps(json.loads(l), indent=2))
+
+# Phase 5 — metabolism_adapter.py
+"""
+Tessrax Metabolism Adapter v1.0
+--------------------------------
+Converts contradiction events into entropy and clarity metrics.
+Interfaces with the Governance Kernel to log results for Clarity Fuel generation.
+"""
+
+import math
+import json
+from typing import Dict, Any
+
+# GovernanceKernel already exists in environment
+# from governance_kernel import GovernanceKernel
+
+
+class MetabolismAdapter:
+    """
+    Computes clarity and entropy metrics from contradictions.
+    """
+
+    def __init__(self, ledger_path: str = "ledger.jsonl"):
+        self.kernel = GovernanceKernel(ledger_path)
+        print("🧬 Metabolism Adapter initialized.")
+
+    # --- Core Calculations ---
+
+    def compute_entropy(self, severity: str, deviation: float = 0.0) -> float:
+        """
+        Assign an entropy value based on contradiction severity or numeric deviation.
+        """
+        base = {"low": 0.2, "medium": 0.5, "high": 0.9}.get(severity, 0.1)
+        entropy = base + math.log1p(abs(deviation)) * 0.5
+        return round(min(entropy, 1.0), 3)
+
+    def compute_clarity(self, entropy: float) -> float:
+        """
+        Clarity is the inverse of entropy — capped to [0,1].
+        """
+        return round(1.0 - entropy, 3)
+
+    # --- Processing Interface ---
+
+    def metabolize(self, contradiction: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Converts a contradiction record into clarity metrics and logs the result.
+        """
+        sev = contradiction.get("severity", "low")
+        dev = contradiction.get("deviation", 0.0)
+        entropy = self.compute_entropy(sev, dev)
+        clarity = self.compute_clarity(entropy)
+
+        metabolism_record = {
+            "type": "metabolism",
+            "entropy": entropy,
+            "clarity": clarity,
+            "source": contradiction,
+            "explanation": f"Contradiction converted → Entropy={entropy}, Clarity={clarity}",
+        }
+
+        self.kernel.evaluate({"event_type": "system_event", "data": metabolism_record})
+        print(f"⚖️  Metabolized contradiction → Clarity {clarity}, Entropy {entropy}")
+        return metabolism_record
+
+
+# --- Demonstration ---
+if __name__ == "__main__":
+    adapter = MetabolismAdapter()
+
+    # Example 1: From textual contradiction
+    contradiction_a = {
+        "type": "textual",
+        "severity": "high",
+        "claim_a": "Product is safe.",
+        "claim_b": "Product is unsafe.",
+        "explanation": "Safety claim conflict",
+    }
+
+    # Example 2: From numeric contradiction
+    contradiction_b = {
+        "type": "numeric",
+        "severity": "medium",
+        "target": 100,
+        "actual": 160,
+        "deviation": 0.6,
+    }
+
+    adapter.metabolize(contradiction_a)
+    adapter.metabolize(contradiction_b)
+
+    print("\nLedger verification:", adapter.kernel.writer.verify_ledger())
+
+    with open("/content/ledger.jsonl", "r") as f:
+        lines = f.readlines()[-4:]
+        print("\nRecent ledger entries:")
+        for l in lines:
+            print(json.dumps(json.loads(l), indent=2))
+
+# Phase 6 — clarity_fuel_economy.py
+"""
+Tessrax Clarity Fuel Economy v1.0
+---------------------------------
+Maintains clarity balances for agents and subsystems.
+Rewards clarity, penalizes entropy, and logs every transaction to the Ledger.
+"""
+
+import json
+from typing import Dict, Any
+
+# GovernanceKernel already in environment
+# from governance_kernel import GovernanceKernel
+
+
+class ClarityFuelEconomy:
+    """
+    Tracks clarity balances.  Each agent earns or burns clarity fuel
+    depending on entropy outcomes from the Metabolism Adapter.
+    """
+
+    def __init__(self, ledger_path: str = "ledger.jsonl"):
+        self.kernel = GovernanceKernel(ledger_path)
+        self.balances: Dict[str, float] = {}
+        print("💠 Clarity Fuel Economy initialized.")
+
+    # --- Core Operations ---
+
+    def _get_balance(self, agent: str) -> float:
+        return self.balances.get(agent, 0.0)
+
+    def _update_balance(self, agent: str, delta: float) -> float:
+        """Apply balance change and return new total."""
+        new_balance = round(self._get_balance(agent) + delta, 3)
+        self.balances[agent] = new_balance
+        return new_balance
+
+    def reward_clarity(self, agent: str, clarity: float):
+        """Reward clarity gain with proportional fuel credits."""
+        gain = round(clarity * 10, 3)
+        new_balance = self._update_balance(agent, gain)
+        record = {
+            "agent": agent,
+            "action": "clarity_reward",
+            "delta": gain,
+            "new_balance": new_balance,
+            "explanation": f"Agent {agent} gained {gain} clarity fuel (clarity={clarity}).",
+        }
+        self.kernel.evaluate({"event_type": "system_event", "data": record})
+        print(f"✅ {agent} +{gain} fuel → balance {new_balance}")
+        return record
+
+    def burn_entropy(self, agent: str, entropy: float):
+        """Consume fuel proportional to entropy produced."""
+        loss = round(entropy * 8, 3)
+        new_balance = self._update_balance(agent, -loss)
+        record = {
+            "agent": agent,
+            "action": "entropy_burn",
+            "delta": -loss,
+            "new_balance": new_balance,
+            "explanation": f"Agent {agent} burned {loss} fuel (entropy={entropy}).",
+        }
+        self.kernel.evaluate({"event_type": "system_event", "data": record})
+        print(f"🔥 {agent} -{loss} fuel → balance {new_balance}")
+        return record
+
+    def get_status(self) -> Dict[str, float]:
+        """Return current balances."""
+        return dict(self.balances)
+
+
+# --- Demonstration ---
+if __name__ == "__main__":
+    economy = ClarityFuelEconomy()
+
+    # Simulate two agents receiving metabolism outputs
+    metabolism_outputs = [
+        {"agent": "Auditor", "entropy": 0.9, "clarity": 0.1},
+        {"agent": "Analyzer", "entropy": 0.45, "clarity": 0.55},
+        {"agent": "Auditor", "entropy": 0.2, "clarity": 0.8},
+    ]
+
+    for m in metabolism_outputs:
+        economy.burn_entropy(m["agent"], m["entropy"])
+        economy.reward_clarity(m["agent"], m["clarity"])
+
+    print("\nBalances:", json.dumps(economy.get_status(), indent=2))
+    print("\nLedger verification:", economy.kernel.writer.verify_ledger())
+
+    with open("/content/ledger.jsonl", "r") as f:
+        lines = f.readlines()[-6:]
+        print("\nRecent ledger entries:")
+        for l in lines:
+            print(json.dumps(json.loads(l), indent=2))
+
+# Phase 7 — dashboard_adapter.py
+"""
+Tessrax Dashboard Adapter v1.0
+------------------------------
+Visualizes clarity, entropy, and fuel balances in real time.
+Can run inline in Colab using matplotlib, or export data snapshots for external dashboards.
+"""
+
+import json
+import matplotlib.pyplot as plt
+from typing import List, Dict, Any
+
+# These classes already exist in the environment
+# from clarity_fuel_economy import ClarityFuelEconomy
+
+
+class DashboardAdapter:
+    """Aggregates runtime data and provides simple visual analytics."""
+
+    def __init__(self, economy: ClarityFuelEconomy, ledger_path: str = "ledger.jsonl"):
+        self.economy = economy
+        self.ledger_path = ledger_path
+        print("📊 Dashboard Adapter initialized.")
+
+    # --- Data Extraction ---
+
+    def _load_ledger(self) -> List[Dict[str, Any]]:
+        """Read and parse ledger.jsonl."""
+        entries = []
+        with open(f"/content/{self.ledger_path}", "r") as f:
+            for line in f:
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        return entries
+
+    def summarize_metrics(self) -> Dict[str, float]:
+        """Compute running averages for entropy, clarity, and total fuel."""
+        entries = self._load_ledger()
+        entropies, clarities = [], []
+        for e in entries:
+            d = e.get("data", {})
+            if isinstance(d, dict):
+                if "entropy" in d:
+                    entropies.append(float(d["entropy"]))
+                if "clarity" in d:
+                    clarities.append(float(d["clarity"]))
+        avg_entropy = round(sum(entropies) / len(entropies), 3) if entropies else 0
+        avg_clarity = round(sum(clarities) / len(clarities), 3) if clarities else 0
+        total_fuel = round(sum(self.economy.balances.values()), 3)
+        return {
+            "avg_entropy": avg_entropy,
+            "avg_clarity": avg_clarity,
+            "total_fuel": total_fuel,
+        }
+
+    # --- Visualization ---
+
+    def plot_balances(self):
+        """Plot per-agent fuel balances."""
+        balances = self.economy.get_status()
+        if not balances:
+            print("No balances yet.")
+            return
+        agents, values = list(balances.keys()), list(balances.values())
+        plt.figure(figsize=(6, 3))
+        plt.bar(agents, values, color="mediumseagreen")
+        plt.title("Clarity Fuel Balances")
+        plt.ylabel("Fuel Units")
+        plt.xlabel("Agent")
+        plt.grid(axis="y", linestyle="--", alpha=0.6)
+        plt.show()
+
+    def plot_entropy_clarity(self):
+        """Plot average entropy vs clarity as gauges."""
+        summary = self.summarize_metrics()
+        labels = ["Entropy", "Clarity"]
+        values = [summary["avg_entropy"], summary["avg_clarity"]]
+        plt.figure(figsize=(4, 4))
+        plt.bar(labels, values, color=["tomato", "skyblue"])
+        plt.title("Average Entropy vs Clarity")
+        plt.ylim(0, 1)
+        plt.grid(axis="y", linestyle="--", alpha=0.6)
+        plt.show()
+
+    # --- Snapshot Export ---
+
+    def export_snapshot(self, filename: str = "dashboard_snapshot.json"):
+        """Save summary metrics + balances for external use."""
+        snapshot = {
+            "summary": self.summarize_metrics(),
+            "balances": self.economy.get_status(),
+        }
+        with open(f"/content/{filename}", "w") as f:
+            json.dump(snapshot, f, indent=2)
+        print(f"📁 Dashboard snapshot exported → {filename}")
+        return snapshot
+
+
+# --- Demonstration ---
+if __name__ == "__main__":
+    # from clarity_fuel_economy import ClarityFuelEconomy # Removed unnecessary import
+
+    economy = ClarityFuelEconomy()
+    dashboard = DashboardAdapter(economy)
+
+    # Seed with fake metabolism outputs
+    test_data = [
+        {"agent": "Auditor", "entropy": 0.9, "clarity": 0.1},
+        {"agent": "Analyzer", "entropy": 0.3, "clarity": 0.7},
+        {"agent": "Observer", "entropy": 0.4, "clarity": 0.6},
+    ]
+
+    for d in test_data:
+        economy.burn_entropy(d["agent"], d["entropy"])
+        economy.reward_clarity(d["agent"], d["clarity"])
+
+    # Visualizations
+    dashboard.plot_balances()
+    dashboard.plot_entropy_clarity()
+
+    # Snapshot
+    dashboard.export_snapshot()
+    print("Summary metrics:", json.dumps(dashboard.summarize_metrics(), indent=2))
+
+# Phase 8 — world_receipt_protocol.py
+"""
+Tessrax World Receipt Protocol v1.0
+-----------------------------------
+Exposes Tessrax governance data as a simple REST API.
+Allows external agents or dashboards to query live status and recent receipts.
+"""
+
+import json
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Dict, Any, List
+import uvicorn
+import threading
+import os
+
+# Reuse the active in-memory economy + kernel
+# from clarity_fuel_economy import ClarityFuelEconomy
+# from dashboard_adapter import DashboardAdapter
+
+
+class AppendRequest(BaseModel):
+    event_type: str
+    data: Dict[str, Any]
+
+
+class WorldReceiptProtocol:
+    """Minimal REST interface around Tessrax data models."""
+
+    def __init__(self, economy: ClarityFuelEconomy, dashboard: DashboardAdapter, ledger_path: str = "ledger.jsonl"):
+        self.economy = economy
+        self.dashboard = dashboard
+        self.ledger_path = f"/content/{ledger_path}"
+        self.app = FastAPI(title="Tessrax World Receipt Protocol", version="1.0")
+        self._mount_routes()
+        print("🌐 World Receipt Protocol initialized.")
+
+    # --- Internal helpers ---
+
+    def _load_ledger(self, limit: int = 50) -> List[Dict[str, Any]]:
+        entries = []
+        if not os.path.exists(self.ledger_path):
+            return []
+        with open(self.ledger_path, "r") as f:
+            for line in f.readlines()[-limit:]:
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        return entries
+
+    # --- Route definitions ---
+
+    def _mount_routes(self):
+        app = self.app
+
+        @app.get("/status")
+        def get_status():
+            """Return current clarity, entropy, and fuel summaries."""
+            summary = self.dashboard.summarize_metrics()
+            balances = self.economy.get_status()
+            return JSONResponse({"summary": summary, "balances": balances})
+
+        @app.get("/ledger")
+        def get_ledger(limit: int = 20):
+            """Return the most recent ledger entries."""
+            return JSONResponse({"entries": self._load_ledger(limit)})
+
+        @app.post("/append")
+        def append_receipt(req: AppendRequest):
+            """
+            Append a new external event to the ledger.
+            This is optional and can be disabled for safety.
+            """
+            record = {
+                "event_type": req.event_type,
+                "data": req.data,
+                "source": "external",
+            }
+            self.economy.kernel.evaluate(record)
+            return JSONResponse({"status": "ok", "record": record})
+
+    # --- Runner ---
+
+    def launch(self, port: int = 8080):
+        """Run FastAPI server in a background thread (for Colab)."""
+        thread = threading.Thread(
+            target=lambda: uvicorn.run(self.app, host="0.0.0.0", port=port, log_level="warning"),
+            daemon=True,
+        )
+        thread.start()
+        print(f"🚀 Tessrax API running at http://127.0.0.1:{port}")
+        return self.app
+
+
+# --- Demonstration ---
+if __name__ == "__main__":
+    # from clarity_fuel_economy import ClarityFuelEconomy # Removed unnecessary import
+    # from dashboard_adapter import DashboardAdapter # Removed unnecessary import
+
+    economy = ClarityFuelEconomy()
+    dashboard = DashboardAdapter(economy)
+
+    # Seed a few records
+    economy.burn_entropy("Auditor", 0.3)
+    economy.reward_clarity("Auditor", 0.8)
+
+    wrp = WorldReceiptProtocol(economy, dashboard)
+    wrp.launch(port=8080)
+
+    # Keep process alive in Colab
+    import time
+    while True:
+        time.sleep(60)
+
+# Phase 9 — main_runtime.py
+"""
+Tessrax Main Runtime v1.0
+-------------------------
+Unified orchestrator combining all Tessrax modules into a live,
+self-sustaining governance and metabolism loop.
+"""
+
+import time
+import random
+import json
+
+# All these modules already exist in the Colab environment:
+# from contradiction_engine import ContradictionEngine
+# from metabolism_adapter import MetabolismAdapter
+# from clarity_fuel_economy import ClarityFuelEconomy
+# from dashboard_adapter import DashboardAdapter
+# from world_receipt_protocol import WorldReceiptProtocol
+
+
+class TessraxRuntime:
+    """Unified orchestrator managing the full contradiction–governance loop."""
+
+    def __init__(self):
+        print("\n🧩 Initializing Tessrax Runtime...")
+        self.economy = ClarityFuelEconomy()
+        self.engine = ContradictionEngine()
+        self.metabolism = MetabolismAdapter()
+        self.dashboard = DashboardAdapter(self.economy)
+        # Check if API is already initialized before launching
+        if 'wrp' not in globals() or not isinstance(globals()['wrp'], WorldReceiptProtocol):
+             self.api = WorldReceiptProtocol(self.economy, self.dashboard)
+             self.api.launch(port=8080)
+        else:
+             self.api = globals()['wrp'] # Use the existing instance
+             print("🌐 Using existing World Receipt Protocol instance.")
+
+        self.step_count = 0
+        print("✅ Tessrax Runtime initialized.\n")
+
+    # --- Core Loop ---
+
+    def _generate_random_event(self):
+        """Simulate a random contradiction event for demonstration."""
+        examples = [
+            ("The system is secure.", "The system is not secure."),
+            ("Profits are increasing.", "Profits are decreasing."),
+            ("Employees are satisfied.", "Employees are dissatisfied."),
+        ]
+        a, b = random.choice(examples)
+        contradiction = {
+            "type": "textual",
+            "severity": random.choice(["low", "medium", "high"]),
+            "claim_a": a,
+            "claim_b": b,
+            "explanation": "Simulated contradiction for runtime loop.",
+        }
+        return contradiction
+
+    def run_once(self):
+        """Run a single metabolism + governance iteration."""
+        contradiction = self._generate_random_event()
+        print(f"\n⚙️  [Step {self.step_count}] Processing contradiction...")
+
+        # Step 1 → Governance log
+        self.engine.kernel.evaluate({"event_type": "contradiction", "data": contradiction})
+
+        # Step 2 → Metabolize
+        metabolism_record = self.metabolism.metabolize(contradiction)
+
+        # Step 3 → Economy update
+        agent = random.choice(["Auditor", "Analyzer", "Observer"])
+        self.economy.burn_entropy(agent, metabolism_record["entropy"])
+        self.economy.reward_clarity(agent, metabolism_record["clarity"])
+
+        # Step 4 → Visual snapshot every few cycles
+        if self.step_count % 3 == 0:
+            self.dashboard.plot_entropy_clarity()
+            self.dashboard.plot_balances()
+            self.dashboard.export_snapshot(f"snapshot_{self.step_count}.json")
+
+        self.step_count += 1
+        print(f"✅ Step {self.step_count} complete.\n")
+
+    def run(self, cycles: int = 5, delay: float = 3.0):
+        """Continuously run the metabolism loop."""
+        print(f"🚀 Running Tessrax Runtime for {cycles} cycles...")
+        for _ in range(cycles):
+            self.run_once()
+            time.sleep(delay)
+
+        print("\n🧾 Final summary:")
+        print(json.dumps(self.dashboard.summarize_metrics(), indent=2))
+        print("Ledger verification:", self.economy.kernel.writer.verify_ledger())
+        print("🌐 API active at http://127.0.0.1:8080\n")
+        print("Tessrax Runtime cycle complete.")
+
+
+# --- Demonstration ---
+if __name__ == "__main__":
+    # Check if API is already initialized before creating a new instance
+    if 'wrp' not in globals() or not isinstance(globals()['wrp'], WorldReceiptProtocol):
+        runtime = TessraxRuntime()
+        # Make the API instance available in globals for subsequent runs
+        globals()['wrp'] = runtime.api
+    else:
+        # If API is already running, just create a new runtime instance that uses it
+        runtime = TessraxRuntime()
+
+    runtime.run(cycles=5, delay=2)
