@@ -1,3 +1,53 @@
+"""
+Federated Tessrax Runtime
+Runs ESG, AI-Ethics, and Civic governance loops in parallel,
+writing to a shared ledger and unified audit dashboard.
+"""
+
+import threading, time
+from apps.esg_auditor import run_esg_audit
+from apps.ai_ethics_monitor import run_ai_ethics_monitor
+from apps.civic_portal import run_civic_portal
+from core.audit_suite import Ledger
+from core.governance_kernel_v2 import GovernanceKernelV2
+from core.dashboard import DashboardAdapter
+
+def esg_loop():
+    while True:
+        run_esg_audit("data/esg.json", "data/energy.json")
+        time.sleep(3600)   # hourly ESG check
+
+def ai_loop():
+    while True:
+        run_ai_ethics_monitor("data/model_card.json", "data/policy.json")
+        time.sleep(1800)   # every 30 minutes
+
+def civic_loop():
+    while True:
+        run_civic_portal("data/citizen_claims.json", "data/policy.json")
+        time.sleep(600)    # every 10 minutes
+
+def orchestrate():
+    kernel = GovernanceKernelV2("ledger.jsonl")
+    ledger = Ledger("ledger.jsonl")
+    dashboard = DashboardAdapter(kernel.economy)
+
+    # spawn threads for each domain
+    for target in [esg_loop, ai_loop, civic_loop]:
+        t = threading.Thread(target=target, daemon=True)
+        t.start()
+
+    # continuous audit visualization
+    while True:
+        dashboard.plot_entropy_clarity()
+        dashboard.plot_balances()
+        dashboard.export_snapshot("federated_snapshot.json")
+        print("✅ Snapshot updated; ledger entries:", sum(1 for _ in open("ledger.jsonl")))
+        time.sleep(900)  # refresh every 15 min
+
+if __name__ == "__main__":
+    orchestrate()
+
 # --- setup --------------------------------------------------------
 import uuid, time, json, math, random
 import numpy as np
