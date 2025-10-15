@@ -1,3 +1,140 @@
+# --- setup --------------------------------------------------------
+import uuid, time, json, math, random
+import numpy as np
+from pathlib import Path
+from sentence_transformers import SentenceTransformer
+
+# you can swap in any small model; this one is fast and free on Colab
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# --- core data objects --------------------------------------------
+class Claim:
+    def __init__(self, phi, domain, weight):
+        self.id = uuid.uuid4().hex
+        self.phi = phi
+        self.domain = domain
+        self.weight = float(weight)
+        self.timestamp = time.time()
+        self.embedding = model.encode([phi])[0]
+
+class Contradiction:
+    def __init__(self, c1, c2, alpha=0.7, beta_D=1.0):
+        self.c1, self.c2 = c1, c2
+        self.domain = c1.domain
+        # semantic distance + weight delta
+        d = np.linalg.norm(c1.embedding - c2.embedding)
+        delta_w = abs(c1.weight - c2.weight)
+        self.severity = (alpha * d + (1 - alpha) * delta_w) * beta_D
+        self.resolved = False
+        self.gamma = 0.0          # resolution quality placeholder
+        self.timestamp = time.time()
+
+# --- governance state ---------------------------------------------
+class GovernanceState:
+    def __init__(self):
+        self.claims = []
+        self.contradictions = []
+        self.reputation = {}      # θ_a
+        self.trust = {}           # T_D
+        self.ledger = Path("/content/formal_ledger.jsonl")
+        self.ledger.touch(exist_ok=True)
+
+    # ledger append with Merkle-style chaining
+    def _last_hash(self):
+        if self.ledger.stat().st_size == 0: return "0"*64
+        return json.loads(self.ledger.read_text().splitlines()[-1])["hash"]
+    def _hash(self, obj):
+        import hashlib
+        return hashlib.sha256(json.dumps(obj, sort_keys=True).encode()).hexdigest()
+
+    def log(self, event_type, data):
+        rec = {"event_type":event_type,"data":data,
+               "timestamp":time.time(),"prev_hash":self._last_hash()}
+        rec["hash"] = self._hash(rec)
+        with self.ledger.open("a") as f: f.write(json.dumps(rec)+"\n")
+
+# --- metrics -------------------------------------------------------
+def entropy(severities, bins=10):
+    if not severities: return 0
+    hist, _ = np.histogram(severities, bins=bins, range=(0, max(severities)))
+    p = hist / np.sum(hist)
+    p = p[p>0]
+    return -np.sum(p*np.log(p))
+
+def yield_ratio(resolved, unresolved):
+    num = sum([c.gamma for c in resolved])
+    den = sum([c.severity for c in unresolved]) + 1e-6
+    return num/den
+
+# --- simulation loop ----------------------------------------------
+def run_simulation(cycles=30):
+    G = GovernanceState()
+    agents = ["Auditor","Analyzer","Observer"]
+    domains = ["Climate","Finance","Health"]
+    for a in agents: G.reputation[a] = 0.5
+    for d in domains: G.trust[d] = 0.5
+
+    severities, resolved, unresolved = [], [], []
+
+    for step in range(cycles):
+        # generate two random claims
+        phi1 = random.choice([
+            "Profits are increasing",
+            "Emissions will drop 30%",
+            "Healthcare access improved",
+            "Profits are not increasing",
+            "Emissions rise 15%",
+            "Healthcare access worsened"])
+        phi2 = random.choice([
+            "Profits are increasing",
+            "Emissions will drop 30%",
+            "Healthcare access improved",
+            "Profits are not increasing",
+            "Emissions rise 15%",
+            "Healthcare access worsened"])
+        c1 = Claim(phi1, random.choice(domains), random.random())
+        c2 = Claim(phi2, c1.domain, random.random())
+        G.claims.extend([c1,c2])
+
+        con = Contradiction(c1,c2)
+        G.contradictions.append(con)
+        severities.append(con.severity)
+        G.log("contradiction",{"severity":con.severity,"domain":con.domain})
+
+        # simple metabolism / resolution
+        entropy_now = entropy(severities)
+        clarity = 1 - min(entropy_now/10,1)
+        con.gamma = clarity * (1/(1+con.severity))
+        con.resolved = random.random() < con.gamma
+
+        if con.resolved: resolved.append(con)
+        else: unresolved.append(con)
+
+        # adaptive trust updates
+        G.trust[c1.domain] = np.clip(G.trust[c1.domain] + 0.05*(con.gamma - con.severity/10),0,1)
+
+        # reputation updates
+        agent = random.choice(agents)
+        G.reputation[agent] = np.clip(G.reputation[agent] + 0.02*(2*con.gamma-1),0,1)
+
+        # log entropy and yield
+        y = yield_ratio(resolved,unresolved)
+        G.log("metrics",{"entropy":entropy_now,"clarity":clarity,"yield":y})
+
+        if step%5==0:
+            print(f"Step {step:02d}: Entropy={entropy_now:.3f}  Yield={y:.3f}  "
+                  f"Trust={np.mean(list(G.trust.values())):.2f}")
+
+    print("\n--- Final state ---")
+    print(json.dumps({"avg_entropy":np.mean(severities),
+                      "final_yield":yield_ratio(resolved,unresolved),
+                      "trust":G.trust,
+                      "reputation":G.reputation},indent=2))
+    return G
+
+# run once to verify behaviour
+G_state = run_simulation(25)
+
 # data_ingestion.py
 """
 Tessrax Data Ingestion v1.0
