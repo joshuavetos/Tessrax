@@ -1,3 +1,102 @@
+"""
+Education–Culture Orchestrator (Tessrax v2)
+--------------------------------------------
+Links the AI Teacher, Cultural Metabolism, and Generative Myth Lab into a single
+learning–culture feedback loop, writing all events to the shared ledger.
+
+Workflow:
+1. AI Teacher detects learner contradictions → generates lessons
+2. Cultural Metabolism analyzes narrative drift over time
+3. High-severity contradictions & resolved lessons feed the Myth Lab
+4. All artifacts logged to ledger.jsonl
+"""
+
+import time
+import json
+import threading
+from dataclasses import asdict
+
+# Core / shared modules
+from apps.ai_teacher import AITeacher, ConceptClaim
+from apps.cultural_metabolism import MediaSnippet, drift_series
+from apps.generative_myth_lab import SystemLesson, batch_from_lessons
+from core.audit_suite import Ledger
+
+# --- Initialization ---
+
+teacher = AITeacher("ledger.jsonl")
+ledger = Ledger("ledger.jsonl")
+
+# Demo cultural stream (you can replace this with real data ingestion)
+CULTURAL_FEED = [
+    MediaSnippet("news:Climate", "Progress on emission goals will benefit all; fair transition matters.", time.time() - 8000, ["climate","policy"]),
+    MediaSnippet("news:Tech", "Fears of AI risk dominate headlines; ethics may lag behind ambition.", time.time() - 6000, ["AI","ethics"]),
+    MediaSnippet("news:Society", "We must rebuild trust through transparency and shared purpose.", time.time() - 3000, ["governance","ethics"]),
+]
+
+# Demo learner data
+LEARNER_CLAIMS = [
+    ConceptClaim("learner-42","Ethics","AI Responsibility","AI systems must obey moral laws",0.4,time.time()),
+    ConceptClaim("learner-42","Ethics","AI Responsibility","It is not true that AI systems must obey moral laws",0.9,time.time()),
+    ConceptClaim("learner-42","Civics","Democracy","Participation ensures legitimacy",0.6,time.time()),
+    ConceptClaim("learner-42","Civics","Democracy","Legitimacy does not depend on participation",0.8,time.time())
+]
+
+# --- Orchestration Logic ---
+
+def run_teacher_cycle():
+    contradictions = teacher.detect_contradictions(LEARNER_CLAIMS)
+    lessons = teacher.generate_lessons("learner-42", contradictions)
+    ledger.append({"event_type": "edu_cycle", "contradictions": contradictions, "lessons": [asdict(l) for l in lessons]})
+    print(f"🧠 AI Teacher cycle complete — {len(contradictions)} contradictions → {len(lessons)} lessons.")
+    return lessons
+
+def run_culture_cycle():
+    series = drift_series(CULTURAL_FEED)
+    ledger.append({"event_type": "cultural_drift", "entries": series})
+    print(f"📈 Cultural Metabolism cycle complete — {len(series)} samples logged.")
+    return series
+
+def run_myth_cycle(lessons):
+    # Convert the most significant lessons (highest severity in ledger) into myths
+    system_lessons = []
+    for l in lessons:
+        sev = 0.7 if l.level == "mastery" else 0.4 if l.level == "practice" else 0.2
+        system_lessons.append(SystemLesson(
+            domain=l.concept,
+            tension=f"confusion in {l.concept}",
+            resolution=f"mastery of {l.concept} achieved",
+            principle=f"clarity through contradiction in {l.concept}",
+            timestamp=time.time()
+        ))
+    myths = batch_from_lessons(system_lessons)
+    ledger.append({"event_type": "myth_generation", "myths": myths})
+    print(f"🔥 Myth Lab cycle complete — {len(myths)} archetypal stories generated.")
+    return myths
+
+# --- Unified Loop ---
+
+def orchestrate(cycles:int=3, delay:float=5.0):
+    for i in range(cycles):
+        print(f"\n🪶 Tessrax Education–Culture Cycle {i+1}")
+        lessons = run_teacher_cycle()
+        run_culture_cycle()
+        myths = run_myth_cycle(lessons)
+        print(f"✅ Cycle {i+1} done — myths logged: {len(myths)}")
+        time.sleep(delay)
+
+    print("\n📚 Ledger summary written to ledger.jsonl")
+    with open("ledger.jsonl","r") as f:
+        print("\nRecent entries:")
+        for line in f.readlines()[-5:]:
+            print(line.strip())
+
+if __name__ == "__main__":
+    orchestrate(cycles=2, delay=3)
+
+pip install plotly fastapi uvicorn
+python tessrax/apps/education_culture_orchestrator.py
+
 Infrastructure and interoperability
 
 Below are runnable modules that connect Tessrax nodes into a federated network, add a zero-knowledge proof layer, and translate any input format into a universal claim object. They assume your v2 core exists (metabolism, governance, audit, ingestion). Drop these files into your repo and run as noted.
