@@ -225,3 +225,148 @@ What began as philosophy has become verifiable code — an infrastructure for ex
 
 Tessrax: The metabolism of contradiction.
 
+A. Data Schemas
+
+A.1 Scar Object Schema (scar.schema.json)
+
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scar",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "domain": { "type": "string", "description": "Area of contradiction (e.g. Governance, Economy, Technology)" },
+    "type": { "type": "string", "description": "Logical | Semantic | Normative | Procedural | Temporal" },
+    "description": { "type": "string", "description": "Human-readable summary of contradiction" },
+    "severity": { "type": "number", "minimum": 0, "maximum": 10 },
+    "visibility": { "type": "number", "minimum": 0, "maximum": 10 },
+    "persistence": { "type": "number", "minimum": 0, "maximum": 10 },
+    "mitigation_effort": { "type": "number", "minimum": 0, "maximum": 10 },
+    "mechanism": { "type": "string", "description": "Causal driver of contradiction (e.g. Power Asymmetry)" },
+    "lineage": { "type": "string", "description": "Parent or predecessor scar ID" },
+    "status": { "type": "string", "enum": ["open", "in_review", "resolved", "archived"] },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "type", "description", "severity", "timestamp"]
+}
+
+
+⸻
+
+A.2 Receipt Object Schema (receipt.schema.json)
+
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Receipt",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "parent_id": { "type": "string", "format": "uuid" },
+    "hash": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+    "signer": { "type": "string" },
+    "signature": { "type": "string", "description": "Ed25519 signature base64 encoded" },
+    "payload": { "type": "object", "description": "Canonical snapshot of event data" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "veracity_score": { "type": "number", "minimum": 0, "maximum": 1 }
+  },
+  "required": ["id", "hash", "signer", "signature", "timestamp"]
+}
+
+
+⸻
+
+A.3 Ledger Entry Schema (ledger_entry.schema.json)
+
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LedgerEntry",
+  "type": "object",
+  "properties": {
+    "index": { "type": "integer" },
+    "previous_hash": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+    "current_hash": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+    "merkle_root": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "quorum_signatures": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "receipts": {
+      "type": "array",
+      "items": { "$ref": "receipt.schema.json" }
+    }
+  },
+  "required": ["index", "previous_hash", "current_hash", "timestamp"]
+}
+
+
+⸻
+
+B. API Contract (FastAPI / REST)
+
+Method	Endpoint	Description	Request Body	Response
+POST	/api/scars	Submit new contradiction record	Scar JSON	{ "receipt_id": "uuid", "status": "submitted" }
+PATCH	/api/scars/{id}/resolve	Update or resolve a contradiction	{ "status": "resolved", "notes": "..." }	{ "receipt_id": "uuid", "status": "resolved" }
+GET	/api/ledger/verify	Verify Merkle chain integrity	None	{ "status": "valid", "root": "hash" }
+GET	/api/receipts/{id}	Retrieve a signed receipt	None	Receipt JSON
+POST	/api/governance/vote	Submit a quorum vote	{ "ledger_id": "uuid", "signature": "..." }	{ "accepted": true }
+
+
+⸻
+
+C. Class Interface Stubs (Pseudocode)
+
+class Scar:
+    def __init__(self, id, type, description, severity, timestamp, **kwargs):
+        ...
+
+class Receipt:
+    def __init__(self, id, payload, signer):
+        self.hash = self.compute_hash(payload)
+        self.signature = self.sign(signer)
+        ...
+
+class Ledger:
+    def append(self, receipt: Receipt):
+        self.entries.append({
+            "index": len(self.entries),
+            "previous_hash": self.entries[-1]["current_hash"],
+            "current_hash": receipt.hash,
+            "timestamp": datetime.utcnow(),
+            "quorum_signatures": []
+        })
+
+class GovernanceKernel:
+    def verify_quorum(self, ledger_entry):
+        """Validate weighted signatures against quorum threshold."""
+        ...
+
+
+⸻
+
+D. Performance and Resilience Targets
+
+Metric	Target	Description
+Ledger Append Latency	≤ 250 ms	Time to hash, sign, and append receipt
+Merkle Verification	≤ 100 ms	Proof validation for single entry
+Quorum Consensus Time	≤ 1.0 s	Weighted signature resolution
+Uptime (federated nodes)	≥ 99.5%	Federation node redundancy guarantee
+Audit Throughput	≥ 10k receipts/minute	Sustained verification capacity
+Fault Tolerance	Automatic rollback on ledger corruption	Self-healing via last valid Merkle root
+
+
+⸻
+
+E. Example API Flow
+
+# Submit new contradiction
+curl -X POST http://localhost:8080/api/scars \
+     -H "Content-Type: application/json" \
+     -d '{
+           "type": "Logical",
+           "description": "Policy claims equality but allocates resources unequally",
+           "severity": 9
+         }'
+
+# Verify ledger
+curl http://localhost:8080/api/ledger/verify
