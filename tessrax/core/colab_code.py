@@ -5282,3 +5282,118 @@ if __name__ == "__main__":
 
 ⸻
 												   
+Perfect. Here’s your Colab-ready master test harness — a single file that dynamically loads and executes all 40 Tessrax modules, isolating each in its own try/except block so nothing halts the run. It will print module status, collect results, and export a JSON summary at the end.
+
+⸻
+
+✅ tessrax_full_test.py (Colab-Ready)
+
+"""
+Tessrax v13.0 Full Stack Validation Harness
+Runs smoke tests on all 40 modules to confirm import integrity,
+demo execution, and inter-module compatibility.
+"""
+
+import importlib
+import json
+import traceback
+from pathlib import Path
+
+# --- Configuration -----------------------------------------------------------
+CORE_MODULES = [
+    # Foundational
+    "core.receipt_chain",
+    "core.merkle_nested_ledger",
+    "core.explainable_trace",
+    "core.entropy_trigger",
+    "core.visualization_light_shadow",
+    "core.decision_log",
+
+    # Structural / Utility
+    "core.integrity_monitor",
+    "core.orchestration_mesh",
+    "core.closure_ledger",
+    "core.proof_of_audit_zk",
+    "core.governance_kernel_rego",
+    "core.model_compressor",
+    "core.agent_agreement",
+    "core.entropy_heatmap",
+    "core.proof_flattening",
+    "core.causal_feedback",
+
+    # Semantic / Metabolic
+    "core.negation_embeddings",
+    "core.semantic_role_aligner",
+    "core.knowledge_integrator",
+    "core.entailment_evaluator",
+    "core.contrastive_pretrainer",
+    "core.neuro_symbolic_bridge",
+    "core.metabolism_summary",
+    "core.entropy_containment",
+    "core.causal_ledger",
+    "core.summary_snapshot",
+
+    # Governance
+    "core.policy_quorum",
+    "core.merkle_anchor",
+    "core.conflict_resolver",
+    "core.fairness_enforcer",
+    "core.authority_guardrails",
+    "core.governance_decision_logging",
+    "core.governance_kernel_hooks",
+    "core.audit_chain",
+
+    # Trust / Oversight
+    "core.trust_continuity_tracker",
+    "core.trust_anomaly_detector",
+    "core.trust_attestation_signer",
+    "core.trust_audit_exchange",
+    "core.trust_dashboard",
+    "core.trust_public_interface",
+]
+
+# --- Execution ---------------------------------------------------------------
+results = {}
+root = "tessrax"
+
+for module_path in CORE_MODULES:
+    fqmn = f"{root}.{module_path}"
+    print(f"\n=== Testing {fqmn} ===")
+    try:
+        mod = importlib.import_module(fqmn)
+        # Try demo() if available
+        if hasattr(mod, "demo"):
+            print("→ Running demo()...")
+            mod.demo()
+        results[fqmn] = {"status": "ok"}
+    except Exception as e:
+        print(f"✗ Failed: {e}")
+        traceback.print_exc()
+        results[fqmn] = {"status": "error", "message": str(e)}
+
+# --- Summary ---------------------------------------------------------------
+summary_path = Path("./tessrax_test_summary.json")
+with open(summary_path, "w", encoding="utf-8") as f:
+    json.dump(results, f, indent=2, sort_keys=True)
+
+print("\n=== Tessrax v13.0 Full Test Summary ===")
+print(json.dumps(results, indent=2))
+print(f"\nSummary written to {summary_path.resolve()}")
+
+
+⸻
+
+💡 How to Run in Google Colab
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+# Go to your project folder
+%cd /content/drive/MyDrive/Tessrax
+
+# Run the full test
+!python tessrax_full_test.py
+
+It will print real-time results for each module and save a file tessrax_test_summary.json summarizing successes and any import or demo exceptions.
+
+Would you like me to add a visual summary cell next — one that renders a colored bar chart (green = pass, red = fail) of the module statuses directly in Colab output?
