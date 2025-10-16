@@ -1,10 +1,3 @@
-GPT to Josh—
-
-Here’s the third and final piece of the formal verification triad:
-an Alloy model that lets you visualize and simulate Tessrax’s ledger, quorum, and contradiction relationships as a dynamic relational graph.
-
-Drop this file in your repo as:
-
 /formal/tessrax_ledger.als
 
 You can open and run it in Alloy Analyzer (Java-based).
@@ -2921,3 +2914,505 @@ print("   8081 → Collaboration + Audit")
 print("   8082 → Cognitive + Federation Node\n")
 print("Keep cell running to maintain live API threads and watchers.")
 time.sleep(3)
+
+# Tessrax v13 — Executable Matrix Seed  
+## Corrected Core Modules (Ready for Direct Commit)
+
+---
+
+### **1. tessrax/core/ledger_merkle_anchor.py**
+```python
+# MIT License
+# Copyright (c) 2025 Tessrax Contributors
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+"""
+Tessrax Receipt Module
+Merkle-Nested Ledger Anchoring: Enhance immutability and traceability of contradiction events
+across distributed nodes with Ed25519 signatures and nested Merkle roots.
+"""
+
+import hashlib
+import json
+from nacl.signing import SigningKey, VerifyKey
+from nacl.exceptions import BadSignatureError
+
+
+def sha256(data: bytes) -> bytes:
+    return hashlib.sha256(data).digest()
+
+
+def hash_hex(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def merkle_parent(hash1: bytes, hash2: bytes) -> bytes:
+    return sha256(hash1 + hash2)
+
+
+def merkle_merger(hashes: list[bytes]) -> bytes:
+    if not hashes:
+        return sha256(b'')
+    current_level = hashes
+    while len(current_level) > 1:
+        next_level = []
+        for i in range(0, len(current_level), 2):
+            left = current_level[i]
+            right = current_level[i + 1] if i + 1 < len(current_level) else left
+            next_level.append(merkle_parent(left, right))
+        current_level = next_level
+    return current_level[0]
+
+
+class LedgerRecord:
+    def __init__(self, data: dict, signer: SigningKey):
+        self.data = data
+        self.data_json = json.dumps(data, sort_keys=True).encode('utf-8')
+        self.signature = signer.sign(self.data_json).signature.hex()
+        self.record_hash: bytes = sha256(self.data_json + bytes.fromhex(self.signature))
+
+    def to_dict(self):
+        return {
+            "data": self.data,
+            "signature": self.signature,
+            "record_hash": self.record_hash.hex()
+        }
+
+
+class MerkleNestedLedger:
+    """
+    Ledger with append-only records, Ed25519 signatures, and nested Merkle roots:
+    - transaction-level records (leaf hashes)
+    - epoch-level root hashes with chaining
+    """
+    def __init__(self, signer: SigningKey):
+        self.signer = signer
+        self.records: list[LedgerRecord] = []
+        self.transaction_hashes: list[bytes] = []
+        self.epoch_roots: list[bytes] = []
+        self.epoch_signatures: list[str] = []
+
+    def append_only(self, data: dict):
+        record = LedgerRecord(data, self.signer)
+        self.records.append(record)
+        self.transaction_hashes.append(record.record_hash)
+        if len(self.transaction_hashes) % 4 == 0:
+            self._close_epoch()
+
+    def _close_epoch(self):
+        root_hash = merkle_merger(self.transaction_hashes[-4:])
+        prev_root = self.epoch_roots[-1] if self.epoch_roots else b''
+        combined = sha256(prev_root + root_hash)
+        self.epoch_roots.append(combined)
+        signature = self.signer.sign(combined).signature.hex()
+        self.epoch_signatures.append(signature)
+
+    def verify_root(self, root_index: int, verify_key: VerifyKey) -> bool:
+        if root_index >= len(self.epoch_roots):
+            raise IndexError("Epoch root index out of range")
+        root = self.epoch_roots[root_index]
+        sig_hex = self.epoch_signatures[root_index]
+        try:
+            verify_key.verify(root, bytes.fromhex(sig_hex))
+            return True
+        except BadSignatureError:
+            return False
+
+    def to_dict(self):
+        return {
+            "records": [r.to_dict() for r in self.records],
+            "epoch_roots": [r.hex() for r in self.epoch_roots],
+            "epoch_signatures": self.epoch_signatures
+        }
+
+
+if __name__ == "__main__":
+    print("=== Tessrax Merkle-Nested Ledger Anchoring Demo ===")
+
+    signing_key = SigningKey.generate()
+    verify_key = signing_key.verify_key
+    print(f"Public key (verify): {verify_key.encode().hex()}")
+
+    ledger = MerkleNestedLedger(signing_key)
+    test_data = [
+        {"event": "contradiction_detected", "id": 1, "details": "A != B"},
+        {"event": "contradiction_resolved", "id": 2, "details": "Rule update"},
+        {"event": "contradiction_detected", "id": 3, "details": "X vs Y"},
+        {"event": "contradiction_resolved", "id": 4, "details": "Preference override"},
+        {"event": "contradiction_detected", "id": 5, "details": "Conflict Z"},
+    ]
+
+    for record in test_data:
+        ledger.append_only(record)
+        print(f"Appended record {record['id']}")
+
+    print(f"Total records: {len(ledger.records)}")
+    print(f"Total epoch roots: {len(ledger.epoch_roots)}")
+
+    for i in range(len(ledger.epoch_roots)):
+        valid = ledger.verify_root(i, verify_key)
+        print(f"Epoch root {i} valid signature: {valid}")
+
+    ledger_json = json.dumps(ledger.to_dict(), indent=2)
+    print("Ledger snapshot:")
+    print(ledger_json)
+
+
+⸻
+
+2. tessrax/core/semantic_negation_embeddings.py
+
+"""
+MIT License © 2025 Tessrax Contributors
+Context-Aware Negation Embeddings Module
+Generates contextual negation vectors using transformer encoders to improve contradiction detection.
+"""
+
+from transformers import BertTokenizer, BertModel
+import torch
+import torch.nn.functional as F
+
+
+class NegationEmbeddingModel:
+    def __init__(self, model_name='bert-base-uncased', device=None):
+        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+        self.tokenizer = BertTokenizer.from_pretrained(model_name)
+        self.model = BertModel.from_pretrained(model_name).to(self.device)
+        self.model.eval()
+    
+    def encode(self, sentences):
+        inputs = self.tokenizer(sentences, padding=True, truncation=True, return_tensors='pt')
+        inputs = {k: v.to(self.device) for k,v in inputs.items()}
+        
+        with torch.no_grad():
+            outputs = self.model(**inputs, output_hidden_states=True)
+            last_hidden = outputs.last_hidden_state
+            negation_tokens = {'not', 'no', "n't", 'never', 'none', 'cannot', 'neither', 'nor'}
+            token_mask = []
+            for sentence in sentences:
+                tokens = self.tokenizer.tokenize(sentence)
+                mask = [1.0 if t in negation_tokens else 0.5 for t in tokens]
+                seq_len = last_hidden.size(1)
+                if len(mask) < seq_len:
+                    mask += [0.5]*(seq_len - len(mask))
+                else:
+                    mask = mask[:seq_len]
+                token_mask.append(mask)
+            token_mask_tensor = torch.tensor(token_mask, dtype=torch.float32).to(self.device)
+            weighted_hidden = last_hidden * token_mask_tensor.unsqueeze(-1)
+            vecs = weighted_hidden.sum(dim=1) / token_mask_tensor.sum(dim=1, keepdim=True)
+        
+        return vecs.cpu()
+
+    def compare(self, vec1, vec2):
+        return F.cosine_similarity(vec1, vec2).item()
+
+    def demo(self):
+        print("Negation Embedding Model Demo")
+        sentences = [
+            "I do not like apples.",
+            "I like apples.",
+            "She never goes there.",
+            "She always goes there.",
+            "There is no contradiction.",
+            "There is a contradiction."
+        ]
+        encodings = self.encode(sentences)
+        for i in range(0, len(sentences), 2):
+            s1, s2 = sentences[i], sentences[i+1]
+            v1, v2 = encodings[i].unsqueeze(0), encodings[i+1].unsqueeze(0)
+            sim = self.compare(v1, v2)
+            print(f"Compare: '{s1}' <-> '{s2}' | cosine similarity: {sim:.4f}")
+
+if __name__ == "__main__":
+    model = NegationEmbeddingModel()
+    model.demo()
+
+
+⸻
+
+3. tessrax/core/metabolism_entropy_trigger.py
+
+"""
+MIT License © 2025 Tessrax Contributors
+Entropy-Trigger Anomaly Response Module
+Detect entropy spikes and auto-trigger containment routines asynchronously.
+"""
+
+import asyncio
+import collections
+import math
+import logging
+import random
+import sys
+from datetime import datetime
+
+LOG_FILE = "tessrax/logs/metabolism_entropy.log"
+
+
+def shannon_entropy(data):
+    if not data:
+        return 0.0
+    counts = collections.Counter(data)
+    total = len(data)
+    ent = 0.0
+    for count in counts.values():
+        p = count / total
+        ent -= p * math.log2(p)
+    return ent
+
+
+class EntropyTrigger:
+    def __init__(self, window_size=20, threshold=3.0):
+        self.window_size = window_size
+        self.threshold = threshold
+        self.state_window = collections.deque(maxlen=window_size)
+        self._setup_logger()
+
+    def _setup_logger(self):
+        self.logger = logging.getLogger("MetabolismEntropy")
+        self.logger.setLevel(logging.INFO)
+        handler = logging.FileHandler(LOG_FILE)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        if not self.logger.handlers:
+            self.logger.addHandler(handler)
+
+    def record_state_delta(self, delta):
+        self.state_window.append(delta)
+        entropy = shannon_entropy(self.state_window)
+        self.logger.info(f"State delta recorded: {delta}, current entropy: {entropy:.4f}")
+        return entropy
+
+    async def containment(self):
+        self.logger.warning("Entropy threshold exceeded! Triggering containment routine.")
+        await asyncio.sleep(1)
+        self.logger.info("Containment routine executed.")
+
+    async def monitor(self, input_generator):
+        async for delta in input_generator:
+            entropy = self.record_state_delta(delta)
+            if entropy > self.threshold:
+                await self.containment()
+
+
+async def simulate_deltas():
+    stable_states = ['stable', 'normal', 'ok']
+    anomalous_states = ['spike', 'error', 'conflict']
+    while True:
+        delta = random.choice(anomalous_states) if random.random() < 0.1 else random.choice(stable_states)
+        yield delta
+        await asyncio.sleep(0.1)
+
+
+async def run_demo():
+    print("Starting entropy-trigger anomaly response demo:")
+    et = EntropyTrigger(window_size=15, threshold=2.0)
+    await et.monitor(simulate_deltas())
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Entropy Trigger Anomaly Response Demo")
+    parser.add_argument('--demo', action='store_true', help='Run demo simulation with entropy spikes')
+    args = parser.parse_args()
+
+    if args.demo:
+        try:
+            asyncio.run(run_demo())
+        except KeyboardInterrupt:
+            print("\nDemo interrupted by user.")
+    else:
+        print("Run with --demo to start the entropy spike simulation.")
+        sys.exit(0)
+
+
+⸻
+
+4. tessrax/core/governance_logging.py
+
+"""
+MIT License © 2025 Tessrax Contributors
+Transparent Decision Logging Module
+Immutable, auditable on-chain-style record of governance actions.
+"""
+
+import hashlib
+import json
+import time
+from typing import List, Optional
+
+
+class DecisionLog:
+    def __init__(self):
+        self.chain: List[dict] = []
+
+    def _hash_record(self, record: dict) -> str:
+        record_json = json.dumps(record, sort_keys=True).encode('utf-8')
+        return hashlib.sha256(record_json).hexdigest()
+
+    def record(self, actor: str, action: str, details: Optional[dict] = None) -> dict:
+        timestamp = int(time.time())
+        prev_hash = self.chain[-1]['hash'] if self.chain else None
+        record = {
+            'timestamp': timestamp,
+            'actor': actor,
+            'action': action,
+            'details': details or {},
+            'prev_hash': prev_hash
+        }
+        record_hash = self._hash_record(record)
+        record['hash'] = record_hash
+        self.chain.append(record)
+        return record
+
+    def verify(self) -> bool:
+        for i in range(1, len(self.chain)):
+            prev = self.chain[i - 1]
+            curr = self.chain[i]
+            if curr['prev_hash'] != prev['hash']:
+                return False
+            recalculated = self._hash_record({
+                'timestamp': curr['timestamp'],
+                'actor': curr['actor'],
+                'action': curr['action'],
+                'details': curr['details'],
+                'prev_hash': curr['prev_hash']
+            })
+            if recalculated != curr['hash']:
+                return False
+        return True
+
+    def export_json(self) -> str:
+        return json.dumps(self.chain, indent=2, sort_keys=True)
+
+
+def demo():
+    print("=== Tessrax Transparent Decision Logging Demo ===")
+    log = DecisionLog()
+    log.record("Alice", "Proposal submitted", {"proposal_id": 1, "title": "Update policy X"})
+    log.record("Bob", "Proposal approved", {"proposal_id": 1, "votes_for": 42, "votes_against": 3})
+    log.record("Carol", "Policy enacted", {"policy_id": "X", "effective_date": "2025-11-01"})
+    print("Decision log export:")
+    print(log.export_json())
+    print("Valid chain:", log.verify())
+    print("Tampering test...")
+    log.chain[1]['votes_for'] = 1000
+    print("After tampering valid:", log.verify())
+
+
+if __name__ == "__main__":
+    demo()
+
+
+⸻
+
+5. tessrax/core/trust_explainable_trace.py
+
+"""
+MIT License © 2025 Tessrax Contributors
+Explainable Decision Trace Anchoring Module
+Records high-level decision explanations in a blockchain-style ledger.
+"""
+
+import json
+from nacl.signing import SigningKey, VerifyKey
+from nacl.exceptions import BadSignatureError
+
+
+class ExplainableTrace:
+    def __init__(self, signing_key: SigningKey):
+        self.signing_key = signing_key
+        self.chain = []
+
+    def add_trace(self, decision_id: str, rationale: str) -> dict:
+        payload = json.dumps({"decision_id": decision_id, "rationale": rationale}, sort_keys=True).encode('utf-8')
+        signature = self.signing_key.sign(payload).signature.hex()
+        trace = {"decision_id": decision_id, "rationale": rationale, "signature": signature}
+        self.chain.append(trace)
+        return trace
+
+    def verify_trace(self, trace: dict, verify_key: VerifyKey) -> bool:
+        payload = json.dumps({"decision_id": trace["decision_id"], "rationale": trace["rationale"]}, sort_keys=True).encode('utf-8')
+        sig_bytes = bytes.fromhex(trace["signature"])
+        try:
+            verify_key.verify(payload, sig_bytes)
+            return True
+        except BadSignatureError:
+            return False
+
+
+def demo():
+    print("=== Tessrax Explainable Decision Trace Anchoring Demo ===")
+    signing_key = SigningKey.generate()
+    verify_key = signing_key.verify_key
+    ledger = ExplainableTrace(signing_key)
+    traces = [
+        ledger.add_trace("dec-001", "Approved policy update to limit access."),
+        ledger.add_trace("dec-002", "Rejected amendment due to fairness concerns."),
+        ledger.add_trace("dec-003", "Delegated review to subcommittee for further analysis.")
+    ]
+    for i, t in enumerate(traces):
+        print(f"Trace {i}: verified={ledger.verify_trace(t, verify_key)}")
+    print("Tampering test:")
+    traces[0]["rationale"] = "Malicious edit"
+    print("Tampered verification:", ledger.verify_trace(traces[0], verify_key))
+
+
+if __name__ == "__main__":
+    demo()
+
+
+⸻
+
+6. tessrax/core/philosophy_light_shadow.py
+
+"""
+MIT License © 2025 Tessrax Contributors
+Balance of Light and Shadow Visualization Module
+Render contradictions as light/shadow diagrams showing tension and resolution.
+"""
+
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+
+def visualize_contradiction_pairs(pairs):
+    os.makedirs('./tessrax/visuals', exist_ok=True)
+    n = len(pairs)
+    fig, ax = plt.subplots(figsize=(8, n*1.5))
+    y_positions = np.arange(n) * 2
+
+    for i, (claim1, claim2, clarity_gain) in enumerate(pairs):
+        y = y_positions[i]
+        ax.text(0, y, claim1, ha='right', va='center', fontsize=12, weight='bold')
+        ax.text(1, y, claim2, ha='left', va='center', fontsize=12, weight='bold')
+        intensity = min(max(clarity_gain, 0), 1)
+        gradient = np.linspace(0, 1, 256)
+        color = np.tile(gradient * intensity, (10, 1))
+        ax.imshow(np.dstack((color, color, color, np.ones_like(color))), extent=(0.1, 0.9, y-0.5, y+0.5), aspect='auto')
+        ax.text(0.5, y + 0.7, f"Clarity Gain: {clarity_gain:.2f}", ha='center', va='bottom', fontsize=10, style='italic')
+
+    ax.axis('off')
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-1, y_positions[-1] + 1)
+    plt.tight_layout()
+    save_path = './tessrax/visuals/light_shadow_diagram.png'
+    plt.savefig(save_path)
+    plt.close()
+    print(f"Saved light/shadow diagram															
