@@ -424,3 +424,108 @@ curl http://localhost:8080/api/ledger/verify
   "status": "open",
   "timestamp": "2025-10-15T19:57:00Z"
 }
+
+🔐 Security, Reliability, and Deployment Standards (v12.1 Extension)
+
+A. Security and Trust Architecture
+
+Tessrax employs a cryptographic trust lattice rather than a traditional permissions model.
+
+Key Controls
+   •   Authentication: All events are signed with Ed25519 keys verified by the governance_kernel quorum.
+   •   Key Rotation: Managed via revocation_registry.json; revoked keys propagate through all federated nodes in <1 s.
+   •   Integrity Proofs: Every receipt carries SHA-256 lineage; ledger entries are chained by Merkle root.
+   •   Access Control: Read/write privileges are determined by signer weight defined in charter/example_charter.json.
+   •   Tamper Detection: Any mutation in lineage triggers automatic rollback to last valid root + audit log emission.
+   •   Network Hygiene: All external calls are rate-limited by signature thresholding and request entropy scoring.
+
+Security Objective:
+To make all trust falsifiable. Tessrax assumes compromise as baseline and designs toward verifiable recovery, not prevention mythology.
+
+⸻
+
+B. Error Codes and Edge-Case Handling
+
+Code	Condition	System Response	Recovery Path
+4001	Invalid Hash Chain	Abort append; ledger rollback	Re-compute Merkle root
+4002	Quorum Timeout	Consensus stall	Retry with quorum-1 or defer to next cycle
+4003	Unauthorized Signer	Reject event; issue revocation broadcast	Update registry; re-sign event
+4004	Signature Verification Failed	Receipt invalidated	Escalate to audit ledger
+4005	Malformed Payload	Request ignored	Return validation error to emitter
+5001	Ledger Append Failure	Halt metabolism	Rollback to last stable checkpoint
+5002	Network Partition	Node isolation	Enter read-only mode until quorum restored
+5003	Policy Violation	Action vetoed	Record as Scar of type “Normative”
+
+These codes ensure every possible failure emits a deterministic audit trace.
+No silent errors; every exception becomes a governance event.
+
+⸻
+
+C. Deployment & Scaling Guidelines
+
+Tessrax supports single-node and federated deployments.
+
+Reference Implementation
+
+docker build -t tessrax:latest .
+docker run -d -p 8080:8080 -p 8090:8090 tessrax
+
+Operational Parameters
+
+Component	Default	Description
+API Port	8080	FastAPI receipt ingestion
+Dashboard Port	8090	Flask audit visualizer
+Node Sync	federation.py	Periodic Merkle reconciliation
+Uptime Target	≥ 99.5 %	Enforced by node redundancy
+Ledger Replication	ledger_verify.py	Cross-node state integrity
+Scaling	Horizontal via federated nodes	Eventual-consistency by receipt anchoring
+
+All runtime containers are stateless by design; continuity reconstructs from receipts.
+This allows instant node replacement without state loss.
+
+⸻
+
+D. Canonical Test Fixtures & Validation
+
+Located under /tests/ and /fixtures/.
+
+Structure
+
+fixtures/
+ ├── scar_sample.json
+ ├── receipt_sample.json
+ ├── ledger_entry_sample.json
+ └── validate_fixtures.py
+
+validate_fixtures.py runs schema validation against:
+   •   /schema/scar.schema.json
+   •   /schema/receipt.schema.json
+   •   /schema/ledger_entry.schema.json
+
+Sample Command
+
+pytest -v --maxfail=1 --disable-warnings
+python fixtures/validate_fixtures.py
+
+Validation ensures every artifact in the stack adheres to canonical schema lineage before ledger submission.
+
+⸻
+
+E. CI/CD and Compliance Hooks
+   •   Continuous Integration: .github/workflows/ci.yml runs lint, schema validation, and Merkle integrity tests.
+   •   Continuous Delivery: docker-compose.yml deploys dual-node test federation for real-time contradiction metabolism.
+   •   Audit Trigger: Any failed hash verification or policy violation automatically emits a governance receipt (POLICY_VIOLATION type).
+   •   Monitoring: /dashboard/app.py surfaces live contradiction maps and node health metrics.
+
+⸻
+
+F. Security & Reliability Targets
+
+Metric	Target	Enforcement
+API Authentication Failures	≤ 0.01 %	Threshold alert → audit event
+Key Revocation Propagation	≤ 1 s	Verified by Merkle diff sync
+Ledger Consistency Drift	0 % tolerated	Hash-chain enforcement
+Node Recovery Time	≤ 30 s	Stateless receipt replay
+Test Coverage	≥ 85 %	Required for merge approval
+
+
