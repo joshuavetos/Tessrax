@@ -370,3 +370,57 @@ curl -X POST http://localhost:8080/api/scars \
 
 # Verify ledger
 curl http://localhost:8080/api/ledger/verify
+{
+  "id": "3f2a1c9e-8d4b-4f2a-9f3a-7a1c2b4d5e6f",
+  "domain": "Governance",
+  "type": "Normative",
+  "description": "Policy claims equality but allocates resources unequally",
+  "severity": 9,
+  "visibility": 8,
+  "persistence": 7,
+  "mitigation_effort": 6,
+  "mechanism": "Power Asymmetry",
+  "lineage": null,
+  "status": "open",
+  "timestamp": "2025-10-15T19:57:00Z"
+}
+{
+  "index": 1,
+  "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "current_hash": "7a1c2b4d5e6f9f2c4d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d",
+  "merkle_root": "5e6f9f2c4d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b",
+  "timestamp": "2025-10-15T19:57:10Z",
+  "quorum_signatures": [
+    "MEQCIF...base64...==",
+    "MEUCIQD...base64...=="
+  ],
+  "receipts": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-ab12-cd34ef56ab78",
+      "parent_id": "00000000-0000-0000-0000-000000000000",
+      "hash": "9f2c4d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d",
+      "signer": "governance-node-1",
+      "signature": "MEUCIQD8...base64...==",
+      "payload": {
+        "event": "scar_created",
+        "scar_id": "3f2a1c9e-8d4b-4f2a-9f3a-7a1c2b4d5e6f"
+      },
+      "timestamp": "2025-10-15T19:57:05Z",
+      "veracity_score": 0.95
+    }
+  ]
+}
+{
+  "id": "3f2a1c9e-8d4b-4f2a-9f3a-7a1c2b4d5e6f",
+  "domain": "Governance",
+  "type": "Normative",
+  "description": "Policy claims equality but allocates resources unequally",
+  "severity": 9,
+  "visibility": 8,
+  "persistence": 7,
+  "mitigation_effort": 6,
+  "mechanism": "Power Asymmetry",
+  "lineage": null,
+  "status": "open",
+  "timestamp": "2025-10-15T19:57:00Z"
+}
