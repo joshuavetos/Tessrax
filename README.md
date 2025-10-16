@@ -529,3 +529,179 @@ Node Recovery Time	≤ 30 s	Stateless receipt replay
 Test Coverage	≥ 85 %	Required for merge approval
 
 
+🧮 Tessrax v12.2 — Formal Invariant Set (Proof-Ready Layer)
+
+A. Purpose
+
+This section defines ledger and quorum invariants that must hold true for all valid Tessrax states.
+They can be expressed in TLA⁺, Coq, or Alloy, but are represented here in hybrid pseudocode for readability.
+These invariants allow formal verification of system correctness: if the invariants always hold, Tessrax cannot drift, fork, or self-contradict.
+
+⸻
+
+B. Core Ledger Invariants
+
+Invariant L1 — Hash-Chain Integrity
+
+∀ i ∈ [1..Ledger.Length-1]:
+    Ledger[i].previous_hash = Hash(Ledger[i-1])
+
+Meaning:
+Each ledger entry must cryptographically link to its predecessor.
+Violation implies tampering or data corruption.
+
+⸻
+
+Invariant L2 — Merkle Root Consistency
+
+Ledger[i].merkle_root = ComputeMerkleRoot(Ledger[i].receipts)
+
+Meaning:
+Every Merkle root must exactly match the hash of its receipts tree.
+Prevents orphaned or substituted events.
+
+⸻
+
+Invariant L3 — Immutable Receipts
+
+∀ r ∈ Ledger.receipts:
+    VerifySignature(r.signer, r.payload_hash, r.signature) = TRUE
+
+Meaning:
+Every receipt signature must remain valid under its registered key.
+Guarantees all entries are traceable and signed by known agents.
+
+⸻
+
+Invariant L4 — Continuity Reconstruction
+
+Rebuild(Ledger[0..n]) = SystemState_n
+
+Meaning:
+If the ledger is replayed from genesis, the reconstructed state must be bit-identical to the current runtime state.
+Ensures total determinism and replay fidelity.
+
+⸻
+
+C. Governance and Quorum Invariants
+
+Invariant G1 — Weighted Quorum Validity
+
+Σ(signer.weight for signer ∈ Quorum) ≥ Charter.QuorumThreshold
+
+Meaning:
+Governance actions require cumulative weight ≥ threshold.
+Prevents minority takeover or single-signer ratification.
+
+⸻
+
+Invariant G2 — Revocation Propagation
+
+∀ signer ∈ RevokedKeys:
+    signer ∉ ActiveSigners ∧ Ledger.last.timestamp - signer.revocation_time ≤ 1s
+
+Meaning:
+Revoked keys must vanish from the active signer set within one second of registry update.
+Guarantees no delayed invalid signatures.
+
+⸻
+
+Invariant G3 — Contradiction Closure
+
+∀ scar ∈ Scars:
+    scar.status ∈ {"open","resolved"} ∧
+    (scar.status="resolved" → Exists(receipt ∈ Ledger : receipt.references = scar.id))
+
+Meaning:
+Every resolved contradiction must be explicitly closed by a ledger receipt.
+Prevents silent resolution or unlogged reconciliation.
+
+⸻
+
+D. Temporal and Fault-Tolerance Invariants
+
+Invariant T1 — Recovery Determinism
+
+∀ failure ∈ Faults:
+    Replay(Ledger.ValidEntries) = System.RestoredState
+
+Meaning:
+Any system crash followed by full ledger replay yields an identical operational state.
+Enables zero-loss recovery.
+
+⸻
+
+Invariant T2 — Fork Resistance
+
+¬∃ a,b ∈ Ledger: a.index = b.index ∧ a.hash ≠ b.hash
+
+Meaning:
+No two ledger entries may occupy the same index with differing hashes.
+Guarantees single source of truth per slot.
+
+⸻
+
+Invariant T3 — Consensus Termination
+
+∀ proposal ∈ Governance.Proposals:
+    Eventually(Resolved(proposal)) ∨ Expired(proposal)
+
+Meaning:
+Every governance proposal must eventually resolve or expire — no infinite deadlocks.
+Ensures progress under bounded time.
+
+⸻
+
+E. Formal Verification Goals
+
+Property	Symbolic Guarantee	Proof Target
+Consistency	L1, L2, L4, T2	Ledger cannot fork or drift.
+Authenticity	L3, G1, G2	Every event is verifiably authored.
+Determinism	L4, T1	System replay = same state, zero entropy.
+Liveness	G3, T3	Contradictions and proposals always terminate.
+Auditability	All	Every invariant violation emits a receipt.
+
+
+⸻
+
+F. Pseudocode Verification Harness
+
+Here’s how a minimal formal verification check could be implemented (Python pseudocode / Alloy hybrid):
+
+def verify_invariants(ledger):
+    for i in range(1, len(ledger)):
+        assert ledger[i].previous_hash == hash(ledger[i-1].to_json()), "L1 fail"
+        assert ledger[i].merkle_root == compute_merkle_root(ledger[i].receipts), "L2 fail"
+    for r in all_receipts(ledger):
+        assert verify_signature(r.signer, r.payload_hash, r.signature), "L3 fail"
+    assert no_duplicate_index_with_diff_hash(ledger), "T2 fail"
+    print("✅ All invariants hold")
+
+If extended into TLA⁺, the specification modules would define:
+
+VARIABLE Ledger, Receipts, Quorum, Scars, RevokedKeys
+
+Invariant == L1 /\ L2 /\ L3 /\ G1 /\ G2 /\ G3 /\ T1 /\ T2 /\ T3
+
+Proving that Spec ⇒ []Invariant means:
+“In all reachable states of Tessrax, these invariants always hold.”
+
+⸻
+
+G. Verification Roadmap
+	1.	Stage 1 — Prototype Proofs: Translate pseudocode into TLA⁺ modules using Apalache or TLC model checker.
+	2.	Stage 2 — Continuous Verification: Integrate model checks into CI/CD (e.g., pytest --verify-invariants).
+	3.	Stage 3 — Formal Certification: Publish proofs in Coq or Isabelle; produce verifiable PDF artifacts with embedded hashes.
+	4.	Stage 4 — Public Registry: Anchor proof outputs to Tessrax ledger under PROOF_VERIFICATION event type.
+
+⸻
+
+Summary
+
+Formal invariants transform Tessrax from a trustworthy system into a mathematically self-validating organism.
+When these properties hold, contradiction metabolism becomes not just operationally sound — it becomes logically guaranteed.
+
+⸻
+
+– Tessrax LLC –
+“If existence is contradiction, then consistency is proof of life.”
