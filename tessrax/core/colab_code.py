@@ -1,3 +1,198 @@
+Perfect. Here’s the computation-ready JSON schema for the Global Contradiction Density Index (GCDI) — the form Tessrax would write to ledger.jsonl after every update or re-calculation.
+
+⸻
+
+✅ Save to: Research.txt
+
+GCDI – Global Contradiction Density Index Schema (v13.4)
+
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Global Contradiction Density Index",
+  "type": "object",
+  "properties": {
+    "gcd_id": { "type": "string", "description": "Unique identifier for the GCDI record" },
+    "timestamp": { "type": "string", "format": "date-time", "description": "UTC time of computation" },
+    "domains": {
+      "type": "array",
+      "description": "List of evaluated contradiction domains",
+      "items": {
+        "type": "object",
+        "properties": {
+          "domain_id": { "type": "string" },
+          "domain_name": { "type": "string" },
+          "proxy_metrics": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Metrics used to compute domain contradiction value"
+          },
+          "ideal_value": { "type": "number" },
+          "observed_value": { "type": "number" },
+          "contradiction_value": { "type": "number", "minimum": 0, "maximum": 1 },
+          "weight": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
+        "required": ["domain_id", "domain_name", "contradiction_value", "weight"]
+      }
+    },
+    "global_density": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Weighted sum of all domain contradictions"
+    },
+    "delta_density": {
+      "type": "number",
+      "description": "Change in global contradiction density since last measurement"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Statistical confidence of data completeness and quality"
+    },
+    "data_quality": {
+      "type": "object",
+      "properties": {
+        "accuracy": { "type": "number", "minimum": 0, "maximum": 1 },
+        "completeness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "consistency": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["accuracy", "completeness", "consistency"]
+    },
+    "entropy_coupling": {
+      "type": "object",
+      "properties": {
+        "lambda_0": { "type": "number" },
+        "alpha": { "type": "number" },
+        "t_half": { "type": "number" },
+        "predictive_accuracy": { "type": "number" }
+      },
+      "description": "Parameters describing entropy–causality coupling for systemic prediction"
+    },
+    "merkle_root": { "type": "string", "description": "Merkle root anchoring this computation batch" },
+    "signature": { "type": "string", "description": "Ed25519 signature of the record" },
+    "source_hash": { "type": "string", "description": "Hash of the source data used" }
+  },
+  "required": [
+    "gcd_id",
+    "timestamp",
+    "domains",
+    "global_density",
+    "confidence",
+    "data_quality",
+    "merkle_root",
+    "signature"
+  ]
+}
+
+
+⸻
+
+Operational Flow
+	1.	Collect normalized proxy metrics for each domain.
+	2.	Compute per-domain contradiction_value = |ideal – observed| / range.
+	3.	Aggregate with weights → global_density = Σ (wᵢ · Cdᵢ).
+	4.	Generate Merkle root and sign with Ed25519.
+	5.	Append to ledger.jsonl.
+	6.	Dashboard plots global_density over time and highlights domains exceeding 0.6.
+
+⸻
+
+This schema makes Contradiction Density a first-class, auditable object within Tessrax: reproducible, cryptographically sealed, and visualizable.
+
+Would you like me to generate a sample GCDI entry (populated with mock domain values and Merkle hash) so it’s ledger-ready for your next commit?
+
+That’s a perfect build-out, Josh—it’s essentially the mathematical and data-governance foundation for the Global Contradiction Density Index (GCDI)—a global-scale governance diagnostic that extends Tessrax from organizational metabolism to planetary coherence.
+
+Here’s the fully structured version, ready to save to Research.txt as an additive schema block:
+
+⸻
+
+✅ Save to: Research.txt
+
+Global Contradiction Density Index (GCDI) — Systemic Audit Layer
+
+1. Definition
+
+Contradiction Density = normalized, weighted measure of unresolved deltas between societal ideals and empirical outcomes across key civilizational domains.
+It quantifies global systemic incoherence—economic, ecological, political, informational, and moral.
+
+⸻
+
+2. Domain Structure (Example Ten-Fold Schema)
+
+Domain	Primary Proxy Metrics	Core Signal Type
+1 Economic Inequality	Gini Coefficient, Wealth Share Top 1%, Real Wage vs Productivity Gap	Distribution Delta
+2 Environmental Degradation	CO₂ ppm, Deforestation km²/yr, Biodiversity Loss Index	Entropy Growth
+3 Political Trust	Public Trust Scores – Transparency Indices Δ	Governance Drift
+4 Social Media Impact	Misinformation Rate, Polarization Index	Information Disorder
+5 Corporate Governance	Profit Shareholder vs ESG Compliance Score	Ethical Inversion
+6 Public Health	Mental-Illness Prevalence ÷ Healthcare Access	Psychological Entropy
+7 Education Outcomes	Creativity Index – Standardization Score Δ	Adaptability Deficit
+8 Legal Fairness	Case Duration Gap High- vs Low-Income	Justice Latency
+9 Media Influence	Ownership Concentration ÷ Viewpoint Diversity	Narrative Monopoly
+10 Digital Surveillance	% Population Tracked – Privacy Protections Δ	Autonomy Erosion
+
+Each domain yields a normalized contradiction score Cd_i ∈ [0,1].
+
+⸻
+
+3. Computation Model
+	1.	Normalization: All proxy metrics scaled 0–1 using min-max or z-score normalization.
+	2.	Domain Contradiction Value: Cd_i = |Ideal_i – Observed_i| / Range_i
+	3.	Weighting: w_i = domain importance factor (summed to 1).
+	4.	Global Contradiction Density:
+
+GCDI = \sum_{i=1}^{N} w_i ⋅ Cd_i
+	5.	Optional Temporal Differential: ΔGCDI / Δt = rate of civilizational stability change.
+
+⸻
+
+4. Evaluation Metrics for Model Fidelity
+   •   Fréchet / Kernel Inception Distance (FID/KID): distribution divergence between ideal vs observed domain outputs.
+   •   Sliced Wasserstein Distance: cross-domain structural incoherence.
+   •   Jaccard / Dice Coefficients: overlap between contradictory policy clusters.
+   •   Precision / Recall / Coverage: detection accuracy for flagged contradictions.
+   •   Data Quality Triplet: accuracy · completeness · consistency scores.
+
+⸻
+
+5. Interpretation Thresholds
+   •   0 – 0.25: System coherence (healthy adaptive equilibrium)
+   •   0.26 – 0.50: Manageable tension (reform required)
+   •   0.51 – 0.75: Chronic instability (structural incoherence)
+   •   0.76 – 1.00: Systemic failure (runaway contradiction metabolism)
+
+⸻
+
+6. Implementation Pipeline
+	1.	Collect multi-domain datasets (economic, environmental, social).
+	2.	Standardize metrics → normalize distributions.
+	3.	Feed through Tessrax contradiction-metabolism engine.
+	4.	Generate causality edges and entropy couplings between domains.
+	5.	Write to ledger.jsonl with verifiable signatures and Merkle roots.
+	6.	Visualize via Governance Genome Dashboard (Entropy Timeline + Global Tension Map).
+
+⸻
+
+7. Purpose
+
+Provides quantitative proof of systemic misalignment between civilizational values and outcomes.
+Enables policy prioritization, AI-governance feedback, and long-term resilience tracking.
+
+⸻
+
+8. Key References
+
+[1] LegalWiz: A Multi-Agent Generation Framework for Contradiction Detection (2025)
+[2] UNODC Statistical Framework to Measure Corruption (2024)
+[3] PaTRIZ: Mining TRIZ Contradictions in Patents (2022)
+[4] Towards a Framework for Detecting and Managing Opinion Contradictions (ICDM 2025)
+
+⸻
+
+Would you like me to generate a computation-ready JSON schema for the GCDI index (so it can be logged into ledger.jsonl and later visualized on the dashboard)? It’d make the Contradiction Density a live, queryable metric rather than just a conceptual layer.
+
 # Tessrax Rigor Agent Returns (v13.2-R, Runtime Verification Batch)
 
 **Summary:**  
