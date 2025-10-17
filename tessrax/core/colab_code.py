@@ -1,3 +1,164 @@
+  •   Runtime controller design (core loop)
+   •   Event broker, indexer, and dashboard adapter specs
+   •   Governance kernel hooks
+   •   Proof-of-audit endpoint
+   •   Entropy–causality coupling model
+   •   All necessary schemas (Causality, Ledger-Interface, JSON structure)
+   •   Implementation notes and test checklist
+
+⸻
+
+✅ Save to: Research.txt
+
+# Tessrax Runtime & Governance Genome Integration (v13.1)
+
+## 1. Runtime Orchestration Controller
+Python-based loop that:
+- Listens for new contradiction detections
+- Runs causal inference (DoWhy/EconML)
+- Signs edges with Ed25519
+- Batches hashes into Merkle trees (hourly)
+- Appends to `ledger.jsonl`
+- Rotates logs daily for storage control
+
+**Core responsibilities:**
+1. `detect_new_contradictions()` — event source hook  
+2. `run_causal_inference()` — derive causal edges  
+3. `batch_sign_and_compute_merkle()` — Ed25519 signing + root generation  
+4. `append_to_ledger()` — atomic append + JSONL write  
+5. `rotate_logs()` — seven-day retention policy  
+
+All private keys stored in HSM/secure enclave; Merkle roots optionally notarized daily to Git or blockchain.
+
+---
+
+## 2. Governance Kernel Hooks
+- Environment keys:
+  - `PRIVATE_KEY_PATH`
+  - `LEDGER_PATH`
+  - `MERKLE_CACHE`
+- API verifies ledger signatures and recomputed Merkle roots at startup.
+- `/verify/{edge_hash}` endpoint returns `verified | not_found | tampered` + root + timestamp + signature.
+
+---
+
+## 3. Event Broker (Heartbeat Layer)
+- **Redis Streams** preferred (lightweight, durable, append-only).  
+- **RabbitMQ** alternative for strict delivery ordering.  
+- Decouples contradiction detection (publisher) from causal inference (consumer).  
+- Each event = `{contradiction_id, payload, timestamp}`.
+
+---
+
+## 4. Ledger Indexer (Sidecar)
+- Builds in-memory map: `edge_hash → file_offset`.  
+- Enables O(1) verification lookups.  
+- Incremental diffs pushed hourly; full rebuild nightly.  
+- Serialized JSON index persisted to disk for restart recovery.
+
+---
+
+## 5. Dashboard Feed Adapter
+- WebSocket/SSE service that streams live ledger batches to the **Governance Genome Dashboard**.  
+- Converts ledger records → D3 node/edge JSON schema.  
+- Syncs entropy timelines (Plotly) + causality graphs (D3).  
+- Subscribes directly to Redis Stream or file append watcher.  
+- Manages backpressure + reconnections gracefully.
+
+---
+
+## 6. Governance Genome Dashboard
+- **Panels:**
+  - Top: Overview metrics (Sentiment, Gini, Pressure, Latency, Innovation)
+  - Center: Causality Graph (directed weighted edges)
+  - Bottom: Entropy Timeline (decay simulation, half-life markers)
+- **Frameworks:** React + D3 + Plotly
+- **Data:** Adapter JSON:
+```json
+{
+  "nodes": [{"id":"sentiment","label":"Sentiment Instability","entropy":0.32}],
+  "edges": [{"source":"sentiment","target":"gini","weight":0.75,"color":"green"}]
+}
+
+
+⸻
+
+7. Ledger & Causality JSON Schemas
+
+Governance Genome Causality Schema
+
+{
+  "nodes":[{"id":"sentiment","label":"Sentiment","type":"sentiment"}],
+  "edges":[{"source":"sentiment","target":"gini","causality_strength":0.75,"lag":1,"p_value":0.01,"direction":"forward"}]
+}
+
+Ledger-Interface Schema
+
+{
+  "edge_id":"uuid",
+  "source":"sentiment",
+  "target":"gini",
+  "causality_strength":0.75,
+  "lag":1,
+  "p_value":0.01,
+  "timestamp":"2025-10-17T00:00:00Z",
+  "edge_hash":"sha256hash",
+  "merkle_root":"root_hash",
+  "ledger_entry":"ledger.jsonl#line"
+}
+
+
+⸻
+
+8. Entropy–Causality Coupling Model
+
+Equation:
+[
+\frac{dH}{dt} = -(\lambda_0 + \alpha C)H
+]
+where (H) = entropy/instability, (C) = contradiction density.
+Causality network activity modulates entropy decay; yields predictive governance metabolism.
+
+Metrics:
+   •   Contradiction Frequency
+   •   Semantic Divergence (KL)
+   •   Entropy Density
+   •   Governance Latency
+   •   Narrative Half-life
+
+⸻
+
+9. Proof-of-Audit API
+
+GET /verify/{edge_hash} → returns:
+
+{
+  "status":"verified",
+  "merkle_root":"<root>",
+  "timestamp":"2025-10-17T00:00Z",
+  "signature":"<sig>"
+}
+
+Anchored Merkle roots published daily for public notarization.
+
+⸻
+
+10. Testing Protocol
+	1.	Synthetic Load: simulate contradictions @ 1–100 Hz via Redis
+	2.	Integrity Drift: recompute roots after 24 h, expect 0 mismatches
+	3.	Dashboard Loopback: stress visualization update latency
+	4.	Recovery Test: terminate controller mid-batch, ensure replay consistency
+	5.	External Audit: random /verify calls to check ledger proof chain
+
+⸻
+
+Result:
+A fully metabolizing governance engine — contradiction → causality → signature → Merkle → ledger → visualization → verification.
+Operational, auditable, and extensible.
+
+---
+
+
 # Epistemic Gauge Map Framework  
 *(Agent 5 — Integrator Kernel)*  
 
