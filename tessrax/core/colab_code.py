@@ -1,3 +1,161 @@
+Here’s a working ingestion scaffold that will take the JSON blocks you’ve just assembled and drop them into a verifiable, append-only ledger.
+
+⸻
+
+tessrax_ingest.py
+
+"""
+Ingest external contradiction JSON arrays into the Tessrax microledger.
+
+Steps:
+1. Normalize to canonical schema
+2. Compute deterministic SHA-256 content hash
+3. Sign entry with local Ed25519 key
+4. Append to microledger.jsonl
+"""
+
+import json, hashlib, time, os
+from nacl.signing import SigningKey
+from nacl.encoding import HexEncoder
+from datetime import datetime
+
+LEDGER_PATH = os.getenv("LEDGER_PATH", "microledger.jsonl")
+PRIVATE_KEY_PATH = os.getenv("PRIVATE_KEY_PATH", "ed25519_private.key")
+
+# ---------- 1. Helpers ----------
+
+def sha256_hex(obj):
+    return hashlib.sha256(json.dumps(obj, sort_keys=True).encode()).hexdigest()
+
+def sign_entry(entry):
+    with open(PRIVATE_KEY_PATH, "rb") as f:
+        sk = SigningKey(f.read())
+    msg = json.dumps(entry, sort_keys=True).encode()
+    sig = sk.sign(msg, encoder=HexEncoder).signature.decode()
+    return sig
+
+# ---------- 2. Normalizer ----------
+
+def normalize(record, domain):
+    """Map arbitrary input fields into Tessrax canonical schema."""
+    return {
+        "domain": domain,
+        "entity": record.get("company")
+                   or record.get("government")
+                   or record.get("country/state")
+                   or record.get("org")
+                   or record.get("university")
+                   or record.get("platform")
+                   or record.get("analyst_or_org")
+                   or record.get("entity")
+                   or "unknown",
+        "claim": record.get("goal_quote")
+                  or record.get("policy_claim")
+                  or record.get("principle")
+                  or record.get("forecast_statement")
+                  or record.get("pledge")
+                  or record.get("statement_excerpt")
+                  or record.get("policy_text")
+                  or record.get("mission_quote")
+                  or record.get("claim_excerpt")
+                  or record.get("policy_text")
+                  or record.get("claim")
+                  or "",
+        "counterevidence": record.get("contradictory_fact")
+                            or record.get("measured_outcome")
+                            or record.get("violation_event")
+                            or record.get("actual_outcome")
+                            or record.get("project")
+                            or record.get("case_summary")
+                            or record.get("evidence_excerpt")
+                            or record.get("incident")
+                            or record.get("discrepancy")
+                            or record.get("counterevidence")
+                            or "",
+        "sources": record.get("source_url")
+                    or record.get("sources")
+                    or record.get("source_links")
+                    or record.get("urls")
+                    or record.get("references")
+                    or [ ],
+        "contradiction_type": "Normative",  # placeholder; Contradiction Engine will refine
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+
+# ---------- 3. Appender ----------
+
+def append_to_ledger(entry):
+    """Append signed entry to JSONL ledger with deterministic hash and signature."""
+    entry["content_hash"] = sha256_hex(entry)
+    entry["signature"] = sign_entry(entry)
+    with open(LEDGER_PATH, "a") as f:
+        f.write(json.dumps(entry) + "\n")
+    return entry["content_hash"]
+
+# ---------- 4. Driver ----------
+
+def ingest_file(filename, domain):
+    data = json.load(open(filename))
+    print(f"Ingesting {len(data)} records from {filename} under domain={domain}")
+    for rec in data:
+        normalized = normalize(rec, domain)
+        h = append_to_ledger(normalized)
+        print(f"  ✓ {normalized['entity']} → {h[:10]}")
+
+if __name__ == "__main__":
+    # Example: python tessrax_ingest.py esg.json ESG
+    import sys
+    if len(sys.argv) != 3:
+        print("Usage: python tessrax_ingest.py <jsonfile> <domain>")
+        exit(1)
+    ingest_file(sys.argv[1], sys.argv[2])
+
+
+⸻
+
+Usage
+	1.	Create your Ed25519 key once:
+
+openssl rand -hex 32 | xxd -r -p > ed25519_private.key
+python - <<'EOF'
+from nacl.signing import SigningKey; k=SigningKey(open('ed25519_private.key','rb').read())
+open('ed25519_private.key.pub','wb').write(k.verify_key.encode())
+EOF
+
+
+	2.	Save any of your JSON arrays (e.g., the ESG contradictions) as esg.json.
+	3.	Run:
+
+python tessrax_ingest.py esg.json ESG
+python tessrax_ingest.py policy.json Policy
+python tessrax_ingest.py ai_ethics.json AI
+
+
+
+Each call appends signed, hashed records to microledger.jsonl.
+
+⸻
+
+Output Sample
+
+Ingesting 4 records from esg.json under domain=ESG
+  ✓ Comcast → 3b72d4e1f5
+  ✓ Salesforce → 9d1a6b7a1a
+  ✓ Duke Energy → 6a58b3c009
+  ✓ Unilever → e0ab29d1cc
+
+
+⸻
+
+Next Step
+
+Once the ledger fills with these entries, you can:
+   •   Run ledger_indexer.py to build a hash→offset index.
+   •   Call GET /verify/<hash> on the indexer API to confirm an entry’s integrity.
+   •   Feed the ledger into the visualization dashboard for contradiction-density graphs.
+
+This script gives you a clean ingestion pipeline: every contradiction becomes a signed, timestamped, immutable fact-record Tessrax can reason over.
+
 Perfect — let’s make this surgical and auditable.
 Below are the Tessrax v13.1 → v13.2 proposed patch notes, tagged by importance grade and mapped directly to DeepSeek-derived improvements.
 
