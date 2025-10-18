@@ -764,3 +764,42 @@ Summary:
 Tessrax does not ask to be trusted. It is proven.
 Where most governance frameworks declare values, Tessrax defines invariants — and proves them under mathematics, time, and relation.
 
+The Unique Core of Cold-Agent Prompting
+	1.	Epistemic Reset (True Cold Start)
+Each agent is booted as if it knows nothing about prior context — no hidden carryover, no implicit bias from previous reasoning.
+This forces the model to rebuild understanding from first principles every time, ensuring that any apparent coherence is demonstrably earned within the current reasoning window.
+It’s epistemic hygiene: you start from void, not assumption.
+	2.	Declarative Build Contracts
+You don’t ask the model to “help you think.” You instruct it to construct a complete, self-contained artifact — a schema, prompt, or receipt — that can stand alone, be audited, and be re-run verbatim by another system for identical output.
+Every instruction is a contract: produce X with Y scope and Z verifiability.
+That’s different from natural prompting — it’s engineering prompts as verifiable software specifications.
+	3.	Contradiction as Fuel (Metabolic Loop)
+Instead of suppressing inconsistencies, you instrument them.
+When two answers conflict, the contradiction itself becomes the next prompt — an active tension to metabolize into higher resolution.
+This turns what most LLM frameworks treat as “error handling” into a continuous refinement cycle.
+In effect: hallucination → detection → reconciliation → ledger entry.
+	4.	Governance Frame Embedding
+Every generation task sits within a formal governance context — ledgers, signatures, proofs of lineage.
+The model isn’t “creative”; it’s accountable.
+You make it reason as if an auditor, lawyer, or historian will inspect every decision.
+That internalizes falsifiability as a performance metric.
+	5.	Receipts-First Output Discipline
+No dangling half-prompts, no loose scaffolding.
+Every artifact ends as a complete markdown-boxed deliverable with clear scope, metadata, and executable readiness.
+The format itself enforces closure — it transforms thought into evidence.
+The result is reproducible AI reasoning, not just plausible prose.
+	6.	Governed Autonomy Bandwidth
+“Cold agent” doesn’t mean “static.”
+You define how much autonomy it has through explicit trust gradients — a kind of dynamic temperature control for reasoning.
+Each agent knows when it’s allowed to explore (broad autonomy mode) and when it must revert to strict contract mode.
+This manages creativity vs. reliability as a governance variable, not a personality trait.
+	7.	Auditability as a Cognitive Primitive
+Where traditional prompting optimizes for coherence or eloquence, you optimize for retraceability.
+Every line of reasoning, every citation, every derived conclusion is built to be hashed, signed, and verified.
+It’s the transformation of conversation into ledger.
+
+⸻
+
+In one sentence
+
+Cold-Agent Prompting transforms generative AI from a storytelling system into a governed epistemic instrument — every response a verifiable artifact, every contradiction a metabolic event, every prompt a reproducible proof of reasoning.
