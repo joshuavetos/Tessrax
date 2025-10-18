@@ -1,3 +1,145 @@
+
+⸻
+
+🧩 1. Dockerfile.exporter
+
+FROM python:3.11-slim
+WORKDIR /app
+COPY exporter.py requirements.txt ./
+RUN pip install -r requirements.txt
+EXPOSE 8000
+CMD ["python", "exporter.py"]
+
+🧩 2. requirements.txt
+
+prometheus_client
+numpy
+scikit-learn
+transformers
+torch
+
+
+⸻
+
+🧠 3. exporter.py  – entropy & synthetic signature sampler
+
+import os, time, hashlib, glob
+import numpy as np
+from prometheus_client import start_http_server, Gauge
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+# lightweight synthetic detector (fine-tuned GPT-detector or similar)
+tokenizer = AutoTokenizer.from_pretrained("roberta-base-openai-detector")
+model = AutoModelForSequenceClassification.from_pretrained("roberta-base-openai-detector")
+
+synthetic_ratio = Gauge("tessrax_synthetic_ratio", "Fraction of synthetic texts")
+entropy_health = Gauge("tessrax_entropy_health", "Mean entropy delta vs baseline")
+recursion_density = Gauge("tessrax_recursion_density", "Machine-on-machine citation ratio")
+
+def text_entropy(text):
+    tokens = text.split()
+    probs = np.array([1/len(set(tokens))]*len(set(tokens)))
+    return -np.sum(probs * np.log(probs))
+
+def analyze_corpus(path="corpus/*.txt"):
+    files = glob.glob(path)
+    synth, entropies, recurse = 0, [], 0
+    for f in files:
+        txt = open(f, encoding="utf-8", errors="ignore").read()[:4000]
+        inputs = tokenizer(txt, return_tensors="pt", truncation=True)
+        score = float(model(**inputs).logits.softmax(dim=1)[0,1])
+        synth += score > 0.5
+        entropies.append(text_entropy(txt))
+        recurse += txt.count("ChatGPT") + txt.count("AI-generated")
+    total = max(len(files),1)
+    return synth/total, np.mean(entropies)-np.std(entropies), recurse/total
+
+def collect_loop():
+    while True:
+        sr, eh, rd = analyze_corpus()
+        synthetic_ratio.set(sr)
+        entropy_health.set(eh)
+        recursion_density.set(rd)
+        time.sleep(60)
+
+if __name__ == "__main__":
+    start_http_server(8000)
+    collect_loop()
+
+Drop any .txt files into a subfolder named corpus/.
+They become your local “web sample”.
+
+⸻
+
+🗂️ 4. docker-compose.yml
+
+version: "3.9"
+services:
+  exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile.exporter
+    volumes:
+      - ./corpus:/app/corpus
+    ports: ["8000:8000"]
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    ports: ["3000:3000"]
+
+
+⸻
+
+📜 5. prometheus.yml
+
+global:
+  scrape_interval: 30s
+scrape_configs:
+  - job_name: 'tessrax_synthetic'
+    static_configs:
+      - targets: ['exporter:8000']
+
+
+⸻
+
+📊 6. Grafana setup (import manually)
+
+After docker-compose up -d, open http://localhost:3000.
+Add Prometheus datasource (http://prometheus:9090) and create panels:
+
+Title	Query	Viz Type
+Synthetic Ratio	tessrax_synthetic_ratio	Line
+Entropy Health	tessrax_entropy_health	Gauge (green ≥ 0)
+Recursive Density	tessrax_recursion_density	Heatmap
+
+
+⸻
+
+🚀 7. Run it
+
+docker-compose up -d
+
+Then drop new .txt corpora into corpus/ and watch the dashboard evolve.
+Each minute it recomputes metrics and pushes to Prometheus.
+
+⸻
+
+🔍 What You’ll See
+   •   When you mix human essays and LLM outputs, synthetic_ratio jumps toward 1.
+   •   If all files start looking alike, entropy_health declines (entropy collapse).
+   •   If AI texts cite AI phrases, recursion_density climbs—your first view of informational recursion.
+
+⸻
+
+Once this static prototype runs cleanly, you can replace the corpus/ folder with a live crawler feed or news-API pipeline; the rest of the system stays identical.
+Would you like me to generate that crawler container next (so it auto-feeds fresh text daily from selected sites)?
+
 Here’s a ready-to-use schema and skeleton to add a Synthetic-Content Provenance Ledger into Tessrax.
 It’s designed to plug straight into your existing contradiction-ledger pipeline.
 
