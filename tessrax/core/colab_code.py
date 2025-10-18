@@ -1,3 +1,121 @@
+Those three upgrades are exactly the sort of refinements that turn a cryptographic audit loop into an independently verifiable trust instrument.
+Here’s what each entails and how to bolt them on cleanly.
+
+⸻
+
+1. Ed25519 signing of each receipt  [Importance: Critical 🚨]
+
+Goal: bind every test receipt to a specific signer identity (you or Tessrax).
+Without it: anyone with filesystem access could forge or delete receipts without detection.
+
+Implementation sketch:
+
+# signer.py
+import nacl.signing, nacl.encoding
+
+# Create or load keys
+def load_signer():
+    key_file = "keys/ed25519.key"
+    if not Path(key_file).exists():
+        sk = nacl.signing.SigningKey.generate()
+        Path("keys").mkdir(exist_ok=True)
+        Path(key_file).write_bytes(sk.encode())
+    else:
+        sk = nacl.signing.SigningKey(Path(key_file).read_bytes())
+    return sk
+
+def sign_receipt(receipt_json: str) -> str:
+    sk = load_signer()
+    signed = sk.sign(receipt_json.encode("utf-8"),
+                     encoder=nacl.encoding.HexEncoder)
+    return signed.signature.hex()
+
+def verify_signature(receipt_json: str, signature: str, pubkey_hex: str) -> bool:
+    vk = nacl.signing.VerifyKey(pubkey_hex, encoder=nacl.encoding.HexEncoder)
+    try:
+        vk.verify(receipt_json.encode("utf-8"),
+                  bytes.fromhex(signature))
+        return True
+    except Exception:
+        return False
+
+Add these fields to each receipt:
+
+{
+  "signature": "<hex>",
+  "signer_public_key": "<hex>"
+}
+
+Each CI runner would use its own key; Tessrax’s ledger can reject unsigned or invalid receipts automatically.
+
+⸻
+
+2. Remote anchoring of Merkle roots [Importance: High 🔥]
+
+Goal: store a timestamped fingerprint of each verified batch outside your infrastructure—proof of existence independent of you.
+Without it: an attacker could tamper with your local ledger before audit.
+
+Simplest version: use OpenTimestamps or Witnet CLI.
+
+# after python receipt_verifier.py
+ots stamp receipts/verification_report.json
+ots upgrade receipts/verification_report.json.ots
+
+For API-based anchoring (inside append_to_ledger):
+
+import requests
+requests.post(
+  "https://api.opentimestamps.org/v1/submit",
+  files={"file": open("receipts/verification_report.json","rb")}
+)
+
+Store the remote receipt hash or proof URL in the ledger event:
+
+"data": {
+  "merkle_root": "...",
+  "anchor_proof": "https://ots.proof/abcd1234"
+}
+
+
+⸻
+
+3. Grafana panel for Integrity %  [Importance: Medium ⚖️]
+
+Goal: visualize trust stability—green line flat = no drift.
+Without it: you have proofs, but no continuous observability.
+
+Approach:
+	1.	Expose a Prometheus endpoint (e.g., metrics.py):
+
+from prometheus_client import Gauge, start_http_server
+integrity_gauge = Gauge("tessrax_integrity_percent",
+                        "Percentage of verified receipts")
+def update_metrics(stats):
+    passed = stats["passed"]
+    total = stats["total_tests"]
+    integrity_gauge.set((passed/total)*100)
+start_http_server(9100)
+
+	2.	Grafana panel query:
+
+tessrax_integrity_percent
+
+Plot over time. If the line ever dips, you know exactly when test integrity degraded.
+
+⸻
+
+Combined Effect
+
+After these upgrades:
+   •   Every test receipt is signed, so identity and authenticity are provable.
+   •   Every batch’s Merkle root is anchored externally, so time and existence are provable.
+   •   The Grafana panel gives live situational awareness—you can watch integrity trend like a vital sign.
+
+Together they complete the Tessrax Proof Loop:
+Execution → Signature → Merkle Root → External Anchor → Visual Integrity.
+
+That’s a full trust chain from code to cosmos—machine-verifiable, human-readable, and beautiful to watch tick in real time.
+
 """
 test_receipts.py – Governance-aware test receipt verification
 
