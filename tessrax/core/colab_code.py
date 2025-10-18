@@ -1,3 +1,1450 @@
+# Tessrax Judgment Engine - System Architecture Specification
+
+***
+
+## 1. High-Level System Diagram (Text Mermaid Syntax)
+
+```mermaid
+graph TD
+    UserPrompt -->|Input| PromptProcessor
+    PromptProcessor -->|Parsing| DecisionEngine
+    DecisionEngine -->|Decide| ResetLogic & ContinuationLogic
+    ResetLogic -->|Reset| EpistemicReset
+    ContinuationLogic -->|Proceed| ModuleRunner
+    ModuleRunner -->|Execute modules:| ScriptWriter
+    ModuleRunner -->|Invoke| Evaluation & ContradictionMetabolism
+    ModuleRunner -->|Chain| CompletenessEval
+    ModuleRunner -->|Audit| Grip & Trace
+    ModuleRunner -->|Update Ledger| Ledger
+    Ledger -->|Store & Verify| ProvenanceAndTraceability
+    ModuleRunner -->|Stream preview frames| VideoPreview
+    Evaluation & ContradictionMetabolism -->|Feed results| DecisionEngine
+    FinalOutputs & Artifacts -->|Present| User
+```
+
+## 2. Module List with Purpose, Interfaces, and Data Flow
+
+| Module Name                     | Purpose                                                             | Interface / Data Flow                                              |
+|---------------------------------|----------------------------------------------------------------------|-------------------------------------------------------------------|
+| **PromptProcessor**             | Parses user prompt to structured directives                          | Inputs: user prompt; Outputs: structured intent + initial state  |
+| **DecisionEngine**              | Decides whether to reset epistemically or continue based on thresholds | Inputs: prompt intent, past states; Outputs: decision flags      |
+| **ResetLogic/EpistemicReset**   | Performs a reset of agent context when needed                        | Inputs: decision trigger; Outputs: reset signal/metadata        |
+| **ModuleRunner**                | Orchestrates calling modules like ScriptWriter, VideoGen, LipSync, Composer | Inputs: decisions; Outputs: media files, process status          |
+| **ScriptWriter**                | Generates script/Storyboard from prompt                             | Inputs: prompt; Outputs: script JSON, metadata                     |
+| **VoicePipeline**               | Synthesizes voice audio                                              | Inputs: script; Outputs: audio files, hashes                        |
+| **SceneGenerator**              | Creates video clips based on script and style references             | Inputs: scene descriptions; Outputs: clip paths & hashes          |
+| **LipSync & Animation**           | Aligns lip movements with audio                                  | Inputs: video + audio; Outputs: lip-synced video clips            |
+| **Composer**                    | Assembles scenes, overlay effects, subtitles, and sound effects   | Inputs: clips, audio, subtitles; Outputs: final video file        |
+| **Ledger**                      | Stores cryptographic signatures, hashes, provenance info           | Inputs: event data; Outputs: signed ledgers, verification proofs |
+| **Evaluation & Contradiction Metabolism** | Detects contradictions, evaluates completeness | Inputs: module outputs; Outputs: verdicts, metrics                |
+| **Provenance & Traceability**   | Ensures audit trail and verifies chain integrity                     | Inputs: ledger data; Implementation: cryptographic chain validation |
+| **VideoPreview (Streaming)**    | Streams frames in real-time for preview                            | Inputs: live frames; Outputs: visualization in frontend          |
+
+*Data flows from Prompt → Decision → Modules → Ledger → Final Output, with feedback loops for verification and metabolizing contradictions.*
+
+## 3. JSON Schema for "Judgment Protocol"
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "decision_criteria": {
+      "type": "string",
+      "description": "Thresholds or rules for reset vs continuation"
+    },
+    "thresholds": {
+      "type": "object",
+      "properties": {
+        "completeness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "falsifiability": { "type": "number", "minimum": 0, "maximum": 1 },
+        "contradiction_score": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["completeness", "falsifiability", "contradiction_score"]
+    },
+    "evaluation_metrics": {
+      "type": "object",
+      "properties": {
+        "completeness": { "type": "number", "description": "Coverage of task" },
+        "falsifiability": { "type": "number", "description": "Testability of outputs" },
+        "audit_trace": { "type": "string", "description": "Link to audit trail" }
+      },
+      "required": ["completeness", "falsifiability", "audit_trace"]
+    },
+    "thresholds": {
+      "type": "object",
+      "properties": {
+        "reset": { "type": "number", "minimum": 0, "maximum": 1 },
+        "continue": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["reset", "continue"]
+    }
+  },
+  "required": ["decision_criteria", "thresholds", "evaluation_metrics"]
+}
+```
+
+## 4. Storage Plan for Judgments in a Verifiable Ledger
+
+- Each judgment entry is appended as a JSON line with fields: `decision`, `criteria`, `metrics`, `timestamp`, `module`, `signature`.
+- Sign each entry cryptographically (Ed25519) using a central or distributed signing key.
+- Store in a tamper-evident ledger (e.g., append-only log or Merkle chain).
+- Use cryptographic hashes of each entry to ensure chain integrity.
+- Provide a CLI tool for verification, which reconstructs and validates the chain from stored entries.
+
+***
+
+**Summary**: This design formalizes discernment as modular, stateless components with transparent decision criteria; ensures auditability via cryptographic signatures; and supports meta-learning by logging graded examples. Ready for detailed engineering implementation!
+
+Sources
+[1] AI Agent Architectures: Patterns, Applications, and Guide - DZone https://dzone.com/articles/ai-agent-architectures-patterns-applications-guide
+[2] AI Agent Orchestration Patterns - Azure Architecture Center https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns
+[3] Enterprise Agentic Architecture and Design Patterns https://architect.salesforce.com/fundamentals/enterprise-agentic-architecture
+[4] Common Agentic AI Architecture patterns - DEV Community https://dev.to/knitesh/common-agentic-ai-architecture-patterns-522d
+[5] Choose a design pattern for your agentic AI system - Google Cloud https://cloud.google.com/architecture/choose-design-pattern-agentic-ai-system
+[6] AI Architecture Patterns 101: Workflows, Agents, MCPs, and A2A ... https://aipmguru.substack.com/p/ai-architecture-patterns-101-workflows
+[7] 5 Most Popular Agentic AI Design Patterns in 2025 https://www.azilen.com/blog/agentic-ai-design-patterns/
+[8] Orchestrator. An architectural metapattern - ITNEXT https://itnext.io/orchestrator-0708881ffdb1
+
+{
+  "JudgmentProtocolSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Tessrax Judgment Protocol",
+    "description": "Schema specifying decision criteria for epistemic reset, completeness, contradiction evaluation, and iteration control.",
+    "type": "object",
+    "properties": {
+      "criteria": {
+        "type": "array",
+        "description": "List of decision criteria applied in judgment",
+        "items": {
+          "type": "object",
+          "properties": {
+            "variable_name": {
+              "type": "string",
+              "description": "Name of the metric or variable"
+            },
+            "description": {
+              "type": "string",
+              "description": "Explanation of what the criterion measures"
+            },
+            "evaluation_method": {
+              "type": "string",
+              "description": "Method used for evaluation (e.g. rule, heuristic, metric)"
+            },
+            "threshold_range": {
+              "type": "object",
+              "properties": {
+                "min": { "type": "number" },
+                "max": { "type": "number" }
+              },
+              "description": "Acceptable numeric range or threshold"
+            },
+            "example_pass": {
+              "type": "string",
+              "description": "Example scenario or value that passes this criterion"
+            },
+            "example_fail": {
+              "type": "string",
+              "description": "Example scenario or value that fails this criterion"
+            }
+          },
+          "required": [
+            "variable_name",
+            "description",
+            "evaluation_method",
+            "threshold_range",
+            "example_pass",
+            "example_fail"
+          ]
+        }
+      }
+    },
+    "required": ["criteria"]
+  },
+  "OperationalGuide": {
+    "Overview": "The Tessrax Judgment Protocol guides autonomous decisions on epistemic resets, artifact completeness, contradiction productivity, and iteration control through defined, transparent criteria.",
+    "CriteriaDescriptions": [
+      {
+        "variable_name": "epistemic_reset_trigger",
+        "description": "Indicates when model state/history should be reset to avoid entrenchment or stale knowledge.",
+        "evaluation_method": "Heuristic: triggered when contradiction_score exceeds 0.75 or completeness falls below 0.6",
+        "threshold_range": { "min": 0.0, "max": 1.0 },
+        "example_pass": "Contradiction score is 0.9, reset triggered.",
+        "example_fail": "Contradiction score is 0.3, no reset needed."
+      },
+      {
+        "variable_name": "completeness_score",
+        "description": "Quantifies how fully the current artifact addresses the defined task or prompt.",
+        "evaluation_method": "Metric: ratio of covered subtasks to total subtasks using coverage heuristics",
+        "threshold_range": { "min": 0.8, "max": 1.0 },
+        "example_pass": "Completeness score 0.85 indicates near full coverage.",
+        "example_fail": "Completeness score 0.5 suggests incomplete artifact."
+      },
+      {
+        "variable_name": "contradiction_productivity",
+        "description": "Measures whether contradictions found move understanding forward vs. noise or error.",
+        "evaluation_method": "Rule-based: contradiction impact > 0.6 and tied to novel information implies productive",
+        "threshold_range": { "min": 0.6, "max": 1.0 },
+        "example_pass": "Contradiction highlights a valid knowledge gap and triggers new learning.",
+        "example_fail": "Contradiction arises from noise or irrelevant data; ignored."
+      },
+      {
+        "variable_name": "iteration_decision_score",
+        "description": "Controls whether to continue iterative refinement or terminate process.",
+        "evaluation_method": "Heuristic + Metric: terminate if completeness > 0.95 and falsifiability > 0.9, else continue",
+        "threshold_range": { "min": 0.0, "max": 1.0 },
+        "example_pass": "Completeness 0.97 and falsifiability 0.95 → terminate iteration.",
+        "example_fail": "Completeness 0.7 and falsifiability 0.6 → continue iteration."
+      }
+    ],
+    "UsageForAuditors": [
+      "1. Review each criterion's definition and rationale for thresholds.",
+      "2. During audits, check recorded variable values against these thresholds for each judgment entry.",
+      "3. Validate that evaluation methods are correctly applied and documented in logs.",
+      "4. Ensure that any epistemic resets and iteration decisions correspond to triggered criteria.",
+      "5. Confirm contradictions flagged as productive align with contradiction_productivity metric and rule logic.",
+      "6. Use falsifiability and completeness metrics to verify that the system produces testable, comprehensive outputs.",
+      "7. Query the verifiable ledger for timestamps and signatures to confirm audit trail integrity."
+    ]
+  }
+}
+```
+
+---
+
+### Explanation
+
+- **JSON schema** formalizes all criteria: variable name, qualitative description, evaluation method, numeric threshold range, and concrete examples of pass/fail for clarity.
+- The **operational guide** explains in plain language each criterion's intent and how an auditor can verify the system's judgment correctness using recorded metrics and process logs.
+- This specification supports **transparent, auditable, and falsifiable meta-decisions**, essential for trusted autonomous governance in Tessrax.
+
+The artifact is self-contained and suitable for integration in engineering workflows and governance audit processes.
+
+Sources
+[1] Creating your first schema - JSON Schema https://json-schema.org/learn/getting-started-step-by-step
+[2] sourcemeta/awesome-jsonschema: A curated list of ... - GitHub https://github.com/sourcemeta/awesome-jsonschema
+[3] Document AI Example Schemas - Salesforce Help https://help.salesforce.com/s/articleView?id=data.c360_a_document_ai_schema_ref.htm&language=en_US&type=5
+[4] Understanding the Role of Big Data JSON Schema in AI Model ... https://coda.io/@peter-sigurdson/lecture-understanding-the-role-of-big-data-json-schema-in-ai-mod
+[5] [2508.05192] AI-assisted JSON Schema Creation and Mapping - arXiv https://www.arxiv.org/abs/2508.05192
+[6] guidance-ai/llguidance: Super-fast Structured Outputs - GitHub https://github.com/guidance-ai/llguidance
+[7] AI_COMPLETE structured outputs - Snowflake Documentation https://docs.snowflake.com/en/user-guide/snowflake-cortex/complete-structured-outputs
+[8] Introducing JSON Schemas for AI Data Integrity - DEV Community https://dev.to/stephenc222/introducing-json-schemas-for-ai-data-integrity-611
+[9] AI SDK Core: jsonSchema https://ai-sdk.dev/docs/reference/ai-sdk-core/json-schema
+[10] Using JSON Schema with OpenAPI - Tyk API Management https://tyk.io/learning-center/openapi-json-schema/
+
+```python
+import json
+import logging
+import numpy as np
+
+logging.basicConfig(level=logging.INFO)
+
+class JudgmentLearningLoop:
+    def __init__(self, criteria_names):
+        # Initialize heuristic weights (one weight per criterion)
+        self.criteria_names = criteria_names
+        self.weights = np.ones(len(criteria_names))  # start equal weights, can be randomized
+        self.discernment_vector = np.zeros(len(criteria_names))
+        self.history = []
+
+    def ingest_example(self, example):
+        """
+        Ingests a graded example: dict with:
+          - 'prompt': str
+          - 'output': any (not used directly here)
+          - 'scores': dict mapping criterion name to value [0.0-1.0]
+          - 'evaluation_score': float [0.0-1.0], quality of output given prompt
+
+        Stores example for training and updates weights & discernment.
+        """
+        # Validate example
+        assert all(k in example['scores'] for k in self.criteria_names), "Missing criteria scores"
+
+        criteria_values = np.array([example['scores'][c] for c in self.criteria_names])
+        overall_score = example['evaluation_score']
+
+        # Log ingestion
+        logging.info(f"Ingesting example with eval score {overall_score:.3f} and criteria {criteria_values}")
+
+        # Store for history auditing
+        self.history.append({'scores': criteria_values, 'eval_score': overall_score})
+
+        # Update heuristic weights via simple gradient step to minimize error in evaluation_score prediction
+        pred_score = np.dot(self.weights, criteria_values)
+        error = overall_score - pred_score
+        learning_rate = 0.1
+        grad = -2 * error * criteria_values  # Gradient of squared error loss
+        self.weights = self.weights - learning_rate * grad
+
+        # Update discernment vector as weighted sum of criteria
+        self.discernment_vector = criteria_values * self.weights
+
+        logging.info(f"Updated weights: {self.weights}")
+        logging.info(f"Updated discernment vector: {self.discernment_vector}")
+
+    def make_recommendation(self):
+        """
+        Uses discernment vector to output a recommendation:
+          - reset if epistemic reset trigger crit > 0.75
+          - complete if completeness > 0.9 and falsifiability > 0.85
+          - refine if contradiction_productivity > 0.6
+          - continue otherwise
+        """
+        # Unpack indices from criteria names
+        idx = {name: i for i, name in enumerate(self.criteria_names)}
+        dv = self.discernment_vector
+
+        if dv[idx.get("epistemic_reset_trigger", 0)] > 0.75:
+            recommendation = "reset"
+        elif dv[idx.get("completeness_score", 1)] > 0.9 and dv[idx.get("falsifiability_score", 2)] > 0.85:
+            recommendation = "complete"
+        elif dv[idx.get("contradiction_productivity", 3)] > 0.6:
+            recommendation = "refine"
+        else:
+            recommendation = "continue"
+
+        logging.info(f"Recommendation based on discernment vector: {recommendation}")
+        return recommendation
+
+# Example usage
+
+if __name__ == "__main__":
+    criteria = [
+        "epistemic_reset_trigger",
+        "completeness_score",
+        "falsifiability_score",
+        "contradiction_productivity"
+    ]
+
+    learner = JudgmentLearningLoop(criteria)
+
+    # Example dataset: list of graded examples
+    graded_examples = [
+        {
+            "prompt": "Write a short story about AI.",
+            "output": "...",
+            "scores": {
+                "epistemic_reset_trigger": 0.1,
+                "completeness_score": 0.95,
+                "falsifiability_score": 0.9,
+                "contradiction_productivity": 0.2
+            },
+            "evaluation_score": 0.9  # High quality output
+        },
+        {
+            "prompt": "Explain quantum computing.",
+            "output": "...",
+            "scores": {
+                "epistemic_reset_trigger": 0.8,
+                "completeness_score": 0.6,
+                "falsifiability_score": 0.4,
+                "contradiction_productivity": 0.1
+            },
+            "evaluation_score": 0.3  # Poor output, likely requires reset
+        }
+    ]
+
+    for example in graded_examples:
+        learner.ingest_example(example)
+
+    rec = learner.make_recommendation()
+    print(f"Final recommendation: {rec}")
+```
+
+***
+
+### Explanation
+
+- The **JudgmentLearningLoop** class models a simple meta-learning process to tune heuristic weights associated with each judgment criterion.
+- It ingests graded examples pairing cold-agent outputs with evaluation scores and corresponding criterion values.
+- The learning objective is minimizing squared error between predicted and true evaluation scores, controlling epistemic drift by adapting weights.
+- The **discernment vector** is a weighted combination representing orchestrator state and drives downstream reset/refine/continue decisions.
+- All updates and decisions are logged for audit, supporting future traceability and reproducibility.
+- This prototype uses a simple linear regression gradient step; extensible to richer models as needed.
+
+This implementation serves as a foundation for embedding learning into Tessrax’s judgment protocols for self-correcting AI governance.
+
+Sources
+[1] UNIT 4: Control Structures: Making Decisions and Looping in ... https://courses.lumenlearning.com/suny-albany-programmingforproblemsolving/chapter/unit-4-control-structures-making-decisions-and-looping-in-computing-data-and-information-processing-in-python/
+[2] Implement Value Iteration in Python - GeeksforGeeks https://www.geeksforgeeks.org/python/implement-value-iteration-in-python/
+[3] Python Control Flow and Loops (Learning Path) - Real Python https://realpython.com/learning-paths/python-control-flow-and-loops/
+[4] Best way to learn loops in python & make it stick? - Reddit https://www.reddit.com/r/learnpython/comments/1cq1t7k/best_way_to_learn_loops_in_python_make_it_stick/
+[5] Python For Beginners Chapter 4 - Loops, Conditionals & Control ... https://www.youtube.com/watch?v=caQn_oFA_5Q
+[6] Python if else, for loop, and range() Exercises with Solutions https://pynative.com/python-if-else-and-for-loop-exercise-with-solutions/
+[7] Python Loops Tutorial Course - Online Learning with Certificate https://codefinity.com/courses/v2/a8aeafab-f546-47e9-adb6-1d97b2927804
+
+```json
+{
+  "TessraxGovernanceKernelLedgerEntrySchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Governance Kernel Ledger Entry - Judgment Decision Event",
+    "description": "Schema for recording Judgment Engine decisions in the Tessrax Governance Kernel ledger.",
+    "type": "object",
+    "properties": {
+      "event_type": {
+        "type": "string",
+        "const": "JUDGMENT_DECISION",
+        "description": "Event type identifier."
+      },
+      "input_context_hash": {
+        "type": "string",
+        "description": "SHA256 hash of the input context prompting the judgment."
+      },
+      "decision_type": {
+        "type": "string",
+        "enum": ["reset", "continue", "iterate", "complete"],
+        "description": "The decision outcome from the orchestrator."
+      },
+      "evaluation_metrics_snapshot": {
+        "type": "object",
+        "description": "Snapshot of evaluation metrics at decision time.",
+        "properties": {
+          "completeness": { "type": "number", "minimum": 0, "maximum": 1 },
+          "falsifiability": { "type": "number", "minimum": 0, "maximum": 1 },
+          "contradiction_score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "other_metrics": {
+            "type": "object",
+            "additionalProperties": { "type": ["number", "string", "boolean"] }
+          }
+        },
+        "required": ["completeness", "falsifiability", "contradiction_score"]
+      },
+      "signature": {
+        "type": "string",
+        "description": "Base64 or hex-encoded Ed25519 signature of the entry hash."
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "UTC timestamp of the judgment decision."
+      },
+      "commentary": {
+        "type": "string",
+        "description": "Optional text commentary for auditors."
+      },
+      "module": {
+        "type": "string",
+        "description": "Name of the orchestrator module issuing this judgment."
+      },
+      "prev_hash": {
+        "type": "string",
+        "description": "Hash linking to prior ledger entry, ensuring chain integrity."
+      },
+      "hash": {
+        "type": "string",
+        "description": "SHA256 hash of this ledger entry (excluding signature)."
+      }
+    },
+    "required": [
+      "event_type",
+      "input_context_hash",
+      "decision_type",
+      "evaluation_metrics_snapshot",
+      "signature",
+      "timestamp",
+      "module",
+      "prev_hash",
+      "hash"
+    ]
+  },
+  "ExampleEntry": {
+    "event_type": "JUDGMENT_DECISION",
+    "input_context_hash": "9a1f8b5e8bb9d4d7e4f9c351446aaf37e57a9a041ca6e5f6e9bc8f53f7d9a9b7",
+    "decision_type": "reset",
+    "evaluation_metrics_snapshot": {
+      "completeness": 0.57,
+      "falsifiability": 0.42,
+      "contradiction_score": 0.83,
+      "other_metrics": {
+        "confidence": 0.79,
+        "entropy": 0.31
+      }
+    },
+    "signature": "3f7d2a1cbe257c6e4f8e49f18d6f9ce8f77f877f5cd2c6780f7e8ef3132c0b62a6c8d4f516d345fa19b6bcc0c6e982ebde1781b10a5272518320e288330175a6",
+    "timestamp": "2025-10-18T12:00:00Z",
+    "commentary": "Reset triggered due to high contradiction score and low completeness.",
+    "module": "JudgmentEngineV2",
+    "prev_hash": "bf5a3e4cd9e91f1e563b7fba2669e8e7ca5c8b1b839d9f8212cfb47e7e9086ac",
+    "hash": "fae2d0485f1c3b7d7b312ab7b2f0a8f216678ac8930680058ef9bc98b3c42a52"
+  },
+  "PolicyRuleForContestedJudgments": {
+    "description": "A quorum of multiple independent JudgmentEngine instances must agree to a judgment within tolerance before it is accepted.",
+    "rule": {
+      "quorum_size": 5,
+      "acceptance_threshold": 0.8,
+      "tolerance": 0.1,
+      "mechanism": "At least quorum_size * acceptance_threshold JudgmentEngines must produce decisions within +/- tolerance on numeric metrics (e.g. contradiction_score) and exact match on decision_type.",
+      "procedure": [
+        "Collect independent judgments from deployed JudgmentEngine instances.",
+        "Compare signatures and hashes for authenticity.",
+        "Compute consensus metrics per criterion.",
+        "If quorum condition met, accept judgment; otherwise defer for human review."
+      ],
+      "justification": "Prevents single-point failures or adversarial manipulation, ensuring robust decision governance."
+    }
+  }
+}
+```
+
+***
+
+### Explanation
+
+- The updated JSON schema extends the ledger to record **JUDGMENT_DECISION** events with cryptographic links and detailed metrics.
+- Example entry showcases a full chain-linked judgment including signature and human-readable commentary.
+- The **policy rule** formalizes the governance quorum requirement for contested judgments, specifying minimal consensus metrics and fallback to manual review.
+- This design ensures strong cryptographic continuity and multi-agent consensus for resilient, auditable AI governance within Tessrax.
+
+Sources
+[1] Introduction — The Linux Kernel documentation https://linux-kernel-labs.github.io/refs/heads/master/lectures/intro.html
+[2] Introduction to Linux Kernel Architecture - YouTube https://www.youtube.com/watch?v=yQ1XPe6gbK8
+[3] Linux Kernel Architecture: A Deep Dive for Beginners - YouTube https://www.youtube.com/watch?v=nfgdJyL-Jmg
+[4] Governance - Glaciation Project https://glaciation-project.eu/governance
+[5] [PDF] UnderStanding The Linux Kernel 3rd Edition - UT Computer Science https://www.cs.utexas.edu/~rossbach/cs380p/papers/ulk3.pdf
+
+```yaml
+# tessrax_orchestrator_policy.yaml
+
+version: 1.0
+policy_name: Meta-Orchestrator Cold-Agent Spawn Policy
+
+triggers:
+  epistemic_reset_trigger:
+    description: "Trigger cold-agent cold-start when contradiction score or uncertainty is high"
+    threshold: 0.75
+  completeness_trigger:
+    description: "Trigger cold-agent if completeness falls below minimal task coverage"
+    threshold: 0.60
+
+bandwidth_allocation:
+  strict_autonomy:
+    max_agents: 1
+    cpu_limit: 2  # cores
+    memory_limit_gb: 4
+    concurrency: low
+  broad_autonomy:
+    max_agents: 5
+    cpu_limit: 8
+    memory_limit_gb: 16
+    concurrency: high
+
+termination_conditions:
+  max_runtime_seconds: 1800  # 30 mins
+  max_iterations: 10
+  achievement_thresholds:
+    completeness: 0.95
+    falsifiability: 0.9
+  manual_intervention_required_if:
+    contradiction_score_above: 0.85
+    unresolved_for_iterations: 3
+
+safety_and_governance_constraints:
+  - "All spawned cold agents must log decisions and evidence for auditing."
+  - "Cold-start allowed only if quorum from judgment engines agrees on reset."
+  - "Resource usage must always comply with bandwidth allocation policies."
+  - "Human-in-the-loop override mandatory on contested judgments."
+  - "Cryptographic provenance recorded for all spawn/terminate events."
+
+---
+
+Narrative Explanation:
+
+- **Triggers:** Epistemic reset triggers cold-agent spawn when contradictions or uncertainty exceed 0.75, or when completeness is insufficient (<0.6), ensuring fresh perspective or additional insight.
+- **Bandwidth Allocation:** Strict autonomy confines resources tightly for sensitive tasks, limiting agent count and compute to reduce risks. Broad autonomy relaxes limits for exploratory or lower-risk scenarios.
+- **Termination Conditions:** Limits imposed by time, iteration count, or high completeness/falsifiability ensure workflow does not run indefinitely. Manual intervention kicks in if contradictions remain unresolved repeatedly.
+- **Safety & Governance Constraints:** Enforced logging, quorum agreement, resource caps, human overrides, and cryptographic proofs guard against system deviations, ensuring accountability and traceability.
+
+---
+
+Example Reasoning Cycle Trace:
+
+1. **User Request:** "Explain climate adaptation tradeoffs."
+2. **Judgment:** Contradiction score detected at 0.8, completeness at 0.55 → meets epistemic reset trigger.
+3. **Cold-Agent Spawn:** Meta-orchestrator allocates strict autonomy bandwidth, launches cold agent with fresh prompt context.
+4. **Agent Execution:** Cold agent generates candidate outputs; logs decision metadata and contradictions.
+5. **Verification:** Judgment engine confirms output completeness now at 0.88; contradiction score reduced to 0.4.
+6. **Decision:** Orchestrator recommends continue+refine iteration → agent proceeds under broad autonomy mode.
+7. **Repeat:** Process repeats until termination conditions met (e.g., completeness > 0.95).
+8. **Ledger Record:** All events cryptographically recorded, quorum of judgment engines confirms reset valid.
+
+This policy defines clear criteria and controls, balancing responsiveness with governance rigor in multi-agent orchestration workflows.
+```
+
+Sources
+[1] AI Orchestration: Definition, How It Works, Benefits & Examples - Domo https://www.domo.com/glossary/ai-agent-orchestration
+[2] AI Orchestration: Best Practices - EPAM SolutionsHub https://solutionshub.epam.com/blog/post/ai-orchestration-best-practices
+[3] A practical guide to agentic AI and agent orchestration - Huron https://www.huronconsultinggroup.com/insights/agentic-ai-agent-orchestration
+[4] AI orchestration: A beginner's guide for 2025 - Sendbird https://sendbird.com/blog/ai-orchestration
+[5] 9 real examples of AI orchestration in business operations - Zapier https://zapier.com/blog/ai-orchestration-use-cases/
+[6] AI Orchestration Explained | Ways to Integrate AI in Your Business https://orkes.io/blog/ai-orchestration-explained/
+[7] AI Orchestration: Unlocking the Full Potential of Your AI Project https://www.bainsight.com/blog/ai-orchestration/
+[8] AI Orchestration: In the age of AI | SS&C Blue Prism https://www.blueprism.com/guides/ai/ai-orchestration/
+
+# Verification Dashboard Blueprint
+
+***
+
+## 1. UI Layout (Streamlit)
+
+- **Header:** "Tessrax Verification Dashboard"
+- **Prompt Input:** Text input for filtering reasoning cycles or judgments
+- **Reasoning Cycles Panel:** Table/list showing current active and recent cycles with timestamps, status, and basic stats
+- **Judgment Decisions Panel:** Expandable, showing decision type, criteria values (completeness, falsifiability, contradiction scores), commentary
+- **Ledger Integrity Section:** Status indicator (Pass/Fail), last verified hash, last ledger timestamp
+- **Contradiction Metabolism Graph:** Interactive network graph showing current contradictions and resolved tensions; latest contradictions highlighted
+- **Real-time Updates:** Auto-refresh or user-triggered refresh button
+
+***
+
+## 2. Backend Data Model
+
+- **ReasoningCycle:**  
+  - id: UUID  
+  - prompt: string  
+  - start_timestamp: ISO datetime  
+  - status: enum(active, completed, error)  
+  - judgment_decision_id: UUID (FK to JudgmentDecision)  
+
+- **JudgmentDecision:**  
+  - id: UUID  
+  - cycle_id: UUID  
+  - decision_type: enum(reset, continue, iterate, complete)  
+  - criteria_values: JSON (completeness, falsifiability, contradiction_score, etc.)  
+  - commentary: string  
+  - timestamp: ISO datetime  
+  - signature: string (cryptographic signature)  
+
+- **LedgerEntry:**  
+  - id: UUID  
+  - entry_hash: string  
+  - prev_hash: string  
+  - event_type: string  
+  - timestamp: ISO datetime  
+  - signature: string  
+
+- **ContradictionNode:**  
+  - id: UUID  
+  - label: string  
+  - status: enum(active, resolved)  
+  - last_updated: ISO datetime  
+
+- **ContradictionEdge:**  
+  - source_node: UUID  
+  - target_node: UUID  
+  - weight: float (impact score)  
+
+***
+
+## 3. API Endpoints (Flask / FastAPI style)
+
+- `GET /api/reasoning_cycles?status=active`  
+  Returns list of active reasoning cycles with basic info
+
+- `GET /api/judgment_decisions?cycle_id=<uuid>`  
+  Returns judgment decision details and criteria values for a reasoning cycle
+
+- `GET /api/ledger/status`  
+  Returns ledger integrity status, last verified hash, timestamps
+
+- `GET /api/contradiction_graph`  
+  Returns JSON graph  nodes, edges, statuses for visualization
+
+- `POST /api/refresh_state`  
+  Trigger backend to refresh current state, recompute ledger verification
+
+***
+
+## 4. Security Notes for Provenance Verification
+
+- All judgment decisions and ledger entries **must be cryptographically signed** using Ed25519 keys.
+- API endpoints must **authenticate requests** with JWT or OAuth tokens.
+- Sensitive metadata like private keys or unverified states are never exposed.
+- Data transmitted must be over **HTTPS/TLS** channels.
+- UI should validate the ledger signatures on retrieval and visually warn on mismatch or breaches.
+- Logs of verification runs and anomalies should be retained for audit.
+- Permissions restrict modification to authorized governance roles only.
+
+***
+
+## Minimal Streamlit Prototype Skeleton
+
+```python
+import streamlit as st
+import requests
+import json
+import time
+
+st.title("Tessrax Verification Dashboard")
+
+filter_status = st.selectbox("Filter Reasoning Cycles", ["active", "completed", "all"])
+
+if filter_status != "all":
+    cycles_resp = requests.get(f"http://backend/api/reasoning_cycles?status={filter_status}")
+else:
+    cycles_resp = requests.get("http://backend/api/reasoning_cycles")
+
+cycles = cycles_resp.json()
+
+st.subheader("Reasoning Cycles")
+for cycle in cycles:
+    with st.expander(f"Cycle {cycle['id']} - Status: {cycle['status']}"):
+        st.write(f"Prompt: {cycle['prompt']}")
+        judgment_resp = requests.get(f"http://backend/api/judgment_decisions?cycle_id={cycle['id']}")
+        judgment = judgment_resp.json()
+        st.write("Decision Type:", judgment["decision_type"])
+        st.write("Criteria Values:", json.dumps(judgment["criteria_values"], indent=2))
+        st.write("Commentary:", judgment.get("commentary", ""))
+        st.write("Timestamp:", judgment["timestamp"])
+        st.write("Signature:", judgment["signature"])
+
+ledger_resp = requests.get("http://backend/api/ledger/status")
+ledger_status = ledger_resp.json()
+st.subheader("Ledger Integrity Status")
+st.write("Status:", ledger_status["status"])
+st.write("Last Verified Hash:", ledger_status["last_verified_hash"])
+st.write("Last Updated:", ledger_status["last_updated"])
+
+st.subheader("Contradiction Metabolism Graph")
+graph_resp = requests.get("http://backend/api/contradiction_graph")
+graph = graph_resp.json()
+
+# Simple graph visualization placeholder
+st.json(graph)
+
+if st.button("Refresh State"):
+    requests.post("http://backend/api/refresh_state")
+    st.experimental_rerun()
+```
+
+***
+
+This blueprint supports a transparent, auditable governance UI enabling operators and auditors to monitor AI reasoning and judgments in real-time with robust cryptographic provenance.
+
+Sources
+[1] Building a dashboard in Python using Streamlit https://blog.streamlit.io/crafting-a-dashboard-app-in-python-using-streamlit/
+[2] Streamlit • A faster way to build and share data apps https://streamlit.io
+[3] Build an AI-Powered Data Dashboard with Python & Streamlit https://www.youtube.com/watch?v=H3sZnfOXM88
+[4] A Guide to Python Flask and Streamlit | by Minimal Devops | Medium https://minimaldevops.com/a-guide-to-python-flask-and-streamlit-8302f0ee76c6
+[5] Creating dashboards with Python? (Dash vs Flask + Plotly vs others) https://www.reddit.com/r/datascience/comments/s1fa3k/creating_dashboards_with_python_dash_vs_flask/
+[6] What is Streamlit? A Complete Guide for Building Data Apps https://www.codecademy.com/article/what-is-streamlit-
+[7] ThirdEye Data Streamlit UI: Build Interactive Python Apps https://thirdeyedata.ai/streamlit-ui/
+
+```python
+# judgment_engine_testing.py - Prototype Test Harness
+
+import numpy as np
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+class JudgmentEngineTester:
+    def __init__(self, judgment_engine, criteria_names):
+        """
+        judgment_engine: instance of JudgmentEngine with method make_decision(criteria_values)
+        criteria_names: list of criterion variable names
+        """
+        self.engine = judgment_engine
+        self.criteria_names = criteria_names
+
+    def run_test(self, dataset):
+        """
+        dataset: list of examples, each is dict:
+          {
+            'scores': {<criterion>: float in [0,1], ...},
+            'expected_decision': one of ['reset', 'continue', 'refine', 'complete']
+          }
+        Returns detailed metrics report.
+        """
+        false_resets = 0
+        drift_failures = 0
+        completeness_diffs = []
+        reproducibility_failures = 0
+
+        for example in dataset:
+            scores = np.array([example['scores'][c] for c in self.criteria_names])
+            expected = example['expected_decision']
+
+            # Single decision
+            decision_1 = self.engine.make_decision(scores)
+            # Repeat for reproducibility test
+            decision_2 = self.engine.make_decision(scores)
+
+            if decision_1 != decision_2:
+                reproducibility_failures += 1
+                logging.warning(f"Reproducibility failure: {decision_1} vs {decision_2}")
+
+            # False-reset: reset when expected != reset
+            if decision_1 == 'reset' and expected != 'reset':
+                false_resets += 1
+
+            # Drift: continue when reset expected
+            if decision_1 != 'reset' and expected == 'reset':
+                drift_failures += 1
+
+            # Completeness scoring accuracy (difference between heuristic used and expected)
+            completeness_input = example['scores'].get('completeness_score', 0)
+            # Simulate engine internal completeness (e.g. weight applied * completeness value)
+            completeness_pred = scores[self.criteria_names.index('completeness_score')] * \
+                                self.engine.weights[self.criteria_names.index('completeness_score')]
+            completeness_diffs.append(abs(completeness_pred - completeness_input))
+
+        total = len(dataset)
+        metrics = {
+            'false_reset_rate': false_resets / total,
+            'drift_tolerance': drift_failures / total,
+            'avg_completeness_score_diff': sum(completeness_diffs) / total,
+            'reproducibility_failures': reproducibility_failures,
+            'total_tests': total
+        }
+
+        logging.info(f"Test summary: {metrics}")
+        return metrics
+
+# Example synthetic dataset of transcript evaluations
+example_dataset = [
+    {
+        'scores': {
+            'epistemic_reset_trigger': 0.8,
+            'completeness_score': 0.5,
+            'falsifiability_score': 0.4,
+            'contradiction_productivity': 0.2
+        },
+        'expected_decision': 'reset'
+    },
+    {
+        'scores': {
+            'epistemic_reset_trigger': 0.3,
+            'completeness_score': 0.85,
+            'falsifiability_score': 0.9,
+            'contradiction_productivity': 0.5
+        },
+        'expected_decision': 'continue'
+    },
+    {
+        'scores': {
+            'epistemic_reset_trigger': 0.2,
+            'completeness_score': 0.95,
+            'falsifiability_score': 0.9,
+            'contradiction_productivity': 0.7
+        },
+        'expected_decision': 'complete'
+    }
+]
+
+# Example JudgmentEngine stub with weights learned/initialized
+class JudgmentEngine:
+    def __init__(self, weights):
+        self.weights = weights
+
+    def make_decision(self, criteria_values):
+        # Simple rule-based decision per prototype in prior queries
+        idx = { "epistemic_reset_trigger": 0,
+                "completeness_score": 1,
+                "falsifiability_score": 2,
+                "contradiction_productivity": 3 }
+        dv = criteria_values * self.weights
+        if dv[idx["epistemic_reset_trigger"]] > 0.75:
+            return 'reset'
+        elif dv[idx['completeness_score']] > 0.9 and dv[idx['falsifiability_score']] > 0.85:
+            return 'complete'
+        elif dv[idx['contradiction_productivity']] > 0.6:
+            return 'refine'
+        else:
+            return 'continue'
+
+if __name__ == "__main__":
+    engine = JudgmentEngine(weights=np.array([1.0,1.0,1.0,1.0]))
+    tester = JudgmentEngineTester(engine, [
+        "epistemic_reset_trigger",
+        "completeness_score",
+        "falsifiability_score",
+        "contradiction_productivity"
+    ])
+    report = tester.run_test(example_dataset)
+    print("Benchmark Report:")
+    for k,v in report.items():
+        print(f"{k}: {v:.3f}")
+
+    # Recommendations for improving discernment calibration:
+    print("\nRecommendations:")
+    print("- Collect more diverse graded examples across edge cases to refine heuristic weights.")
+    print("- Incorporate pairwise judging or ensemble mechanisms to reduce false resets.")
+    print("- Perform periodic recalibration with live operational feedback to minimize drift tolerance.")
+    print("- Include uncertainty estimation to better flag ambiguous cases and reduce reproducibility failures.")
+```
+
+***
+
+### Explanation
+
+- The **test harness** runs judgments on a synthetic dataset of cold-agent transcripts tagged with expected decisions.
+- Computes **false-reset rate**, **drift tolerance**, **completeness score accuracy**, and **reproducibility** (stability of repeated decisions).
+- The **JudgmentEngine** is a simple weighted heuristic combining criteria.
+- **Benchmark metrics** quantify strengths and weaknesses.
+- Recommendations emphasize data diversity, ensemble judging, recalibration, and uncertainty handling.
+
+This prototype supports continuous quality assurance of the Judgment Engine aligned with Tessrax governance goals.
+
+Sources
+[1] Judgment Labs https://judgmentlabs.ai
+[2] Engineering AI Judge Systems - arXiv https://arxiv.org/html/2411.17793v1
+[3] AI In Software Testing: Join The AI Testing Tools Era - testRigor https://testrigor.com/ai-in-software-testing/
+[4] AI Driven Open Source Test Automation Framework with AI Agents https://www.youtube.com/watch?v=15LCeh46sMs
+[5] The Best 10 AI Testing Tools in 2024 - Functionize https://www.functionize.com/automated-testing/ai-testing-tools
+[6] How to Test AI Applications: Frameworks, Metrics, and Methods https://testlio.com/blog/ai-app-testing/
+[7] Top 15 AI Testing Tools for Test Automation (2025 Updated) https://www.geeksforgeeks.org/websites-apps/top-ai-testing-tools-for-test-automation/
+[8] LLM-as-a-judge: a complete guide to using LLMs for evaluations https://www.evidentlyai.com/llm-guide/llm-as-a-judge
+[9] AI in Software Testing: What It Is & How to Get Started - TestGrid https://testgrid.io/blog/ai-in-software-testing/
+
+# Tessrax Governance Kernel Integration and Live Evaluation Loop — Design and Execution Plan
+
+***
+
+## Integration Architecture
+
+### Overview
+Embed the Judgment Engine and its learning loop as a core service module within the layered Tessrax Governance Kernel. The Kernel acts as the arbiter, controlling state, issuing calls to judgment and cold agent modules, and collecting audit trails, all enforced through cryptographic ledgers.
+
+### Core Components
+- **Governance Kernel Core:** Maintains global orchestration rules, state, and event bus.
+- **Judgment Engine Module:** Stateless service called with current context hashes, evaluation metrics; returns decisions.
+- **Judgment Learning Loop:** Periodically retrains heuristic weights using graded examples stored in the kernel.
+- **Cold Agent Manager:** Spawns epistemically reset agents per governance decisions.
+- **Ledger and Audit Trail:** Append-only ledger system capturing all decisions with signatures.
+- **Verification and Monitoring:** Real-time verification dashboard and alerting layer observing contradiction metabolism and chain integrity.
+
+***
+
+## Live Evaluation Loop Workflow
+
+1. **Input Capture:** Governance Kernel receives user prompt or system event.
+2. **Context Hashing:** Input context hashed and passed to Judgment Engine.
+3. **Judgment Computation:** Engine computes decision based on input metrics, prior states.
+4. **Decision Logging:** Judgment event appended to cryptographically signed ledger.
+5. **Action Triggering:**  
+   - If reset recommended, governance enforces cold start agent spawn.
+   - Else continue or iterate with current agents.
+6. **Cold Agent Operation:** Newly spawned agents generate candidate outputs.
+7. **Result Ingestion:** Kernel collects agent outputs and evaluation scores.
+8. **Learning Feedback:**  
+   - Graded evaluations fed back to learning loop for weight updates.  
+   - Recording reduces epistemic drift and improves reset accuracy.
+9. **Continuous Monitoring:**  
+   - Contradiction metabolism graph updates.  
+   - Ledger integrity reverified continuously.  
+   - Alerts raised on anomalies or contested judgments.
+10. **Human Oversight:** Automated fallback to human-in-the-loop when consensus or confidence thresholds falter.
+
+***
+
+## Integration Considerations
+
+- **Statelessness:** All modules operate statelessly; context persisted externally for audit and recovery.
+- **Inter-module Communication:** Event-driven architecture over secure websocket or message queue (Redis/SQS).
+- **Cryptographic Anchoring:** Every decision and action tied to immutable ledger entries.
+- **Scalability:** Modular orchestration enables distributed deployment across cloud or edge.
+- **Security:** Private keys for signing never leave secured vaults; API calls authenticated and encrypted.
+
+***
+
+## Summary
+
+This phase formalizes Tessrax’s judgment and learning machinery as a securely governed kernel service connected tightly to audit trails and live monitoring. By embedding iterative learning and cold agent orchestration under strict governance, Tessrax achieves an adaptive, transparent ecosystem resistant to epistemic degradation and operational failure — ready for robust real-world deployment and certification.
+
+This comprehensive integration design aligns with latest AI governance best practices and operational transparency mandates while preserving modular extensibility.
+
+Sources
+[1] AIGN OS Governance Architecture https://aign.global/aign-os-the-operating-system-for-responsible-ai-governance/os-governance-architecture/
+[2] Orchestrating Multi‑Agent AI With Semantic Kernel | Digital Bricks https://www.digitalbricks.ai/blog-posts/orchestrating-multi-agent-ai-with-semantic-kernel
+[3] AI Agent Orchestration Patterns - Azure Architecture Center https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns
+[4] Azure AI Foundry vs. Semantic Kernel - European AI & Cloud Summit https://cloudsummit.eu/blog/navigating-microsoft-ai-development-ecosystem
+[5] Semantic Kernel: Reasoning & Memory for Enterprises - Auxiliobits https://www.auxiliobits.com/blog/semantic-kernel-for-enterprise-structuring-reasoning-and-memory/
+[6] Global AI Governance: Five Key Frameworks Explained - Bradley https://www.bradley.com/insights/publications/2025/08/global-ai-governance-five-key-frameworks-explained
+[7] Multi-Agent Orchestration Redefined with Microsoft Semantic Kernel https://www.akira.ai/blog/multi-agent-with-microsoft-semantic-kernel
+[8] AI Architecture Design - Azure Architecture Center | Microsoft Learn https://learn.microsoft.com/en-us/azure/architecture/ai-ml/
+
+Here is a detailed, actionable plan for instantiating the Tessrax Governance Kernel skeleton integrated with the Judgment Engine, Judgment Learning Loop, dashboard, and testing harness, aligned with your phased roadmap:
+
+***
+
+### 1. Instantiate Kernel Skeleton with Message Bus & Ledger Logic
+
+- Build the core kernel as a stateless microservice framework (Python-based) with:
+  - **Message Bus:** Redis pub/sub or RabbitMQ to route events between modules.
+  - **Ledger Append Logic:** Append-only JSON line file containing signed entries; support append and verify chain operations.
+- Implement:
+  ```python
+  # GovernanceKernel.py (core)
+  import redis, json, threading
+  from nacl.signing import SigningKey
+  
+  class GovernanceKernel:
+      def __init__(self, redis_url, signing_key_hex):
+          self.redis = redis.Redis.from_url(redis_url)
+          self.signing_key = SigningKey(bytes.fromhex(signing_key_hex))
+          self.prev_hash = None
+          self.ledger_path = "ledger.jsonl"
+      
+      def append_event(self, event: dict):
+          # add prev_hash and compute hash + sign 
+          event["prev_hash"] = self.prev_hash
+          event_str = json.dumps(event, sort_keys=True)
+          event_hash = hashlib.sha256(event_str.encode()).hexdigest()
+          signature = self.signing_key.sign(event_hash.encode()).signature.hex()
+          event["hash"] = event_hash
+          event["signature"] = signature
+          with open(self.ledger_path, "a") as file:
+              file.write(json.dumps(event) + "\n")
+          self.prev_hash = event_hash
+          return event
+
+      def subscribe(self, channel, handler):
+          def listen():
+              pubsub = self.redis.pubsub()
+              pubsub.subscribe(channel)
+              for msg in pubsub.listen():
+                  if msg['type'] == 'message':
+                      handler(json.loads(msg['data']))
+          threading.Thread(target=listen, daemon=True).start()
+  ```
+
+***
+
+### 2. Plug in Judgment Engine Module & Link to JudgmentLearningLoop
+
+- Judgment Engine receives context hashes, criteria, and outputs decisions.
+- JudgmentLearningLoop class ingests graded examples, updates heuristic weights, and refines decisions.
+- Incorporate these as callable modules or microservices interfacing via message queue.
+- Example integration:
+  ```python
+  def judgment_handler(event):
+      criteria = event['criteria_values']
+      decision = judgment_engine.make_decision(criteria)
+      kernel.append_event({
+          "event_type": "JUDGMENT_DECISION",
+          "input_context_hash": event["context_hash"],
+          "decision_type": decision,
+          "evaluation_metrics_snapshot": criteria,
+          "module": "JudgmentEngine",
+          "timestamp": iso_now()
+      })
+      # Optionally feed feedback into learning loop
+      learning_loop.ingest_example(event['graded_example'])
+  kernel.subscribe("judgment_requests", judgment_handler)
+  ```
+
+***
+
+### 3. Deploy Dashboard Prototype
+
+- Serve a Streamlit app (prototype from earlier) exposing:
+  - Current reasoning cycles
+  - Judgment decisions and criteria
+  - Ledger integrity (validated hashes, timestamps)
+  - Contradiction metabolism graph (JSON fed from real-time kernel events)
+- Backend exposes REST endpoints or Redis pub/sub for live updates.
+- Example endpoint skeleton:
+  ```python
+  @app.route("/api/judgments")
+  def judgments():
+      with open("ledger.jsonl") as f:
+          lines = f.readlines()[-100:]
+      return jsonify([json.loads(line) for line in lines])
+  
+  # Streamlit app queries these endpoints and renders UI components  
+  ```
+
+***
+
+### 4. Feed Graded Data & Start Training
+
+- Load graded example datasets (format: prompt, output, criteria scores, evaluation score).
+- Pipe them into the JudgmentLearningLoop for incremental weight updates.
+- Run test harness (per earlier prototype) to measure false-reset and drift.
+- Log every training batch and updated weights for auditability.
+
+***
+
+### 5. Benchmark, Calibrate, Iterate
+
+- Use test harness metrics as feedback signals.
+- Adjust heuristic learning rate, revise criteria ranges and thresholds.
+- Conduct A/B testing on live cold agent runs comparing old vs. updated discernment vectors.
+- Continue until desired false-reset and drift rates meet tolerance (e.g., <5%).
+- Persist final calibrated state in kernel state store for reproducibility.
+
+***
+
+### Summary
+
+This phased implementation plan yields:
+
+- A **secure, cryptographically verifiable Governance Kernel** with event bus and append-only ledger.
+- Integration of the **Judgment Engine and dynamic learning loop** to progressively refine orchestration discernment.
+- Deployment of a **real-time observability dashboard** enabling governance transparency.
+- Continuous **quality assurance framework** based on graded data, metrics, and iterative recalibration.
+
+This comprehensive approach operationalizes the Tessrax vision by closing the loop between governance policy, autonomous decision-making, and live adaptive evaluation under rigorous audit and trust guarantees.
+
+Sources
+[1] [PDF] Cisco Hypershield - Cisco Live https://www.ciscolive.com/c/dam/r/ciscolive/global-event/docs/2024/pdf/PSOSEC-1215.pdf
+
+```python
+# meta_evaluation_calibration.py
+
+import json
+import hashlib
+import logging
+from collections import defaultdict
+import yaml
+
+logging.basicConfig(level=logging.INFO)
+
+class MetaEvaluationCalibration:
+    def __init__(self, ledger_path, policy_yaml_path):
+        self.ledger_path = ledger_path
+        self.policy_yaml_path = policy_yaml_path
+        self.entries = []
+        
+    def load_ledger_entries(self):
+        self.entries = []
+        with open(self.ledger_path, 'r') as f:
+            for line in f:
+                try:
+                    entry = json.loads(line)
+                    # Filter only judgment decision events
+                    if entry.get("event_type") == "JUDGMENT_DECISION":
+                        self.entries.append(entry)
+                except json.JSONDecodeError:
+                    logging.warning("Skipped invalid JSON line in ledger")
+        logging.info(f"Loaded {len(self.entries)} judgment entries from ledger.")
+    
+    def compute_statistics(self):
+        total = len(self.entries)
+        false_resets = 0
+        consensus_variances = defaultdict(list)
+        decision_counts = defaultdict(int)
+        for e in self.entries:
+            metrics = e.get("evaluation_metrics_snapshot", {})
+            decision = e.get("decision_type")
+            decision_counts[decision] += 1
+            contradiction_score = metrics.get("contradiction_score", 0)
+            completeness = metrics.get("completeness", 0)
+            
+            # Count false resets (assuming 'reset' should only occur above 0.7)
+            if decision == "reset" and contradiction_score < 0.7:
+                false_resets += 1
+                
+            # Track contradiction score variance by decision type
+            consensus_variances[decision].append(contradiction_score)
+            
+        false_reset_ratio = false_resets / total if total > 0 else 0
+        consensus_variance_stats = {
+            k: {
+                "count": len(v),
+                "mean": sum(v)/len(v) if v else 0,
+                "variance": self._variance(v)
+            }
+            for k,v in consensus_variances.items()
+        }
+        
+        stats = {
+            "total_judgments": total,
+            "false_reset_ratio": false_reset_ratio,
+            "decision_distribution": dict(decision_counts),
+            "consensus_variance_by_decision": consensus_variance_stats
+        }
+        logging.info(f"Computed stats: {stats}")
+        return stats
+    
+    def _variance(self, values):
+        n = len(values)
+        if n < 2:
+            return 0
+        mean = sum(values)/n
+        return sum((x - mean)**2 for x in values) / (n - 1)
+    
+    def update_policy_thresholds(self, stats):
+        # Load existing policy YAML
+        with open(self.policy_yaml_path, 'r') as f:
+            policy = yaml.safe_load(f)
+        
+        # Example: adjust epistemic_reset_trigger threshold dynamically to reduce false resets
+        current_thresh = policy['triggers']['epistemic_reset_trigger']['threshold']
+        false_reset = stats['false_reset_ratio']
+        
+        logging.info(f"Current reset threshold: {current_thresh}, false reset ratio: {false_reset}")
+        
+        # Simple adaptive scheme: if false reset too high, increase threshold by 0.05 (capped at 0.95)
+        new_thresh = min(0.95, current_thresh + (false_reset - 0.05) * 0.1)
+        policy['triggers']['epistemic_reset_trigger']['threshold'] = round(new_thresh, 3)
+        
+        with open(self.policy_yaml_path, 'w') as f:
+            yaml.dump(policy, f)
+        logging.info(f"Updated policy epistemic reset threshold to {new_thresh}")
+    
+    def run(self):
+        self.load_ledger_entries()
+        stats = self.compute_statistics()
+        self.update_policy_thresholds(stats)
+        return stats
+
+
+if __name__ == "__main__":
+    calibration = MetaEvaluationCalibration("ledger.jsonl", "tessrax_orchestrator_policy.yaml")
+    stats = calibration.run()
+    print("Meta-Evaluation Statistics & Policy Calibration:")
+    print(stats)
+```
+
+***
+
+### Explanation:
+
+- This calibration script reads batches of judgment decision entries from the governance ledger file.
+- It computes **long-term statistics**: false reset ratio (resets triggered too early), consensus variance (spread of contradiction scores per decision), and decision distribution for monitoring.
+- Based on these metrics, it **updates YAML policy thresholds dynamically** to tune system behavior (e.g., increments the epistemic reset threshold to reduce false resets).
+- This feedback closes the governance loop, continuously improving system epistemic hygiene by learning from historical judgment performance.
+- Logging ensures all recalibrations are traceable, enabling full audit and reproducibility.
+- This robust meta-evaluation layer is critical for adaptive, trustworthy AI governance that evolves from operational experience.
+
+This code and concept provide the foundation for a live runtime governance calibration system within Tessrax.
+
+Sources
+[1] Meta Responsible AI Framework: Social Media-Focused Approach ... https://verityai.co/blog/meta-responsible-ai-framework
+[2] Responsible artificial intelligence governance: A review and ... https://www.sciencedirect.com/science/article/pii/S0963868724000672
+[3] Meta Ran a Giant Experiment in Governance. Now It's Turning to AI https://www.wired.com/story/meta-ran-a-giant-experiment-in-governance-now-its-turning-to-ai/
+[4] What is AI Governance? - IBM https://www.ibm.com/think/topics/ai-governance
+[5] [PDF] Responsible Use Guide - Meta AI https://ai.meta.com/static-resource/responsible-use-guide/
+[6] [PDF] The "Who", "What", and "How" of Responsible AI Governance - arXiv https://arxiv.org/pdf/2502.13294.pdf
+[7] AI in Data Governance and Processing: Security, Compliance ... - Meta https://meta.com.br/en/insights/articles/ai-data-governance-processing-security-compliance-efficiency
+[8] How To Assess AI Governance Tools | TechPolicy.Press https://techpolicy.press/how-to-assess-ai-governance-tools
+[9] Challenges of AI Implementation: Governance, Ethical Application ... https://www.asc.upenn.edu/research/centers/milton-wolf-seminar-media-and-diplomacy-9
+
+```bash
+# boot_sequence.sh - Orchestrates Tessrax Governance Kernel demo stack
+
+# Step 1: Start Redis server (message bus)
+echo "Starting Redis server..."
+redis-server --daemonize yes
+sleep 2
+
+# Step 2: Launch Governance Kernel microservice (ledger + event bus)
+echo "Starting Governance Kernel service..."
+python GovernanceKernel.py &
+KERNE_PID=$!
+sleep 3
+
+# Step 3: Launch Judgment Engine linked with Learning Loop as background service
+echo "Starting Judgment Engine service..."
+python JudgmentEngineService.py &
+JUDGE_PID=$!
+sleep 2
+
+# Step 4: Launch Flask backend API serving judgment logs, ledger status, contradiction graph
+echo "Starting Flask API backend..."
+export FLASK_APP=FlaskBackendAPI.py
+flask run --host=0.0.0.0 --port=5000 &
+FLASK_PID=$!
+sleep 3
+
+# Step 5: Launch Streamlit dashboard connected to Flask and Redis
+echo "Starting Streamlit Dashboard..."
+streamlit run StreamlitDashboard.py &
+ST_PID=$!
+
+# Monitor all PIDs, provide ability to kill all on interrupt
+trap "echo 'Stopping services...'; kill $KERNE_PID $JUDGE_PID $FLASK_PID $ST_PID; redis-cli shutdown; exit 0" SIGINT SIGTERM
+
+echo "Tessrax Governance Kernel demo running..."
+wait
+```
+
+***
+
+### Explanation and Component Mapping
+
+- **Redis server**: Central message bus for event communication and pub/sub.
+- **Governance Kernel**: Core ledger append and event orchestration microservice.
+- **Judgment Engine Service**: Encapsulates judgment logic and learning loop, subscribing to kernel events.
+- **FlaskBackendAPI**: Serves endpoints for ledger, judgments, contradiction graphs used by the frontend.
+- **StreamlitDashboard**: Interactive frontend displaying real-time governance status and visualizations.
+- **Process Management**: Runs all services in background with controlled shutdown on user interrupt (Ctrl+C).
+
+***
+
+### Usage
+
+Make executable:
+```bash
+chmod +x boot_sequence.sh
+```
+
+Run demo:
+```bash
+./boot_sequence.sh
+```
+
+This script wires together the core Tessrax governance components into a functioning live demo environment suitable for iterative development and evaluation of AI governance protocols and dashboards within a redis-backed architecture.
+
+Sources
+[1] Projects - IC3 https://www.initc3.org/projects
+
+```python
+# tests/test_ledger_verification.py
+
+import unittest
+import tempfile
+import json
+import os
+from video_ledger import VideoLedger  # Assuming this imports the ledger module with verification
+
+class TestLedgerVerification(unittest.TestCase):
+
+    def setUp(self):
+        # Create a temporary ledger file with valid chained entries
+        self.tmpfile = tempfile.NamedTemporaryFile(delete=False)
+        self.priv_key_hex = "6a1f93e255ea0abee4f2a041a573fb628f030ff73e322fd8bd12c8235f7d94e0"
+        self.pub_key_hex = "3ebc6e967363d7a65a7028764c8c79f2f4ab2616596bb4778d3f456f4cd8fcd6"
+        self.ledger = VideoLedger(bytes.fromhex(self.priv_key_hex), bytes.fromhex(self.pub_key_hex))
+        self.ledger.ledger_path = self.tmpfile.name
+        # Append a few chained entries
+        entry1 = {
+            "event_type": "TEST_EVENT",
+            "prev_hash": None,
+            "timestamp": "2025-10-18T13:00:00Z",
+            "module": "TestModule",
+            "data": {"msg": "first event"}
+        }
+        e1 = self.ledger.append_event(entry1)
+
+        entry2 = {
+            "event_type": "TEST_EVENT",
+            "prev_hash": e1["hash"],
+            "timestamp": "2025-10-18T13:01:00Z",
+            "module": "TestModule",
+            "data": {"msg": "second event"}
+        }
+        self.ledger.append_event(entry2)
+
+    def tearDown(self):
+        os.remove(self.tmpfile.name)
+
+    def test_chain_integrity_pass(self):
+        # Verify chain integrity should pass for valid ledger
+        result = self.ledger.verify_chain()
+        self.assertTrue(result, "Ledger verification failed on a valid chain")
+
+    def test_chain_integrity_fail_modified_entry(self):
+        # Modify ledger file to invalidate hash
+        with open(self.tmpfile.name, "r") as f:
+            lines = f.readlines()
+        modified = json.loads(lines[1])
+        modified["data"]["msg"] = "tampered event"
+        lines[1] = json.dumps(modified) + "\n"
+        with open(self.tmpfile.name, "w") as f:
+            f.writelines(lines)
+
+        result = self.ledger.verify_chain()
+        self.assertFalse(result, "Ledger verification passed despite tampering")
+
+# ------- Mock Cold Agent Sandbox for Simulation --------------
+
+class MockColdAgentSandbox:
+    def __init__(self):
+        self.state = {}
+    def run(self, prompt):
+        # Simulate safe deterministic generation based on prompt hash
+        h = hash(prompt)
+        output = f"Simulated output for prompt hash {h}"
+        # Return synthetic evaluation score based on hash (to simulate variation)
+        score = (h % 100) / 100.0
+        return {"output": output, "evaluation_score": score}
+
+# -------- Docker Compose Specification ----------------
+
+docker_compose_yaml = """
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  governance_kernel:
+    build: ./kernel
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "7000:7000"
+  judgment_engine:
+    build: ./judgment_engine
+    depends_on:
+      - redis
+      - governance_kernel
+    environment:
+      - REDIS_URL=redis://redis:6379
+  flask_backend:
+    build: ./flask_backend
+    depends_on:
+      - redis
+      - governance_kernel
+    ports:
+      - "5000:5000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+  streamlit_dashboard:
+    build: ./streamlit_dashboard
+    depends_on:
+      - flask_backend
+    ports:
+      - "8501:8501"
+networks:
+  default:
+    driver: bridge
+"""
+
+# Save docker-compose.yaml for deployment
+with open("docker-compose.yaml", "w") as f:
+    f.write(docker_compose_yaml)
+
+# --------- Running Calibration Loop on Real Data -------------
+
+from meta_evaluation_calibration import MetaEvaluationCalibration
+
+def run_calibration_loop():
+    calibration = MetaEvaluationCalibration("ledger.jsonl", "tessrax_orchestrator_policy.yaml")
+    stats = calibration.run()
+    print("Calibration Stats & Policy Update:", stats)
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
+    # Run covariance calibration on ledger data post tests
+    run_calibration_loop()
+```
+
+***
+
+### Summary
+
+- **Unit tests** verify ledger integrity including tampering detection using Python `unittest`.
+- **MockColdAgentSandbox** simulates a safe, deterministic cold agent environment for integration testing.
+- **Docker Compose** orchestrates Redis and all microservices (governance kernel, judgment engine, flask backend, streamlit dashboard) in a portable stack.
+- **Calibration loop** script reads actual ledger outputs to iteratively evolve policy thresholds.
+- This tightly-integrated setup enables continuous verification, simulation, and policy adaptation within Tessrax’s governance ecosystem.
+
+Sources
+[1] Python's unittest: Writing Unit Tests for Your Code - Real Python https://realpython.com/python-unittest/
+[2] Unit Tests in Python: A Beginner's Guide - Dataquest https://www.dataquest.io/blog/unit-tests-python/
+[3] How should I verify a log message when testing Python code under ... https://stackoverflow.com/questions/899067/how-should-i-verify-a-log-message-when-testing-python-code-under-nose
+[4] unittest — Unit testing framework — Python 3.14.0 documentation https://docs.python.org/3/library/unittest.html
+[5] Example of how to capture Python logging in tests - GitHub https://github.com/airtower-luna/python-log-test-example
+[6] How To Write Unit Tests For Existing Python Code // Part 1 of 2 https://www.youtube.com/watch?v=ULxMQ57engo
+[7] How to Create Proper Python Unit Test for DAZL - Daml Forum https://discuss.daml.com/t/how-to-create-proper-python-unit-test-for-dazl/4599
+[8] Examples of python scripts programatically interacting with the ledger? https://www.reddit.com/r/plaintextaccounting/comments/1i1u5sb/examples_of_python_scripts_programatically/
+[9] Unit test report examples - GitLab Docs https://docs.gitlab.com/ci/testing/unit_test_report_examples/
+
+
 That audit is devastatingly precise—and fair.
 Everything above CE-MOD-67 now looks like a skyscraper balanced on a napkin: elegant engineering sitting on a non-existent core. The symbolic layer is the first law of the system—if it cheats, the whole edifice is rhetorical, not epistemic.
 
