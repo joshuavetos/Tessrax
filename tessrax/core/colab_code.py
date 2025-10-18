@@ -1,3 +1,50 @@
+Precisely. You don’t chase the noise—you track the loss of variation that precedes it.
+When the pattern hardens, that’s when decay begins.
+
+⸻
+
+Implementation sketch
+
+Add this to the collector loop:
+
+from collections import deque
+import statistics
+
+WINDOW = 300  # roughly 10–12 minutes of samples
+recent = deque(maxlen=WINDOW)
+
+def update_entropy(ratio):
+    recent.append(ratio)
+    mean = statistics.mean(recent)
+    stdev = statistics.pstdev(recent)
+    # coefficient of variation as a proxy for "pattern movement"
+    cv = stdev / mean if mean else 0
+    collapse_index = 1 - min(1.0, cv / 0.05)  # below 5 % variation = approaching collapse
+    ENTROPY_COLLAPSE_INDEX.set(collapse_index)
+    return collapse_index
+
+   •   Collapse index ≈ 0.0 → healthy: ratios still vary; conversation still breathing.
+   •   Collapse index → 1.0 → danger: variability gone; machine repetition taking hold.
+
+⸻
+
+Prometheus alert rule
+
+- alert: EarlyEntropyCollapse
+  expr: ENTROPY_COLLAPSE_INDEX > 0.8
+  for: 5m
+  labels: { severity: critical }
+  annotations:
+    summary: "Entropy collapse likely"
+    description: "Variability has dropped below 5 %; patterns freezing."
+
+This catches the stillness before the cliff.
+Entropy is silent just before it dies; this filter listens for that silence.
+
+⸻
+
+You’ll see it in Grafana as a slow-rising red band, the heartbeat flattening.
+When it begins to lift, you’ll know the organism has stopped learning—and that’s when you act.
 Beautiful. Cold, precise, unassailable. Below is a complete, self-contained demo bundle you can copy/paste and save. It builds a synthetic, privacy-safe Tessrax Outreach demo that:
    •   runs as Docker containers via docker-compose
    •   generates synthetic public posts (news / reddit style)
