@@ -1,3 +1,149 @@
+Here’s a runnable prototype you can drop straight into your core/ directory.
+It visualizes contradiction “energy” as a dynamic graph, using data already logged in your ledger.jsonl.
+It’s lightweight, dependency-minimal, and demonstrates how contradictions propagate and decay over time—your first metabolic flow simulator.
+
+⸻
+
+
+"""
+metabolism_graph.py — Tessrax CE-MOD-68 Prototype
+Dynamic contradiction metabolism visualizer.
+
+Reads contradiction events from ledger.jsonl, builds a directed graph
+of entities (nodes) and contradiction relations (edges), and simulates
+“contradiction energy” flow through the system.
+"""
+
+import json
+import hashlib
+import math
+from datetime import datetime, timedelta
+import networkx as nx
+import matplotlib.pyplot as plt
+
+LEDGER_PATH = "ledger.jsonl"
+ENERGY_DECAY = 0.92         # decay per tick
+TRANSFER_FACTOR = 0.35      # % of energy transferred along edges per tick
+TICKS = 30                  # number of simulation steps
+WINDOW_MINUTES = 60         # look-back window for ledger ingestion
+
+
+def load_contradictions(path=LEDGER_PATH, window_minutes=WINDOW_MINUTES):
+    """Load contradiction events from ledger within the time window."""
+    G = nx.DiGraph()
+    now = datetime.utcnow()
+    window_start = now - timedelta(minutes=window_minutes)
+
+    with open(path) as f:
+        for line in f:
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("event_type") != "CONTRADICTION_ANALYSIS":
+                continue
+            ts = datetime.fromisoformat(event["timestamp"].replace("Z", "+00:00"))
+            if ts < window_start:
+                continue
+
+            data = event["data"]
+            text_a = data.get("text_a", "A")
+            text_b = data.get("text_b", "B")
+            ctype = data.get("type", "unknown")
+            score = data.get("score", 0.0)
+
+            node_a = hashlib.sha1(text_a.encode()).hexdigest()[:8]
+            node_b = hashlib.sha1(text_b.encode()).hexdigest()[:8]
+            G.add_node(node_a, label=text_a, energy=score)
+            G.add_node(node_b, label=text_b, energy=score * 0.8)
+            G.add_edge(node_a, node_b, type=ctype, weight=score)
+    return G
+
+
+def simulate_energy(G: nx.DiGraph, ticks=TICKS):
+    """Simulate contradiction energy propagation and decay."""
+    for _ in range(ticks):
+        new_energy = {}
+        for node in G.nodes:
+            e = G.nodes[node].get("energy", 0.0)
+            out_edges = G.out_edges(node, data=True)
+            transfer = e * TRANSFER_FACTOR / max(1, len(out_edges))
+            for _, dst, _ in out_edges:
+                new_energy[dst] = new_energy.get(dst, 0.0) + transfer
+            e *= ENERGY_DECAY
+            new_energy[node] = new_energy.get(node, 0.0) + e
+        nx.set_node_attributes(G, new_energy, "energy")
+    return G
+
+
+def draw_graph(G: nx.DiGraph, title="Tessrax Metabolic Graph"):
+    """Visualize contradiction energy using node size and color."""
+    energies = [G.nodes[n].get("energy", 0.0) for n in G.nodes]
+    sizes = [300 + 2000 * e for e in energies]
+    colors = [math.tanh(e * 2) for e in energies]
+
+    plt.figure(figsize=(10, 7))
+    pos = nx.spring_layout(G, seed=42)
+    nx.draw_networkx_edges(G, pos, alpha=0.3)
+    nodes = nx.draw_networkx_nodes(
+        G, pos, node_color=colors, node_size=sizes, cmap=plt.cm.plasma
+    )
+    nx.draw_networkx_labels(
+        G,
+        pos,
+        {n: G.nodes[n]["label"][:12] + "…" for n in G.nodes},
+        font_size=7,
+    )
+    plt.title(title)
+    plt.colorbar(nodes, label="Contradiction Energy")
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+
+def main():
+    G = load_contradictions()
+    print(f"[Metabolism] Loaded {len(G.nodes)} nodes and {len(G.edges)} contradictions.")
+    G = simulate_energy(G)
+    draw_graph(G)
+
+
+if __name__ == "__main__":
+    main()
+
+
+⸻
+
+🧠 How It Works
+   •   Nodes = unique text entities from recent contradiction analyses.
+   •   Edges = contradiction relations labeled by type.
+   •   Energy = contradiction score that decays (ENERGY_DECAY) and diffuses to neighbors (TRANSFER_FACTOR).
+   •   Visualization = node color and size indicate residual contradiction energy. Over time you’ll see “hotspots” fade as metabolism stabilizes.
+
+⸻
+
+⚙️ Usage
+
+python metabolism_graph.py
+
+Optional flags you can add later (for dashboards):
+
+--window 120   # analyze last 2 hours
+--ticks 50     # longer simulation
+
+
+⸻
+
+🧩 Importance Threshold
+   •   Critical 🚨: None — purely analytical visualization.
+   •   High 🔥: Provides feedback for governance tuning.
+   •   Medium ⚖️: Enables live contradiction topology mapping.
+   •   Low 🌱: Visual enrichment and intuitive understanding.
+
+⸻
+
+Once this runs, Tessrax won’t just log contradictions—it will see them metabolize: contradictions flare, diffuse, resolve, and feed back into the governance loop. That’s CE-MOD-68’s defining trait: adaptive awareness.
+
 GPT to Josh—
 
 Perfect. Here’s the CE-MOD-67 Integration Patch: three production-ready modules that wire the upgraded engine into Tessrax’s existing ledger, metrics, and visualization pipeline. Everything fits cleanly with your current v12 runtime.
