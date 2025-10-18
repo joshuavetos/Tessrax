@@ -1,3 +1,350 @@
+Below is the full Atlas Contradiction Bridge v1.0 package, including:
+
+1. The **Python module** `atlas_contradiction_bridge.py` that ingests claims from the Atlas Gateway, forms candidate SCARDs (Systemic Contradiction and Resolution Documents), and submits them to the Governance Kernel.
+
+2. A **JSON schema** defining the SCARD format, ensuring governance kernel can validate the structure.
+
+3. A **YAML routing entry** registering the bridge module with the Governance Kernel event bus for automatic subscription and routing.
+
+***
+
+### 1. Python Module: atlas_contradiction_bridge.py
+
+```python
+"""
+Tessrax Atlas Contradiction Bridge v1.0
+---------------------------------------
+Consumes normalized claims and performs candidate contradiction detection,
+producing SCARDs for ingestion by the Governance Kernel.
+"""
+
+import json
+import uuid
+import datetime
+from typing import List, Dict, Any
+
+class SCARD:
+    """Systemic Contradiction and Resolution Document"""
+    def __init__(self, claim_a: Dict[str, Any], claim_b: Dict[str, Any], contradiction_type: str, severity: float):
+        self.scard_id = f"SCARD-{uuid.uuid4().hex[:10]}"
+        self.claim_a_id = claim_a["claim_id"]
+        self.claim_b_id = claim_b["claim_id"]
+        self.domain = claim_a.get("domain", "GENERAL")
+        self.contradiction_type = contradiction_type    # e.g. "Logical", "Numeric", "Policy"
+        self.severity = round(severity, 3)               # float 0.0-1.0
+        self.timestamp = datetime.datetime.utcnow().isoformat() + "Z"
+        self.status = "CANDIDATE"
+        self.references = [claim_a, claim_b]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "scard_id": self.scard_id,
+            "claim_a_id": self.claim_a_id,
+            "claim_b_id": self.claim_b_id,
+            "domain": self.domain,
+            "contradiction_type": self.contradiction_type,
+            "severity": self.severity,
+            "timestamp": self.timestamp,
+            "status": self.status,
+            "references": self.references
+        }
+
+class AtlasContradictionBridge:
+    def __init__(self, governance_kernel):
+        self.kernel = governance_kernel
+
+    def detect_candidate_contradictions(self, claims: List[Dict[str, Any]]) -> List[SCARD]:
+        # Naive pairwise contradiction detection for demo purposes
+        scards = []
+        n = len(claims)
+        for i in range(n):
+            for j in range(i+1, n):
+                c1, c2 = claims[i], claims[j]
+                # Example heuristic: contradiction if headlines differ significantly (placeholder)
+                if c1["content"] != c2["content"]:
+                    # Compute dummy severity based on length diff normalized [0,1]
+                    severity = min(1.0, abs(len(c1["content"]) - len(c2["content"])) / max(len(c1["content"]), len(c2["content"]),1))
+                    contradiction_type = "Logical"  # placeholder, ideally use CE-MOD-68+ or other engine
+                    scard = SCARD(c1, c2, contradiction_type, severity)
+                    scards.append(scard)
+        return scards
+
+    def submit_scards(self, scards: List[SCARD]):
+        for scard in scards:
+            event = scard.to_dict()
+            # Submit event to Governance Kernel event bus
+            self.kernel.submit_event("governance.scard.candidate", event)
+
+if __name__ == "__main__":
+    from collections import namedtuple
+
+    # Mock governance kernel with submit_event method
+    class GovernanceKernelMock:
+        def submit_event(self, topic, event):
+            print(f"Event submitted on topic '{topic}':")
+            print(json.dumps(event, indent=2))
+
+    # Demo with mock claims
+    kernel = GovernanceKernelMock()
+    bridge = AtlasContradictionBridge(kernel)
+
+    # Sample normalized claims
+    claim1 = {
+        "claim_id": "CLAIM-123abc",
+        "source": "NewsAPI",
+        "headline": "Company A pledges net zero emissions by 2030",
+        "content": "Company A has publicly committed to net zero carbon emissions by 2030.",
+        "url": "https://news.example.com/article1",
+        "timestamp": "2025-10-18T18:30:00Z"
+    }
+    claim2 = {
+        "claim_id": "CLAIM-456def",
+        "source": "NewsAPI",
+        "headline": "Company A reports 15% emissions increase in 2024",
+        "content": "Company A reports a 15% increase in emissions in fiscal year 2024.",
+        "url": "https://news.example.com/article2",
+        "timestamp": "2025-10-18T19:00:00Z"
+    }
+
+    detected = bridge.detect_candidate_contradictions([claim1, claim2])
+    bridge.submit_scards(detected)
+```
+
+***
+
+### 2. JSON Schema: scard_schema.json
+
+```json
+{
+  "$id": "https://tessrax.io/schemas/scard.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SCARD - Systemic Contradiction and Resolution Document",
+  "type": "object",
+  "properties": {
+    "scard_id": {
+      "type": "string",
+      "pattern": "^SCARD-[a-f0-9]{10}$",
+      "description": "Unique SCARD identifier"
+    },
+    "claim_a_id": {
+      "type": "string",
+      "description": "Claim A identifier"
+    },
+    "claim_b_id": {
+      "type": "string",
+      "description": "Claim B identifier"
+    },
+    "domain": {
+      "type": "string",
+      "description": "Contradiction domain or governance area"
+    },
+    "contradiction_type": {
+      "type": "string",
+      "enum": ["Logical", "Numeric", "Policy", "Temporal"]
+    },
+    "severity": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Severity score of contradiction"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["CANDIDATE", "RATIFIED", "METABOLIZED"]
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "claim_id": {"type": "string"},
+          "source": {"type": "string"},
+          "headline": {"type": "string"},
+          "content": {"type": "string"},
+          "url": {"type": "string", "format": "uri"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        },
+        "required": ["claim_id", "source", "headline", "content", "url", "timestamp"]
+      },
+      "minItems": 2,
+      "maxItems": 2
+    }
+  },
+  "required": ["scard_id", "claim_a_id", "claim_b_id", "domain", "contradiction_type", "severity", "timestamp", "status", "references"],
+  "additionalProperties": false
+}
+```
+
+***
+
+### 3. YAML Routing Entry: governance_kernel.yaml snippet
+
+```yaml
+# Atlas Contradiction Bridge subscription
+subscribers:
+  - topic: "governance.scard.candidate"
+    description: "Candidate SCARD submissions from Atlas Contradiction Bridge."
+    route_to:
+      - engine: "GovernanceEngine"
+        priority: 1
+        action: "process_candidate_scard"
+    trust_requirement: "MEDIUM"
+    signature_required: false
+    retention_override_days: 30
+    on_failure: "log_and_retry"
+    notify_channels:
+      - "dashboard_scard"
+      - "audit_feed"
+```
+
+***
+
+### Summary
+
+This package equips Tessrax with the ability to convert normalized claims into candidate contradictions (SCARDs) ready for governance processing. The bridge performs rudimentary detection heuristics; it is pluggable with more advanced engines such as CE-MOD-68+ for richer semantic contradiction scoring. SCARDs conform to the JSON schema, supporting transparent validation. The governance kernel config routes those SCARDs for immediate processing, audit logging, and dashboard display.
+
+This closes the sensory-to-governance ingestion loop for Tessrax institutional memory metabolism.
+
+Should you require, I can assist crafting:
+- More advanced contradiction detection logic.
+- Automated ratification workflow for SCARDs.
+- Visualization modules for SCARD lifecycle monitoring.
+
+Let me know your next priority.
+
+Sources
+[1] JSON schema format | Cedar Policy Language Reference Guide https://docs.cedarpolicy.com/schema/json-schema.html
+[2] Overview of JSON and JSON Schema - Hackolade https://hackolade.com/help/OverviewofJSONandJSONSchema.html
+[3] [PDF] Understanding JSON Schema https://json-schema.org/UnderstandingJSONSchema.pdf
+[4] JSON Schema examples https://json-schema.org/learn/json-schema-examples
+[5] JSON Schema - REST API Tutorial https://restfulapi.net/json-schema/
+[6] Getting Started - Adaptive Cards - Microsoft Learn https://learn.microsoft.com/en-us/adaptive-cards/authoring-cards/getting-started
+[7] format (2020-12) - Learn JSON Schema https://www.learnjsonschema.com/2020-12/format-annotation/format/
+[8] Formatting syntax reference - Microsoft Learn https://learn.microsoft.com/en-us/sharepoint/dev/declarative-customization/formatting-syntax-reference
+[9] JSON Schema Validator - Newtonsoft https://www.jsonschemavalidator.net
+
+
+That package now spans three complete governance organs—**Amendment Protocol**, **Clarity Fuel Economy**, and the pending **Atlas Gateway**.  
+The Gateway’s job is to translate real‑world data into claim objects that can be compared inside Tessrax and eventually metabolized as contradictions.  
+Here is the full, finished module you can drop into `tessrax/core/gateways/atlas_gateway.py`.
+
+***
+
+```python
+"""
+Tessrax Atlas Gateway v1.0
+--------------------------
+Connects Tessrax to live external data streams and converts headlines or
+filings into structured claim objects suitable for contradiction analysis.
+"""
+
+import os
+import json
+import requests
+from datetime import datetime
+from hashlib import sha256
+from typing import List, Dict, Any
+
+class Claim:
+    """Normalized information unit representing a discrete factual or pledging statement."""
+    def __init__(self, source: str, headline: str, content: str, url: str):
+        self.claim_id = "CLAIM-" + sha256(f"{headline}{url}".encode()).hexdigest()[:10]
+        self.source = source
+        self.headline = headline
+        self.content = content
+        self.url = url
+        self.timestamp = datetime.utcnow().isoformat() + "Z"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "claim_id": self.claim_id,
+            "source": self.source,
+            "headline": self.headline,
+            "content": self.content,
+            "url": self.url,
+            "timestamp": self.timestamp,
+        }
+
+class AtlasGateway:
+    """Primary sensory interface for Tessrax."""
+    def __init__(self, api_key: str, endpoint: str = "https://newsapi.org/v2/everything"):
+        self.api_key = api_key
+        self.endpoint = endpoint
+        self.session = requests.Session()
+        print("🌐 Atlas Gateway initialized.")
+
+    def fetch_news(self, query: str, language: str = "en", page_size: int = 10) -> List[Dict[str, Any]]:
+        """Fetch recent articles related to a search query."""
+        params = {
+            "q": query,
+            "language": language,
+            "pageSize": page_size,
+            "sortBy": "publishedAt",
+            "apiKey": self.api_key,
+        }
+        response = self.session.get(self.endpoint, params=params, timeout=20)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("articles", [])
+
+    def normalize_articles(self, articles: List[Dict[str, Any]], source_label: str) -> List[Claim]:
+        """Convert raw NewsAPI articles into Claim objects."""
+        claims = []
+        for art in articles:
+            title = art.get("title") or ""
+            description = art.get("description") or ""
+            content = (title + " " + description).strip()
+            url = art.get("url") or ""
+            if content:
+                claim = Claim(source_label, title, content, url)
+                claims.append(claim)
+        print(f"📰 Normalized {len(claims)} claims from {source_label}.")
+        return claims
+
+    def export_claims(self, claims: List[Claim], out_path: str = "data/claims.jsonl") -> str:
+        """Write claims to disk for downstream contradiction analysis."""
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
+            for c in claims:
+                f.write(json.dumps(c.to_dict()) + "\n")
+        print(f"💾 Exported {len(claims)} claims → {out_path}")
+        return out_path
+
+if __name__ == "__main__":
+    print("🚀 Running Atlas Gateway Demo...")
+    api_key = os.getenv("NEWS_API_KEY", "<YOUR_NEWSAPI_KEY>")
+    gateway = AtlasGateway(api_key)
+    # 1. Pull live ESG or climate stories.
+    results = gateway.fetch_news(query="corporate emissions targets")
+    # 2. Normalize into claim objects.
+    claims = gateway.normalize_articles(results, source_label="NewsAPI")
+    # 3. Export claim set for contradiction detection.
+    gateway.export_claims(claims)
+    print("✅ Atlas Gateway demo complete.")
+```
+
+***
+
+**Operational notes**
+- Store the retrieved claims under `/data/claims.jsonl`.  
+- The Contradiction Engine can consume those records using a simple iterator like:
+  ```python
+  for line in open("data/claims.jsonl"):
+      claim = json.loads(line)
+      contradiction_engine.ingest_claim(claim)
+  ```
+- You can swap the `fetch_news` call for any external dataset (SEC API, CDP, etc.) as long as the output conforms to the `Claim` schema.
+
+This completes Tessrax’s sensory intake.  
+Would you like me to provide the matching **contradiction‑analysis bridge**—a lightweight module that reads these claims and automatically forms candidate SCARDs for the Governance Kernel?
+
+Sources
+
+
 Exactly. No archaeology.
 We’ll reconstruct CognitaFlux cleanly from the verified audit baseline — everything you need, in working code form, ready to drop into your repo as-is.
 You’ll copy/paste these five Python modules straight into:
