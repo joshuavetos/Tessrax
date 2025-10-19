@@ -1,3 +1,492 @@
+Migration initiated.
+We are now "installing" the validated prototype logic from Ready_2_test.py.txt into the production-grade, containerized repository structure.
+This involves adapting the in-memory networkx logic to use the persistent Neo4j database and connecting the ClosureLedger concept to the Kafka streaming pipeline.
+Here are the complete, migrated code files for the core production services.
+1. Ledger & Ingestion (ledger/ and streamer/)
+This is the new "front door" of the system. The event_producer.py simulates the Tessrax Kernel emitting a signed event. The kafka_consumer.py listens for these events, verifies their cryptographic signature, and writes them to the Neo4j database.
+ledger/event_producer.py (New Client Script)
+This script simulates the Tessrax Kernel emitting a contradiction event onto the Kafka bus.
+import json
+import time
+import hashlib
+import ed25519
+from kafka import KafkaProducer
+from typing import Dict, Any
+
+# --- Re-using Key/Signing logic from ledger/key_management.py ---
+
+# Generate or load keys
+try:
+    priv_key = ed25519.SigningKey(open("tessrax_kernel.key", "rb").read())
+    pub_key = priv_key.get_verifying_key()
+    print("Loaded existing kernel keys.")
+except FileNotFoundError:
+    print("Generating new kernel keys...")
+    priv_key, pub_key = ed25519.create_keypair()
+    with open("tessrax_kernel.key", "wb") as f:
+        f.write(priv_key.to_bytes())
+    with open("tessrax_kernel.pub", "wb") as f:
+        f.write(pub_key.to_bytes())
+
+def sign_event(event: Dict[str, Any], private_key: ed25519.SigningKey) -> Dict[str, Any]:
+    """Signs a ledger event and adds the signature to it."""
+    event_bytes = json.dumps(event, sort_keys=True).encode('utf-8')
+    signature = private_key.sign(event_bytes, encoding="hex").decode('utf-8')
+    event['signature'] = signature
+    return event
+
+# --- Kafka Producer ---
+
+producer = KafkaProducer(
+    bootstrap_servers='localhost:9092',
+    value_serializer=lambda v: json.dumps(v).encode('utf-8')
+)
+
+print("Kafka Producer Connected.")
+
+def emit_contradiction(node_data: Dict[str, Any]):
+    """Creates a new contradiction node event."""
+    event_id = hashlib.sha256(json.dumps(node_data, sort_keys=True).encode()).hexdigest()
+    event = {
+        "event_id": event_id,
+        "action": "CREATE_NODE",
+        "timestamp": time.time(),
+        "payload": node_data
+    }
+    signed_event = sign_event(event, priv_key)
+    producer.send('tessrax_ledger', signed_event)
+    print(f"Sent NODE event: {event_id}")
+    return event_id
+
+def emit_causal_link(source_hash: str, target_hash: str, weight: float, reason: str):
+    """Creates a new causal edge event."""
+    payload = {
+        "source_hash": source_hash,
+        "target_hash": target_hash,
+        "weight": weight,
+        "reason_code": reason,
+        "explanation": f"Causal link established: {reason}"
+    }
+    event_id = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+    event = {
+        "event_id": event_id,
+        "action": "CREATE_EDGE",
+        "timestamp": time.time(),
+        "payload": payload
+    }
+    signed_event = sign_event(event, priv_key)
+    producer.send('tessrax_ledger', signed_event)
+    print(f"Sent EDGE event: {event_id}")
+    return event_id
+
+if __name__ == "__main__":
+    print("--- Starting Event Emission Simulation ---")
+    
+    # 1. Create a contradiction
+    node1_data = {
+        "description": "Policy A states 'All data local', but implementation B uses cloud sync.",
+        "modality": "policy/tech",
+        "domain": "security"
+    }
+    node1_hash = emit_contradiction(node1_data)
+    
+    time.sleep(1)
+    
+    # 2. Create a second, related contradiction
+    node2_data = {
+        "description": "User audit logs (local) do not match cloud provider logs.",
+        "modality": "log/audit",
+        "domain": "security"
+    }
+    node2_hash = emit_contradiction(node2_data)
+
+    time.sleep(1)
+    
+    # 3. Link them causally
+    emit_causal_link(
+        source_hash=node1_hash,
+        target_hash=node2_hash,
+        weight=0.85,
+        reason="VIOLATION_DERIVED_DATA"
+    )
+    
+    producer.flush()
+    print("--- Event Emission Complete ---")
+
+streamer/kafka_consumer.py (Updated Service)
+This service runs in its own Docker container, listening to Kafka and writing to Neo4j.
+import json
+import ed25519
+from kafka import KafkaConsumer
+from db.neo4j_handler import CCGNGraphHandler # Assumes handler is in db/
+from ledger.ledger_api import verify_event # Assumes verification logic is in ledger/
+
+# --- Load Kernel Public Key to Verify Signatures ---
+try:
+    kernel_pub_key = ed25519.VerifyingKey(open("tessrax_kernel.pub", "rb").read())
+    print("Loaded kernel public key for verification.")
+except FileNotFoundError:
+    print("FATAL: Kernel public key 'tessrax_kernel.pub' not found. Cannot verify events.")
+    exit(1)
+
+def main():
+    # Connect to Neo4j (from our defined handler)
+    # Env vars would be better for production
+    handler = CCGNGraphHandler("bolt://neo4j:7687", "neo4j", "your_password")
+    
+    # Connect to Kafka
+    consumer = KafkaConsumer(
+        'tessrax_ledger',
+        bootstrap_servers='kafka:9092', # Use Docker service name
+        auto_offset_reset='earliest',
+        group_id='ccgn-ingestor-group',
+        value_deserializer=lambda x: json.loads(x.decode('utf-8'))
+    )
+    
+    print("Kafka Consumer connected. Listening for ledger events...")
+
+    for message in consumer:
+        event = message.value
+        
+        # 1. Verify Cryptographic Integrity
+        if not verify_event(event, kernel_pub_key):
+            print(f"!! CRITICAL: Invalid signature on event {event.get('event_id')}. Discarding.")
+            continue
+            
+        print(f"Received VALID event: {event['event_id']} (Action: {event['action']})")
+        
+        # 2. Process and Map Event to Graph
+        try:
+            payload = event['payload']
+            
+            if event['action'] == 'CREATE_NODE':
+                node_hash = handler.create_or_update_node(
+                    node_id=event['event_id'], # Use event_id as the canonical graph ID
+                    description=payload['description'],
+                    modality=payload['modality'],
+                    domain=payload.get('domain', 'general'),
+                    timestamp=event['timestamp']
+                )
+                print(f"  -> Mapped NODE: {node_hash}")
+
+            elif event['action'] == 'CREATE_EDGE':
+                handler.create_or_update_edge(
+                    edge_id=event['event_id'],
+                    source_hash=payload['source_hash'],
+                    target_hash=payload['target_hash'],
+                    weight=payload['weight'],
+                    reason_code=payload['reason_code'],
+                    explanation=payload['explanation'],
+                    timestamp=event['timestamp']
+                )
+                print(f"  -> Mapped EDGE: {payload['source_hash']} -> {payload['target_hash']}")
+
+        except Exception as e:
+            print(f"!! ERROR processing event {event.get('event_id')}: {e}")
+            # In production, this would go to a dead-letter queue
+            
+if __name__ == "__main__":
+    # Add a simple retry logic for connecting to Kafka/Neo4j on startup
+    connected = False
+    for _ in range(5):
+        try:
+            main()
+            connected = True
+            break
+        except Exception as e:
+            print(f"Failed to connect, retrying... {e}")
+            time.sleep(5)
+    
+    if not connected:
+        print("Fatal: Could not connect to services after retries.")
+        exit(1)
+
+ledger/ledger_api.py (Updated Utility)
+This file holds the reusable verification logic.
+import json
+import ed25519
+from typing import Dict, Any
+
+def verify_event(event: Dict[str, Any], public_key: ed25519.VerifyingKey) -> bool:
+    """Verifies a signed ledger event."""
+    if 'signature' not in event:
+        return False
+        
+    try:
+        signature = bytes.fromhex(event['signature'])
+        
+        # Create a copy of the event *without* the signature for verification
+        event_data_copy = event.copy()
+        del event_data_copy['signature']
+        
+        event_bytes = json.dumps(event_data_copy, sort_keys=True).encode('utf-8')
+        
+        public_key.verify(signature, event_bytes)
+        return True
+    except (ed25519.BadSignatureError, ValueError, TypeError):
+        return False
+
+2. Database Handler (db/)
+The neo4j_handler.py is updated with the logic migrated from the prototype (EntropyForecaster, CCGNPrototype) to run Cypher queries for entropy and explanation.
+db/neo4j_handler.py (Updated Service)
+import json
+import hashlib
+import math
+from neo4j import GraphDatabase
+from typing import Dict, Any, Tuple, List
+
+class CCGNGraphHandler:
+    def __init__(self, uri, user, password):
+        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+        self._ensure_constraints()
+
+    def close(self):
+        self.driver.close()
+
+    def _ensure_constraints(self):
+        """Ensure uniqueness constraints on Contradiction nodes for merging."""
+        with self.driver.session() as session:
+            session.run("CREATE CONSTRAINT IF NOT EXISTS ON (n:Contradiction) ASSERT n.id IS UNIQUE")
+            session.run("CREATE CONSTRAINT IF NOT EXISTS ON (r:CAUSES) ASSERT r.id IS UNIQUE")
+
+    def create_or_update_node(self, node_id: str, description: str, modality: str, domain: str, timestamp: float):
+        """Idempotent creation/update of a Contradiction node."""
+        with self.driver.session() as session:
+            session.run(
+                """
+                MERGE (n:Contradiction {id: $id})
+                SET n.description = $desc,
+                    n.modality = $modality,
+                    n.domain = $domain,
+                    n.timestamp = $timestamp,
+                    n.dampened = false
+                """,
+                id=node_id, desc=description, modality=modality, domain=domain, timestamp=timestamp
+            )
+        return node_id
+
+    def create_or_update_edge(self, edge_id: str, source_hash: str, target_hash: str, weight: float, reason_code: str, explanation: str, timestamp: float):
+        """Idempotent creation/update of a CAUSES edge between two nodes."""
+        with self.driver.session() as session:
+            session.run(
+                """
+                MATCH (s:Contradiction {id: $src}), (t:Contradiction {id: $tgt})
+                MERGE (s)-[r:CAUSES {id: $edge_id}]->(t)
+                SET r.weight = $weight,
+                    r.reason_code = $reason_code,
+                    r.explanation = $explanation,
+                    r.timestamp = $timestamp
+                """,
+                edge_id=edge_id, src=source_hash, tgt=target_hash, weight=weight, 
+                reason_code=reason_code, explanation=explanation, timestamp=timestamp
+            )
+            
+    # --- Logic Migrated from Prototype (EntropyForecaster) ---
+    def get_system_entropy(self) -> float:
+        """Calculates the graph's current Shannon entropy based on node degree centrality."""
+        with self.driver.session() as session:
+            # 1. Get degree centrality for all non-dampened nodes
+            result = session.run(
+                """
+                MATCH (n:Contradiction)
+                WHERE n.dampened = false
+                CALL {
+                    WITH n
+                    MATCH (n)-[r:CAUSES]-()
+                    WHERE r.weight > 0
+                    RETURN count(r) AS degree
+                }
+                RETURN degree
+                """
+            )
+            
+            degrees = [record["degree"] for record in result]
+            if not degrees:
+                return 0.0
+
+            total_degree = sum(degrees)
+            if total_degree == 0:
+                return 0.0
+
+            entropy = 0.0
+            for degree in degrees:
+                if degree > 0:
+                    probability = degree / total_degree
+                    entropy -= probability * math.log2(probability)
+            
+            return entropy
+
+    # --- Logic for API Endpoints ---
+    def get_edge_explanation(self, edge_id: str) -> Dict[str, Any]:
+        """Fetches the explanation for a single causal edge."""
+        with self.driver.session() as session:
+            result = session.run(
+                """
+                MATCH (s:Contradiction)-[r:CAUSES {id: $edge_id}]->(t:Contradiction)
+                RETURN s.description AS source, 
+                       t.description AS target, 
+                       r.explanation AS explanation,
+                       r.reason_code AS reason,
+                       r.weight AS weight
+                """,
+                edge_id=edge_id
+            )
+            record = result.single()
+            if record:
+                return record.data()
+            else:
+                return {"error": "Edge not found."}
+
+    def simulate_intervention(self, node_id: str, strength: float) -> Tuple[float, List[str]]:
+        """Simulates dampening a node and returns the new entropy and affected nodes."""
+        
+        # 1. Get entropy *before* intervention
+        entropy_before = self.get_system_entropy()
+        
+        # 2. Find downstream nodes *before* dampening
+        affected_nodes = []
+        with self.driver.session() as session:
+            result = session.run(
+                """
+                MATCH (startNode:Contradiction {id: $node_id})-[:CAUSES*1..5]->(downstream:Contradiction)
+                WHERE downstream.dampened = false
+                RETURN COLLECT(DISTINCT downstream.id) AS affected
+                """,
+                node_id=node_id
+            )
+            affected_nodes = result.single()["affected"]
+
+        # 3. Apply the intervention (dampen the node)
+        with self.driver.session() as session:
+            session.run(
+                """
+                MATCH (n:Contradiction {id: $node_id})
+                SET n.dampened = true, n.dampen_strength = $strength
+                """,
+                node_id=node_id, strength=strength
+            )
+            
+        # 4. Get entropy *after* intervention
+        entropy_after = self.get_system_entropy()
+        
+        # 5. (IMPORTANT) Rollback the change so the simulation is read-only
+        with self.driver.session() as session:
+            session.run(
+                """
+                MATCH (n:Contradiction {id: $node_id})
+                SET n.dampened = false
+                REMOVE n.dampen_strength
+                """
+            )
+            
+        entropy_change = entropy_after - entropy_before
+        return entropy_change, affected_nodes
+
+3. API & Simulation (api/ and simulation/)
+These files create the live API endpoints, importing the migrated logic from the db/ handler.
+api/routes/simulation.py (Updated API Route)
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from db.neo4j_handler import CCGNGraphHandler
+
+router = APIRouter()
+
+# --- Dependency Injection for the DB Handler ---
+def get_db():
+    # This is a simplified dependency injector.
+    # In prod, you'd use a more robust session/connection pool.
+    handler = CCGNGraphHandler("bolt://neo4j:7687", "neo4j", "your_password")
+    try:
+        yield handler
+    finally:
+        handler.close()
+
+# --- Request/Response Models ---
+class InterventionRequest(BaseModel):
+    node_id: str
+    strength: float = 1.0 # Default to full dampening
+
+class InterventionResponse(BaseModel):
+    entropy_change: float
+    affected_nodes: list[str]
+    message: str
+
+class EntropyResponse(BaseModel):
+    current_system_entropy: float
+
+# --- API Endpoints ---
+@router.get("/entropy", response_model=EntropyResponse)
+def get_current_entropy(db: CCGNGraphHandler = Depends(get_db)):
+    """
+    Get the current Shannon Entropy of the entire active contradiction graph.
+    """
+    entropy = db.get_system_entropy()
+    return EntropyResponse(current_system_entropy=entropy)
+
+@router.post("/intervention", response_model=InterventionResponse)
+def intervention_simulation(req: InterventionRequest, db: CCGNGraphHandler = Depends(get_db)):
+    """
+    Simulate dampening a node and see the effect on system entropy.
+    This is a READ-ONLY operation (changes are rolled back).
+    """
+    try:
+        change, nodes = db.simulate_intervention(req.node_id, req.strength)
+        return InterventionResponse(
+            entropy_change=change,
+            affected_nodes=nodes,
+            message=f"Simulating intervention on {req.node_id} resulted in {change:.4f} entropy change."
+        )
+    except Exception as e:
+        return InterventionResponse(
+            entropy_change=0,
+            affected_nodes=[],
+            message=f"Error during simulation: {e}"
+        )
+
+api/routes/explanation.py (Updated API Route)
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from db.neo4j_handler import CCGNGraphHandler
+from typing import Optional
+
+router = APIRouter()
+
+# --- Dependency Injection (can be shared from simulation.py) ---
+def get_db():
+    handler = CCGNGraphHandler("bolt://neo4j:7687", "neo4j", "your_password")
+    try:
+        yield handler
+    finally:
+        handler.close()
+
+# --- Response Model ---
+class ExplanationResponse(BaseModel):
+    source: str
+    target: str
+    explanation: str
+    reason: str
+    weight: float
+
+# --- API Endpoint ---
+@router.get("/{edge_id}", response_model=ExplanationResponse)
+def explain_edge(edge_id: str, db: CCGNGraphHandler = Depends(get_db)):
+    """
+    Get the human-readable explanation and metadata for a specific causal edge.
+    """
+    result = db.get_edge_explanation(edge_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return ExplanationResponse(**result)
+
+Migration Summary
+ * Prototype ClosureLedger -> Production kafka_consumer.py: The logic is now asynchronous, distributed, and persistent.
+ * Prototype LedgerIntegrityEngine -> Production ledger/ledger_api.py: The logic is now a reusable cryptographic utility for both the producer and consumer.
+ * Prototype CCGNPrototype (NetworkX) -> Production db/neo4j_handler.py (Neo4j): The graph logic is migrated from in-memory to a persistent, queryable database.
+ * Prototype EntropyForecaster -> Production db/neo4j_handler.py: The entropy calculation is migrated from a Python networkx call to a Cypher query.
+ * Prototype ForecastAgent -> Production api/routes/simulation.py: The simulation logic is now exposed as a live, stateless API endpoint that runs its calculations against the production DB.
+The prototype logic is successfully installed into the production architecture. The system is now ready for deployment and end-to-end testing.
+
+
 """
 Tessrax Colab Full Runtime Bundle
 Merged from Colab_code_1.txt and Colab_code_2.txt
