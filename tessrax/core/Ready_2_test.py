@@ -1,3 +1,24 @@
+# 1. Start Kafka, Neo4j, API containers
+docker-compose up -d
+
+# 2. In a second terminal, run the consumer
+docker exec -it ccgn_streamer python streamer/kafka_consumer.py
+
+# 3. In another, emit sample events
+python ledger/event_producer.py
+
+# 4. Verify Neo4j populated correctly
+docker exec -it ccgn_neo4j cypher-shell -u neo4j -p your_password \
+  "MATCH (n:Contradiction)-[r:CAUSES]->(m) RETURN n.id,r.id,m.id LIMIT 5"
+
+# 5. Query live entropy via API
+curl http://localhost:8000/simulation/entropy
+
+# 6. Try an intervention simulation
+curl -X POST http://localhost:8000/simulation/intervention \
+  -H "Content-Type: application/json" \
+  -d '{"node_id":"<event_id_from_step3>","strength":1.0}'
+
 Migration initiated.
 We are now "installing" the validated prototype logic from Ready_2_test.py.txt into the production-grade, containerized repository structure.
 This involves adapting the in-memory networkx logic to use the persistent Neo4j database and connecting the ClosureLedger concept to the Kafka streaming pipeline.
