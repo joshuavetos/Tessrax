@@ -1,3 +1,47 @@
+### 🔧 Patch — Fix `networkx.json_graph` Import Error (MET v1.1)
+
+**Files Affected:**  
+`met/met_module.py`
+
+---
+
+#### 1. **Add this import near the top of the file (after `import networkx as nx`):**
+
+```python
+from networkx.readwrite import json_graph
+
+
+⸻
+
+2. Replace all incorrect references like this:
+
+nx.readwrite.json_graph.adjacency_data(self.graph)
+
+✅ With this:
+
+json_graph.adjacency_data(self.graph)
+
+
+⸻
+
+3. Full corrected block in update_redis_graph() should look like:
+
+async def update_redis_graph(self):
+    await self._ensure_connection()
+    data = json_graph.adjacency_data(self.graph)
+    await self.event_bus.redis.set("met:graph", json.dumps(data))
+
+
+⸻
+
+Reason:
+networkx does not automatically import the readwrite submodule.
+Without this explicit import, calling nx.readwrite.json_graph raises an AttributeError or NameError.
+
+This single-line import and function call fix ensures the MET module can serialize the phylogeny graph correctly for Redis persistence.
+
+
+
 Got it — here’s a complete rewritten, corrected, and ready-to-run version of the Memetic Evolution Tracker (MET v1.1) module suite.
 Everything below is consistent with Tessrax Stack v14.1 conventions: async Redis Streams, Ed25519-signed ledger writes, NetworkX phylogeny, and FastAPI router integration.
 
