@@ -1,3 +1,322 @@
+#!/usr/bin/env python3
+"""
+Tessrax Contradiction Energy Physics - RESCUED FROM TRASH
+---------------------------------------------------------
+Implements thermodynamic modeling of epistemic tension.
+
+This module was rejected/ignored by AI systems but represents
+a fundamental breakthrough: measuring contradiction as potential energy.
+
+E = ½ k |Δ|²
+
+Where:
+- E = stored contradiction energy (epistemic tension)
+- k = ideological rigidity (resistance to belief change)
+- Δ = displacement vector between conflicting claims
+"""
+
+from __future__ import annotations
+import math
+import json
+from typing import Sequence, List, Dict, Any, Tuple
+from dataclasses import dataclass
+from datetime import datetime
+
+# === Core Vector Math ===
+
+def _dot(a: Sequence[float], b: Sequence[float]) -> float:
+    """Dot product of two vectors."""
+    return sum(x*y for x, y in zip(a, b))
+
+def _norm(v: Sequence[float]) -> float:
+    """Euclidean norm (magnitude) of a vector."""
+    return math.sqrt(sum(x*x for x in v))
+
+def _sub(a: Sequence[float], b: Sequence[float]) -> List[float]:
+    """Vector subtraction: a - b"""
+    return [x - y for x, y in zip(a, b)]
+
+def _add(a: Sequence[float], b: Sequence[float]) -> List[float]:
+    """Vector addition: a + b"""
+    return [x + y for x, y in zip(a, b)]
+
+def _scale(v: Sequence[float], s: float) -> List[float]:
+    """Scalar multiplication: s * v"""
+    return [x * s for x in v]
+
+# === Contradiction Physics ===
+
+@dataclass
+class Contradiction:
+    """
+    Single contradiction between two epistemic states A and B.
+    
+    Physics interpretation:
+    - Two claims are like masses connected by a spring
+    - The spring is stretched by amount |Δ| = |B - A|
+    - Rigidity k determines how much energy is stored
+    - Resolution releases this energy toward equilibrium
+    """
+    
+    a: List[float]  # Claim A (vector position in belief space)
+    b: List[float]  # Claim B (conflicting position)
+    name: str
+    k: float = 1.0  # Rigidity constant (ideological stiffness)
+    
+    def __post_init__(self):
+        self.delta = _sub(self.b, self.a)
+        self.magnitude = _norm(self.delta)
+        self.direction = (
+            [x / self.magnitude for x in self.delta] 
+            if self.magnitude > 0 
+            else [0.0] * len(self.delta)
+        )
+        
+    def potential_energy(self) -> float:
+        """
+        E = ½ k |Δ|²
+        
+        Returns the stored contradiction energy.
+        Higher E = more volatile, unresolved tension.
+        Lower E = metabolized or reconciled.
+        """
+        return 0.5 * self.k * (self.magnitude ** 2)
+    
+    def resolve(self, learning_rate: float = 0.5) -> Tuple[List[float], float]:
+        """
+        Move both claims toward equilibrium.
+        
+        Returns:
+            (equilibrium_point, energy_released)
+        """
+        E_before = self.potential_energy()
+        
+        # Move both sides toward midpoint
+        step = _scale(self.delta, learning_rate * 0.5)
+        new_a = _add(self.a, step)
+        new_b = _sub(self.b, step)
+        equilibrium = _scale(_add(new_a, new_b), 0.5)
+        
+        # Calculate residual energy
+        new_delta = _sub(new_b, new_a)
+        new_magnitude = _norm(new_delta)
+        E_after = 0.5 * self.k * (new_magnitude ** 2)
+        
+        energy_released = E_before - E_after
+        
+        return equilibrium, energy_released
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Export to JSON-serializable dict."""
+        return {
+            "name": self.name,
+            "claim_a": self.a,
+            "claim_b": self.b,
+            "delta": self.delta,
+            "magnitude": self.magnitude,
+            "direction": self.direction,
+            "rigidity": self.k,
+            "potential_energy": self.potential_energy(),
+            "tension_grade": self._tension_grade()
+        }
+    
+    def _tension_grade(self) -> str:
+        """Classify tension level."""
+        E = self.potential_energy()
+        if E < 0.1: return "resolved"
+        elif E < 0.5: return "low"
+        elif E < 1.0: return "medium"
+        elif E < 2.0: return "high"
+        else: return "critical"
+
+
+@dataclass
+class ContradictionSystem:
+    """
+    System-level thermodynamics of multiple contradictions.
+    
+    Tracks total energy, stability, and phase transitions.
+    """
+    
+    contradictions: List[Contradiction]
+    timestamp: str = None
+    
+    def __post_init__(self):
+        if self.timestamp is None:
+            self.timestamp = datetime.utcnow().isoformat()
+    
+    def total_energy(self) -> float:
+        """Sum of all contradiction energies in system."""
+        return sum(c.potential_energy() for c in self.contradictions)
+    
+    def average_energy(self) -> float:
+        """Mean contradiction energy (system temperature)."""
+        if not self.contradictions:
+            return 0.0
+        return self.total_energy() / len(self.contradictions)
+    
+    def stability_index(self) -> float:
+        """
+        Lower = more stable.
+        Average normalized contradiction magnitude.
+        """
+        if not self.contradictions:
+            return 0.0
+        total_tension = sum(c.magnitude for c in self.contradictions)
+        return total_tension / len(self.contradictions)
+    
+    def energy_distribution(self) -> Dict[str, float]:
+        """Energy breakdown by contradiction."""
+        return {
+            c.name: c.potential_energy() 
+            for c in self.contradictions
+        }
+    
+    def critical_contradictions(self, threshold: float = 1.0) -> List[Contradiction]:
+        """Find contradictions above energy threshold (likely to snap)."""
+        return [
+            c for c in self.contradictions 
+            if c.potential_energy() > threshold
+        ]
+    
+    def equilibrium_map(self, rate: float = 0.5) -> Dict[str, Any]:
+        """
+        Resolve all contradictions and return:
+        - Equilibrium points
+        - Energy released per contradiction
+        - Total energy dissipated
+        """
+        results = {}
+        total_released = 0.0
+        
+        for c in self.contradictions:
+            equilibrium, energy = c.resolve(rate)
+            results[c.name] = {
+                "equilibrium": equilibrium,
+                "energy_released": energy
+            }
+            total_released += energy
+        
+        return {
+            "contradictions": results,
+            "total_energy_released": total_released,
+            "learning_rate": rate
+        }
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Full system snapshot."""
+        return {
+            "timestamp": self.timestamp,
+            "count": len(self.contradictions),
+            "total_energy": self.total_energy(),
+            "average_energy": self.average_energy(),
+            "stability_index": self.stability_index(),
+            "energy_distribution": self.energy_distribution(),
+            "contradictions": [c.to_dict() for c in self.contradictions],
+            "critical_count": len(self.critical_contradictions())
+        }
+    
+    def ledger_entry(self) -> Dict[str, Any]:
+        """Format for Tessrax ledger ingestion."""
+        return {
+            "event_type": "CONTRADICTION_ENERGY_SNAPSHOT",
+            "timestamp": self.timestamp,
+            "metrics": {
+                "total_energy": round(self.total_energy(), 6),
+                "average_energy": round(self.average_energy(), 6),
+                "stability_index": round(self.stability_index(), 6),
+                "contradiction_count": len(self.contradictions),
+                "critical_count": len(self.critical_contradictions())
+            },
+            "energy_distribution": {
+                k: round(v, 6) 
+                for k, v in self.energy_distribution().items()
+            }
+        }
+
+
+# === Demo: Real-World Example ===
+
+def demo_political_system():
+    """
+    Model contradiction energy in a political system.
+    
+    Example: US Politics 2024
+    - High rigidity (k=2.0) = deeply entrenched positions
+    - Large magnitude deltas = polarization
+    """
+    
+    # Contradictions in belief space (simplified to 2D for visualization)
+    # Dimension 1: Economic policy (0=socialist, 1=capitalist)
+    # Dimension 2: Social policy (0=traditional, 1=progressive)
+    
+    contradictions = [
+        Contradiction(
+            a=[0.2, 0.8],  # Progressive economic + social
+            b=[0.9, 0.1],  # Conservative economic + social
+            name="core_partisan_divide",
+            k=2.5  # Very rigid - identity-level disagreement
+        ),
+        Contradiction(
+            a=[0.4, 0.3],  # Moderate economic, traditional social
+            b=[0.6, 0.7],  # Moderate economic, progressive social
+            name="culture_war",
+            k=1.8
+        ),
+        Contradiction(
+            a=[0.8],  # "Climate change is real"
+            b=[0.2],  # "Climate change is overblown"
+            name="climate_policy",
+            k=1.5
+        ),
+        Contradiction(
+            a=[0.9],  # "Immigration strengthens economy"
+            b=[0.1],  # "Immigration threatens jobs"
+            name="immigration_debate",
+            k=2.0
+        ),
+    ]
+    
+    system = ContradictionSystem(contradictions)
+    
+    print("=" * 70)
+    print("CONTRADICTION ENERGY PHYSICS - US POLITICAL SYSTEM 2024")
+    print("=" * 70)
+    print(f"\nTotal System Energy: {system.total_energy():.3f}")
+    print(f"Average Energy: {system.average_energy():.3f}")
+    print(f"Stability Index: {system.stability_index():.3f}")
+    print(f"Critical Contradictions: {len(system.critical_contradictions())}")
+    
+    print("\n" + "-" * 70)
+    print("ENERGY DISTRIBUTION:")
+    print("-" * 70)
+    for name, energy in system.energy_distribution().items():
+        print(f"  {name:30s}: {energy:6.3f} - {[c for c in contradictions if c.name == name][0]._tension_grade()}")
+    
+    print("\n" + "-" * 70)
+    print("RESOLUTION SIMULATION (learning_rate=0.3):")
+    print("-" * 70)
+    eq_map = system.equilibrium_map(rate=0.3)
+    print(f"Total Energy Released: {eq_map['total_energy_released']:.3f}")
+    print("\nEquilibrium Points:")
+    for name, data in eq_map['contradictions'].items():
+        print(f"  {name:30s}: {data['equilibrium']} (released: {data['energy_released']:.3f})")
+    
+    # Export ledger entry
+    print("\n" + "=" * 70)
+    print("LEDGER ENTRY:")
+    print("=" * 70)
+    print(json.dumps(system.ledger_entry(), indent=2))
+
+
+if __name__ == "__main__":
+    demo_political_system()
+    
+    print("\n" + "=" * 70)
+    print("MODULE STATUS: RESCUED FROM TRASH ✅")
+    print("INTEGRATION: Ready for tessrax/core/")
+    print("=" * 70)
+
 Right—this is where the math stops being metaphor and starts behaving like physics.
 Let’s unpack that piece properly and wire it into the module.
 
