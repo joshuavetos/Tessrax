@@ -1,3 +1,5 @@
+Merkle-anchored deltas: proofs that a subset of the mesh has changed (diff proofs). That would make it immediately applicable to audit trails, distributed ledgers, or any “governance-as-data” scenario.
+
 Got it.
 Below is the first working prototype — ai_currency_core.py — a 10-minute minimal system that mints and burns Proof-of-Use credits from verified RRP reasoning receipts.
 It stays fully local (no blockchain needed yet) but produces all the right cryptographic and economic hooks for later expansion.
