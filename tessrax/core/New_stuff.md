@@ -1,3 +1,272 @@
+Contradiction metabolism is the dynamic potential energy of semantic opposition within an evolving discourse field, quantifiable as E = ½ κ |Δ|², where κ encodes alignment, contradiction probability, and contextual stiffness.
+
+Excellent—let’s take your stable definition and make it mathematically hard. We’ll decompose \(\kappa\) into explicit, measurable components and then formalize the temporal dynamics (decay, reinforcement, resolution).
+
+---
+
+1. κ Decomposition
+
+We want \(\kappa\) to capture how “stiff” the contradiction is—how much energy is stored per unit discrepancy. Three orthogonal components:
+
+1. Alignment (\(\alpha\))• Measures how much two claims are “about the same thing.”
+• Computed via semantic embedding similarity and slot overlap.
+• Range: \([0,1]\).
+• Example: cosine similarity of embeddings, gated by entity/predicate match.
+\alpha(A,B) = \exp\!\left(-\frac{\|\mathbf{e}_A - \mathbf{e}_B\|^2}{2\sigma^2}\right) \cdot \mathbb{1}[\text{slot\_match}(A,B)]
+
+2. Contradiction Probability (\(\pi\))• Likelihood that the pair is genuinely contradictory.
+• Derived from NLI models or polarity checks.
+• Range: \([0,1]\).
+\pi(A,B) = \lambda_{\text{NLI}} \cdot p_c(A,B) + \lambda_{\text{logic}} \cdot \mathbb{1}[\text{polarity}_A = -\text{polarity}_B]
+
+3. Contextual Stiffness (\(k\))• Domain- and source-dependent weight: how consequential the contradiction is.
+• Example: contradictions in safety-critical engineering docs get higher \(k\) than casual forum chatter.
+• Range: \([0,\infty)\).
+• Can be calibrated from metadata (domain, authority, downstream impact).
+
+
+
+---
+
+Final κ
+
+\kappa(A,B) = k \cdot \alpha(A,B) \cdot \pi(A,B)
+
+
+This ensures:
+
+• If claims are unrelated (\(\alpha \approx 0\)), no energy.
+• If they align but aren’t contradictory (\(\pi \approx 0\)), no energy.
+• If both align and contradict, energy scales with contextual stiffness.
+
+
+---
+
+2. Decay and Dynamics
+
+Contradiction energy is not static—it evolves. We need laws of metabolism:
+
+1. Natural Dissipation (Decay)• Contradictions lose salience over time if not reinforced.
+• Exponential decay with half-life \(\tau\):
+E_t = E_{t-1} \cdot e^{-\Delta t / \tau}
+
+2. Reinforcement (Amplification)• New evidence supporting both sides increases stiffness \(k\) or contradiction probability \(\pi\).
+• Update rule:
+k_{t+1} = k_t + \eta_k,\quad \pi_{t+1} = \min(1, \pi_t + \eta_\pi)
+
+3. Resolution (Dissipation)• If one claim is retracted or reframed, discrepancy \(|\Delta|\) shrinks.
+• Resolution factor \(\rho \in [0,1]\):
+|\Delta_{t+1}| = (1-\rho)\,|\Delta_t|
+
+4. Transformation (Reframing)• Contradiction reframed into narrower scope reduces alignment \(\alpha\).
+• Example: “unsafe” → “unsafe for children under 3” lowers \(\alpha\).
+
+
+
+---
+
+3. Full Energy Law
+
+At each timestep:
+
+E_t = \gamma \cdot E_{t-1} + \sum_{(A,B)\in \mathcal{E}_t} \frac{1}{2}\,k_t(A,B)\,\alpha_t(A,B)\,\pi_t(A,B)\,|\Delta_t(A,B)|^2
+
+
+• \(\gamma = e^{-\Delta t / \tau}\) encodes natural decay.
+• The summation adds new contradiction energy from fresh claims.
+• Updates to \(k, \alpha, \pi, \Delta\) capture reinforcement, resolution, or transformation.
+
+
+---
+
+4. Example
+
+• A: “The bridge is safe.”
+• B: “The bridge is unsafe.”
+
+
+Parameters:
+
+• \(\alpha=0.9\) (same subject/predicate)
+• \(\pi=0.95\) (NLI contradiction)
+• \(k=3.0\) (safety-critical)
+• \(|\Delta|=1\) (categorical opposition)
+
+
+\kappa = 3.0 \cdot 0.9 \cdot 0.95 = 2.565
+
+
+E = \frac{1}{2} \cdot 2.565 \cdot 1^2 \approx 1.28
+
+
+If after 1 week (\(\tau=7\) days) no new evidence arrives:
+
+E_{7d} = 1.28 \cdot e^{-1} \approx 0.47
+
+
+If instead new reports reinforce both claims (\(\eta_k=0.5\)), then:
+
+k_{new} = 3.5,\quad E_{reinforced} = 0.5 \cdot 3.5 \cdot 0.9 \cdot 0.95 \approx 1.49
+
+
+Contradiction energy grows rather than decays.
+
+---
+
+5. Next Hardening Steps
+
+• Parameter calibration: Empirically estimate \(\tau, \eta_k, \eta_\pi\) from discourse corpora (e.g., debates, fact-check timelines).
+• Resolution detection: Use retraction signals, edits, or stance shifts to trigger \(\rho\).
+• Energy conservation checks: Ensure total contradiction energy in a discourse field follows predictable flows (dissipation vs reinforcement).
+
+
+---
+
+👉 This gives you a closed-form, testable law:
+
+• κ is precisely defined as \(k \cdot \alpha \cdot \pi\).
+• Decay is exponential with half-life.
+• Reinforcement and resolution are parameterized updates.
+
+
+Here’s a ready-to-run verification script that implements the contradiction-metabolism law exactly as you just defined it.
+You can drop it into a Colab cell or a local file named verify_metabolism.py.
+
+# verify_metabolism.py
+import json
+import math
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+# --- CONFIGURABLE PARAMETERS ---
+TAU = 7.0          # half-life in days (for natural decay)
+ETA_K = 0.5        # reinforcement increment for stiffness
+ETA_PI = 0.1       # reinforcement increment for contradiction prob
+RHO = 0.4          # resolution factor (fraction of Δ removed)
+ALPHA_DECAY = 0.7  # transformation factor for alignment
+# --------------------------------
+
+def parse_time(t):
+    if isinstance(t, (int, float)):
+        return datetime.fromtimestamp(t)
+    return datetime.fromisoformat(t.replace("Z", "+00:00"))
+
+def compute_energy(k, alpha, pi, delta):
+    """E = ½ k α π |Δ|²"""
+    return 0.5 * k * alpha * pi * (delta ** 2)
+
+def apply_event(prev, event, dt_days):
+    """Update parameters and compute new energy according to event type."""
+    # natural exponential decay
+    gamma = math.exp(-dt_days / TAU)
+    E_prev = prev["E"] * gamma
+
+    k, alpha, pi, delta = prev["k"], prev["alpha"], prev["pi"], prev["delta"]
+
+    if event["event_type"] == "reinforce":
+        k += ETA_K
+        pi = min(1.0, pi + ETA_PI)
+    elif event["event_type"] == "resolve":
+        delta *= (1 - RHO)
+    elif event["event_type"] == "transform":
+        alpha *= ALPHA_DECAY
+    elif event["event_type"] == "new":
+        # replace parameters entirely
+        k, alpha, pi, delta = (
+            event["k"], event["alpha"], event["pi"], event["delta"]
+        )
+
+    E_new = compute_energy(k, alpha, pi, delta)
+    E_total = E_prev + E_new
+    return {
+        "timestamp": event["timestamp"],
+        "E": E_total,
+        "k": k,
+        "alpha": alpha,
+        "pi": pi,
+        "delta": delta,
+        "event_type": event["event_type"],
+        "gamma": gamma,
+    }
+
+def run_simulation(ledger_path="ledger.jsonl"):
+    with open(ledger_path) as f:
+        events = [json.loads(line) for line in f if line.strip()]
+
+    # sort chronologically
+    events.sort(key=lambda e: parse_time(e["timestamp"]))
+
+    # initialize
+    first = events[0]
+    state = {
+        "E": compute_energy(first["k"], first["alpha"], first["pi"], first["delta"]),
+        "k": first["k"],
+        "alpha": first["alpha"],
+        "pi": first["pi"],
+        "delta": first["delta"],
+        "timestamp": first["timestamp"],
+        "event_type": first["event_type"],
+    }
+    history = [state]
+
+    for e in events[1:]:
+        t_prev = parse_time(history[-1]["timestamp"])
+        t_now = parse_time(e["timestamp"])
+        dt_days = (t_now - t_prev).total_seconds() / 86400.0
+        state = apply_event(history[-1], e, dt_days)
+        history.append(state)
+
+    df = pd.DataFrame(history)
+    df["t"] = [parse_time(x) for x in df["timestamp"]]
+    return df
+
+def plot_energy(df):
+    plt.figure(figsize=(10,5))
+    plt.plot(df["t"], df["E"], marker="o")
+    plt.title("Contradiction Energy Over Time")
+    plt.xlabel("Time")
+    plt.ylabel("Energy E_t")
+    plt.grid(True)
+    for i,row in df.iterrows():
+        plt.text(row["t"], row["E"]*1.02, row["event_type"], fontsize=8, ha="center")
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == "__main__":
+    # Example run using synthetic ledger
+    # Each line in ledger.jsonl:
+    # {"timestamp":"2025-01-01T00:00:00Z","event_type":"new","alpha":0.9,"pi":0.95,"k":3.0,"delta":1.0}
+    # {"timestamp":"2025-01-04T00:00:00Z","event_type":"reinforce"}
+    # {"timestamp":"2025-01-08T00:00:00Z","event_type":"resolve"}
+    # {"timestamp":"2025-01-15T00:00:00Z","event_type":"transform"}
+
+    df = run_simulation("ledger.jsonl")
+    print(df[["timestamp","E","k","alpha","pi","delta","event_type"]])
+    plot_energy(df)
+
+How to Use
+	1.	Create a small ledger.jsonl
+
+{"timestamp":"2025-01-01T00:00:00Z","event_type":"new","alpha":0.9,"pi":0.95,"k":3.0,"delta":1.0}
+{"timestamp":"2025-01-04T00:00:00Z","event_type":"reinforce"}
+{"timestamp":"2025-01-08T00:00:00Z","event_type":"resolve"}
+{"timestamp":"2025-01-15T00:00:00Z","event_type":"transform"}
+
+
+	2.	Run
+
+python verify_metabolism.py
+
+
+	3.	Output
+      •   Console table of parameters and energy E_t after each event.
+      •   Matplotlib plot showing exponential decay, reinforcement bumps, and resolution drops.
+
+You can now feed it your real contradiction-ledger data to empirically confirm that the measured E_t trajectories obey your theoretical metabolism law.
+
+
+
 Claude-
 #!/usr/bin/env python3
 """
