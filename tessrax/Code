@@ -1,3 +1,14 @@
+Potential Improvements
+1. Logging Configuration: Logging is configured with logging.basicConfig() in multiple modules (e.g., tessrax_core.py, cem_stats.py, tessrax_expansions.py). This can cause conflicts. Best practice is to only configure logging in the main entrypoint (the file you run, like tessrax_expansions.py). All other library files (core, stats, ledger) should only get a logger (e.g., logger = logging.getLogger(__name__)) and never configure it.
+2. Synchronous API Endpoints: In WorldReceiptProtocol, the /verify and /records endpoints call self.ledger.verify_chain() and self.ledger.read_all(). These methods read and process the entire ledger file synchronously. If the ledger file becomes large, these calls will block the FastAPI event loop, freezing the API. These I/O-bound operations should be made asynchronous (e.g., using asyncio.to_thread).  
+3. Inefficient Data Passing to Stats:
+• In TessraxLedger.append_run, you convert HistoryEntry objects into a list of dictionaries (metrics_dicts) with string timestamps.  
+• You pass this list to compute_energy_metrics.  
+• compute_energy_metrics then immediately calls _preprocess_history, which uses pd.to_datetime to parse those strings back into datetime objects.  
+• This datetime -> str -> datetime conversion is inefficient. You could refactor compute_energy_metrics to accept the List[HistoryEntry] objects directly and build the DataFrame from them, avoiding the unnecessary serialization/deserialization.
+4. Hardcoded Simulation Parameters: In TessraxCLI.run_once, the initial state and event sequence are hardcoded. For a more flexible CLI, these should be loaded from command-line arguments (e.g., using argparse or typer) or a configuration file (e.g., YAML or TOML).  
+5. Redundant Hashing: In ContradictionState.hash(), the to_dict() method includes the derived properties kappa and energy in the serialized output. The hash is then computed on this dict. Since these values are fully determined by the other state variables (k, alpha, pi, delta), including them in the hash is redundant. Hashing only the fundamental state variables would be sufficient to guarantee integrity.
+
 #!/usr/bin/env python3
 """
 tessrax_core.py
