@@ -1402,3 +1402,123 @@ if __name__ == "__main__":
     #         time.sleep(1)
     # except KeyboardInterrupt:
     #     print("\nExiting.")
+
+#!/usr/bin/env python3
+"""
+moral_thermo.py
+---------------
+Simulation engine for the Moral Thermodynamics of Intelligence model.
+
+Fused domains:
+    • Neuroscience (dopamine / prediction error)
+    • Ethics (ought–is dissonance)
+    • Statistical mechanics (free-energy minimization)
+    • Information theory (mutual information)
+    • Evolutionary dynamics (strategy selection)
+"""
+
+from __future__ import annotations
+from dataclasses import dataclass
+import numpy as np
+
+
+@dataclass(slots=True)
+class MoralState:
+    """State vector of a moral-thermodynamic system."""
+    expectation_energy: float   # E : expectation / moral energy
+    moral_entropy: float        # S : moral entropy
+    moral_dissonance: float     # Δ : moral dissonance (ought–is gap)
+    rigidity: float             # κ : rigidity (resistance to change)
+    mutual_information: float   # I : mutual information (shared understanding)
+    social_temperature: float   # T : social temperature (must be > 0)
+
+
+def evolve(
+    state: MoralState,
+    dt: float = 1.0,
+    lambda_: float = 0.5,
+    eta: float = 1.0
+) -> MoralState:
+    """
+    Advance the moral state by one timestep using governing differential equations.
+    
+    Governing equations:
+        dS/dt = (Δ²) / T                     # entropy generation
+        dE/dt = -λΔ + ηI                    # conscience energy change
+        dΔ/dt = 0.1*(E - S) - κΔ            # moral dissonance dynamics
+    
+    Args:
+        state (MoralState): Current moral state.
+        dt (float): Time step increment.
+        lambda_ (float): Weighting factor for dissonance influence on energy.
+        eta (float): Weighting factor for mutual information influence on energy.
+        
+    Returns:
+        MoralState: New state after evolution step.
+    """
+    if state.social_temperature <= 0:
+        raise ValueError("Social temperature T must be positive to avoid division by zero.")
+    
+    dS = (state.moral_dissonance ** 2) / state.social_temperature
+    dE = -lambda_ * state.moral_dissonance + eta * state.mutual_information
+    dΔ = 0.1 * (state.expectation_energy - state.moral_entropy) - state.rigidity * state.moral_dissonance
+
+    return MoralState(
+        expectation_energy=state.expectation_energy + dE * dt,
+        moral_entropy=state.moral_entropy + dS * dt,
+        moral_dissonance=state.moral_dissonance + dΔ * dt,
+        rigidity=state.rigidity,
+        mutual_information=state.mutual_information,
+        social_temperature=state.social_temperature,
+    )
+
+
+def simulate(
+    steps: int = 200,
+    E0: float = 1.0,
+    S0: float = 0.1,
+    Δ0: float = 1.0,
+    κ: float = 0.5,
+    I: float = 0.5,
+    T: float = 1.0,
+    lambda_: float = 0.5,
+    eta: float = 1.0,
+) -> dict[str, np.ndarray]:
+    """
+    Run the moral thermodynamics simulation for a specified number of steps.
+    
+    Args:
+        steps (int): Number of discrete time steps to simulate.
+        E0, S0, Δ0 (float): Initial values for expectation energy, entropy, and dissonance.
+        κ (float): Rigidity coefficient.
+        I (float): Mutual information level.
+        T (float): Social temperature (> 0).
+        lambda_ (float): Parameter λ governing conscience energy decay.
+        eta (float): Parameter η governing mutual information impact.
+        
+    Returns:
+        dict[str, np.ndarray]: Dictionary with time series arrays for 'E', 'S', and 'Δ'.
+    """
+    if steps < 1:
+        raise ValueError("Number of steps must be a positive integer.")
+    if T <= 0:
+        raise ValueError("Social temperature T must be positive.")
+
+    state = MoralState(E0, S0, Δ0, κ, I, T)
+    history = {
+        "E": np.empty(steps, dtype=float),
+        "S": np.empty(steps, dtype=float),
+        "Δ": np.empty(steps, dtype=float)
+    }
+
+    history["E"][0] = E0
+    history["S"][0] = S0
+    history["Δ"][0] = Δ0
+
+    for t in range(1, steps):
+        state = evolve(state, dt=1.0, lambda_=lambda_, eta=eta)
+        history["E"][t] = state.expectation_energy
+        history["S"][t] = state.moral_entropy
+        history["Δ"][t] = state.moral_dissonance
+
+    return history
