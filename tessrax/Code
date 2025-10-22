@@ -1522,3 +1522,13 @@ def simulate(
         history["Δ"][t] = state.moral_dissonance
 
     return history
+
+# Example: quick phase sweep
+import matplotlib.pyplot as plt
+from moral_thermo import simulate
+
+for T in [0.5, 1.0, 2.0, 3.0]:
+    data = simulate(steps=400, T=T)
+    plt.plot(data["Δ"], label=f"T={T}")
+plt.xlabel("time step"); plt.ylabel("dissonance Δ"); plt.legend(); plt.grid()
+plt.show()
