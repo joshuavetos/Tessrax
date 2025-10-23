@@ -244,6 +244,59 @@ Repository: github.com/joshuavetos/Tessrax
 Integrity Anchor: GPT to Josh — Tessrax LLC
 
 ⸻
+Tessrax v13.7 — Governance & Contradiction Metabolism Framework
+
+Reflects Trust Engine integration + Audit Mode governance.
+
+---
+
+### 2. Updated Architecture
+**Insert between Claim Extractor → Contradiction Engine:**
+
+[Semantic Analyzer] — embedding + negation/antonym logic for semantic conflict detection.
+
+This node originates from CE-MOD-66 (Enhanced Conflict Graph).
+
+---
+
+### 3. Ledger Schema Update
+
+“module”: “ContradictionEngineV15”
+
+supersedes V14 to match the current CE-MOD-66 runtime.
+
+---
+
+### 4. Formal Verification Layer (additions)
+| ID | Invariant | Guarantee |
+|:--:|:--|:--|
+| A1 | Audit-Mode Integrity | All AUDIT events cryptographically linked to active policy ruleset (SV5) |
+| A2 | Trust Kernel Sync | Governance Kernel and Trust Engine must share ledger root hash |
+
+---
+
+### 5. Security & Reliability (additions)
+| Metric | Target | Description |
+|:--|:--|:--|
+| Audit Drift | ≤ 0.02 | Epistemic Stability threshold (ε ≤ 0.02 per SV5) |
+| Quorum Latency | ≤ 5 s | Agent-Governance Integration real-time consensus target |
+
+---
+
+### 6. Research Extensions (additions)
+| Project | Focus |
+|:--|:--|
+| Governance–Agent Integration Layer | Direct logging of agent outputs to governance ledger for visual audit |
+| CE-MOD-66 Enhanced Conflict Graph | NLP + graph-theoretic fusion for contradiction scoring and runtime governance |
+| Audit Visualization Stack | D3 timeline rendering of ledger events with policy violation quorums |
+
+---
+
+### 7. License & Attribution (addition)
+
+Verification Anchors: PERM-MEM-PROJECT-INSTRUCTIONS-SV5 (2025-10-22)
+Integrity Law: Audit Mode Activation Cell — AUDIT MODE § Epistemic Integrity ε ≤ 0.02
+
 
 “If existence is contradiction, then consistency is proof of life.”
 — Tessrax LLC (2025)
