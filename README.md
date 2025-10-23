@@ -1,43 +1,42 @@
-# Tessrax – AI Governance & Contradiction Metabolism Framework
+# Tessrax — AI Governance & Contradiction Metabolism Framework
 
-[![CI](https://github.com/YOUR_ORG/Tessrax/actions/workflows/tests.yml/badge.svg)](https://github.com/YOUR_ORG/Tessrax/actions/workflows/tests.yml)
+[![CI](https://github.com/joshuavetos/Tessrax/actions/workflows/tests.yml/badge.svg)](https://github.com/joshuavetos/Tessrax/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-brightgreen.svg)
 ![Coverage](https://img.shields.io/badge/coverage-85%25-success.svg)
-![Last Commit](https://img.shields.io/github/last-commit/YOUR_ORG/Tessrax.svg)
+![Last Commit](https://img.shields.io/github/last-commit/joshuavetos/Tessrax.svg)
 
-> **Keywords:** AI Governance · Contradiction Metabolism · Audit Ledger · Transparency · Trust Framework · Tessrax
+> **Keywords:** AI Governance · Contradiction Metabolism · Audit Ledger · Epistemic Integrity · Transparency · Trust Framework
 
-Tessrax converts systemic contradictions into auditable knowledge. Inputs are transformed into structured claims, scored for tension, metabolised through governance protocols, and anchored in an immutable ledger for transparent review.
+---
 
+## Overview
 
-## Table of Contents
+**Tessrax** transforms contradictions into verified understanding.  
+It detects logical and semantic tensions in data or reasoning, metabolizes them through governance protocols, and records each resolution as a cryptographically signed receipt.  
 
-1. [Quick Start](#quick-start)
-2. [Sample Ledger Receipt](#sample-ledger-receipt)
-3. [Repository Structure](#repository-structure)
-4. [Core Concepts](#core-concepts)
-5. [Documentation](#documentation)
-6. [Examples](#examples)
-7. [Testing](#testing)
-8. [Community & Security](#community--security)
+This creates a self-auditing governance architecture—one that learns by reconciling conflict rather than concealing it.
+
+> Every resolution becomes a verifiable artifact. Every artifact strengthens system integrity.
+
+---
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_ORG/Tessrax.git
+git clone https://github.com/joshuavetos/Tessrax.git
 cd Tessrax
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e .[dev]
 python examples/minimal_detect.py
-```
 
-For full setup guidance, visit [`docs/getting_started.md`](docs/getting_started.md).
+Full setup instructions are available in docs/getting_started.md.
 
-## Sample Ledger Receipt
+⸻
 
-```json
+Sample Ledger Receipt
+
 {
   "event_type": "CONTRADICTION_RESOLUTION",
   "timestamp": "2025-10-17T13:10:00Z",
@@ -49,60 +48,84 @@ For full setup guidance, visit [`docs/getting_started.md`](docs/getting_started.
   "hash": "fae2d0485f1cba11",
   "signature": "ed25519:4aa3..."
 }
-```
 
-Receipts are produced by `tessrax.ledger.Ledger` when governance cycles complete.
+Each record is produced by tessrax.ledger.Ledger after a governance cycle and can be independently verified against the Merkle root.
 
-## Repository Structure
+⸻
 
-| Path | Purpose |
-| --- | --- |
-| `analysis/` | Historical research scripts, notebooks, and exploratory experiments. |
-| `docs/` | Architecture, onboarding, governance protocols, and developer documentation. |
-| `examples/` | Runnable demonstrations of contradiction detection, governance simulation, and dashboard snapshots. |
-| `tessrax/` | Installable Python package implementing extractors, engines, governance kernel, and ledger. |
-| `tests/` | Pytest-based regression suite covering contradiction detection and ledger verification. |
-| `.github/` | Issue templates and automation workflows. |
+System Architecture
 
-## Core Concepts
+Component	Role
+Claim Extractor	Normalizes raw text or data into structured claims with provenance metadata.
+Contradiction Engine	Detects and quantifies logical, semantic, or normative tension between claims.
+Governance Kernel	Applies the four Tessrax Protocols—Memory, Metabolism, Governance, and Trust—to resolve conflicts.
+Ledger	Stores tamper-evident receipts, hash-linked for verifiable lineage.
+Visualizer	Renders dashboards and audit views for real-time epistemic health monitoring.
 
-- **Claim Extractor** – Normalises raw input into structured claims with provenance metadata.
-- **Contradiction Engine** – Quantifies tension between claims to prioritise governance attention.
-- **Governance Kernel** – Applies Memory, Metabolism, Governance, and Trust protocols to resolve contradictions.
-- **Ledger** – Appends tamper-evident receipts capturing every governance decision.
-- **Visualizer** – Summaries and dashboards communicating status to auditors and stakeholders.
+Refer to docs/architecture_overview.md for diagrams and flow narratives.
 
-An end-to-end architecture diagram is available in [`docs/architecture_overview.md`](docs/architecture_overview.md).
+⸻
 
-## Documentation
+Repository Structure
 
-- [Architecture Overview](docs/architecture_overview.md)
-- [Getting Started](docs/getting_started.md)
-- [Governance Protocols](docs/governance_protocols.md)
-- [Developer Guide](docs/developer_guide.md)
+Path	Purpose
+analysis/	Exploratory research notebooks and prototypes.
+docs/	Core documentation (architecture, setup, protocols, developer guide).
+examples/	Runnable demonstrations of contradiction detection and governance metabolism.
+tessrax/	Installable Python package implementing core engines and ledger.
+tests/	Pytest suite covering engines, governance kernel, and ledger verification.
+.github/	Automation workflows, issue templates, and contribution policies.
 
-## Examples
 
-| Script | Description |
-| --- | --- |
-| `examples/minimal_detect.py` | Load sample claims and highlight contradictions. |
-| `examples/governance_demo.py` | Run a deterministic governance cycle that records receipts. |
-| `examples/dashboard_snapshot.py` | Generate a dashboard-ready snapshot summarising ledger health. |
+⸻
 
-Run any script with `python examples/<script>.py` from the repository root.
+Examples
 
-## Testing
+Script	Description
+examples/minimal_detect.py	Loads sample claims and flags contradictions.
+examples/governance_demo.py	Simulates a full governance cycle, producing signed receipts.
+examples/dashboard_snapshot.py	Generates a dashboard-ready summary of ledger state.
 
-Execute the full suite with:
+Run any example from the repository root:
 
-```bash
+python examples/<script>.py
+
+
+⸻
+
+Testing
+
+Run all tests locally:
+
 pytest
-```
 
-Continuous integration runs the same workflow on GitHub Actions (`.github/workflows/tests.yml`).
+Continuous integration executes the same workflow automatically on each commit
+via GitHub Actions (.github/workflows/tests.yml).
 
-## Community & Security
+⸻
 
-- Review the [Code of Conduct](CODE_OF_CONDUCT.md) and [Contributing Guide](CONTRIBUTING.md) before opening pull requests.
-- Report security vulnerabilities responsibly via [SECURITY.md](SECURITY.md).
-- Join discussions through GitHub issues and proposals to help steer Tessrax governance research.
+Documentation
+   •   Architecture Overview
+   •   Getting Started
+   •   Governance Protocols
+   •   Developer Guide
+
+⸻
+
+Community & Security
+   •   Review the Code of Conduct and Contributing Guide before submitting pull requests.
+   •   Responsible disclosure via SECURITY.md.
+   •   Discussions, research proposals, and governance experiments are welcome through GitHub issues.
+
+⸻
+
+Citation
+
+If referencing Tessrax in research or implementation:
+
+Vetos, J. (2025). Tessrax: A Framework for AI Governance and Contradiction Metabolism.
+GitHub. https://github.com/joshuavetos/Tessrax
+
+⸻
+
+Tessrax — turning contradiction into cognition, and cognition into proof.
