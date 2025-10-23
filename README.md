@@ -10,7 +10,6 @@
 
 Tessrax converts systemic contradictions into auditable knowledge. Inputs are transformed into structured claims, scored for tension, metabolised through governance protocols, and anchored in an immutable ledger for transparent review.
 
-![Tessrax Governance Banner](https://multimind-media.com/media/tessrax-banner.png)
 
 ## Table of Contents
 
