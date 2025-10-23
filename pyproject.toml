@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tessrax"
+version = "0.1.0"
+description = "Research-grade governance framework for contradiction metabolism"
+authors = [
+  { name = "Tessrax Contributors" }
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = [
+  "AI Governance",
+  "Contradiction Metabolism",
+  "Transparency",
+  "Ledger",
+  "Trust Framework",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "ruff>=0.5",
+]
+
+[tool.setuptools.packages.find]
+include = ["tessrax", "tessrax.*"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

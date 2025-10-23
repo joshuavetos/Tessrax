@@ -1,0 +1,37 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.dylib
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+.env
+.env.*
+
+# Editor settings
+*.swp
+*.swo
+*.idea/
+.vscode/
+
+# Data / logs
+*.log
+*.tmp
+.DS_Store
+
+# Node / dashboard assets
+node_modules/
+dashboard/.cache/
+dashboard/build/
