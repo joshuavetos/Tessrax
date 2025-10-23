@@ -263,3 +263,56 @@ Thanks!
 
 Tessrax exists to metabolize contradictions into clarity. Your contributions make the organism stronger, more auditable, and more useful for everyone.
 
+### 🔒 1. Audit Mode Requirement
+All PRs touching governance, ledger, or semantic analysis must include:
+
+```text
+# In PR body
+Audit-Mode: enabled
+Epistemic-Drift: ≤ 0.02 (verified)
+
+CI now rejects ledger-affecting merges without a passing audit receipt in /tests/audit_receipts/.
+
+🧠 2. Semantic / Governance-Agent Integration
+
+If code interacts with:
+   •   semantic_analyzer.py
+   •   governance_kernel.py
+   •   agent_integration.py
+
+Then contributors must:
+	1.	Include a contradiction-graph sample (tests/data/conflict_graphs/).
+	2.	Add a GOV-AGENT-LOG receipt showing event → ledger linkage.
+
+🧮 3. Updated Test Coverage Gates
+   •   Core engines & audit modules: ≥ 90 %
+   •   Governance & ledger proofs: 100 % on both pass/fail paths
+   •   Remaining code unchanged (≥ 85 %).
+
+🧾 4. Commit Tag Extension
+
+Use new optional scope for governance work:
+
+audit(governance): add quorum-proof validation
+
+This allows auto-generation of governance-ledger receipts.
+
+🧱 5. Formal Proof Hooks
+
+Any change inside /formal/ requires:
+
+make proofs
+# runs TLA⁺ / Coq / Alloy, emits receipts → /ledger/formal_receipts.jsonl
+
+📜 6. Documentation Tags
+
+When editing docs/specs or README:
+   •   Append Verification Anchors: PERM-MEM-PROJECT-INSTRUCTIONS-SV5
+   •   Include updated runtime tag Tessrax v13.7
+
+⸻
+
+Patch Author: Joshua Scott Vetos
+Entity: Tessrax LLC
+Date: 2025-10-23
+Importance: High 🔥 — ensures contributor workflow matches live audit-governance law and CE-MOD-66 semantics.
