@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+# Treat diagrams and notebooks as binary to avoid merge conflicts
+*.png binary
+*.jpg binary
+*.svg text
+*.pdf binary
+*.ipynb binary
+
+# Ensure Mermaid and PlantUML stay UTF-8
+*.mmd text working-tree-encoding=UTF-8
+*.puml text working-tree-encoding=UTF-8
