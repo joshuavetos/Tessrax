@@ -1,0 +1,6 @@
+{"timestamp": "2025-10-24T00:00:00Z", "directive_id": "MAX-SWEEP-20251024-R1.2", "file": "config_loader.py", "sha256": "6890a9efe68c1c48996038e07e6f1d29998aab23d74f7a5c0422e50e246211d5"}
+{"timestamp": "2025-10-24T00:00:00Z", "directive_id": "MAX-SWEEP-20251024-R1.2", "file": "tessrax/governance.py", "sha256": "bc37ab87b1e6164c6c4358e57e924c477516dc927423078f9c595709d10e0ba3"}
+{"timestamp": "2025-10-24T00:00:00Z", "directive_id": "MAX-SWEEP-20251024-R1.2", "file": "tessrax/governance_security.py", "sha256": "ec4edfa219904562e15e3ef5e5c5dc50d7a523358c7b03a2d123dde120ee192a"}
+{"timestamp": "2025-10-24T00:00:00Z", "directive_id": "MAX-SWEEP-20251024-R1.2", "file": "tessrax/types.py", "sha256": "0bac5f4de7d6c29f02e5c3f3e24e255f0ae3c9c746b0bba0ac2933f1912b7206"}
+{"timestamp": "2025-10-24T00:00:00Z", "directive_id": "MAX-SWEEP-20251024-R1.2", "file": "tests/test_config_loader.py", "sha256": "27f255ba6267e40becbd5f4027cec151a4cad5e16ab6cb4779c620037d1ed313"}
+{"timestamp": "2025-10-24T00:00:00Z", "directive_id": "MAX-SWEEP-20251024-R1.2", "file": "tests/test_governance_security.py", "sha256": "20bd0bb72f4506257b10b1a39dc06d369fb9eac68310b252bf791913b4787441"}

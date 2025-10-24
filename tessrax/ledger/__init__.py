@@ -80,6 +80,7 @@ def verify_file(path: Path) -> bool:
                 for key in (
                     "event_type",
                     "timestamp",
+                    "decision_id",
                     "action",
                     "severity",
                     "clarity_fuel",
@@ -89,6 +90,9 @@ def verify_file(path: Path) -> bool:
                     "confidence",
                     "contradiction_ids",
                     "synthesis",
+                    "protocol",
+                    "timestamp_token",
+                    "signature",
                 )
                 if key in payload
             }

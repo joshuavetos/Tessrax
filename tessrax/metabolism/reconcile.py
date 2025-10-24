@@ -7,6 +7,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from statistics import mean
 from typing import List, Optional, Sequence
 
 from ..audit import AuditKernel
@@ -28,9 +29,20 @@ class _ClarityDecision:
 class ReconciliationEngine:
     """Generate clarity statements from contradictions and log them to the ledger."""
 
-    def __init__(self, audit_kernel: AuditKernel, ledger: Optional[Ledger] = None) -> None:
+    def __init__(
+        self,
+        audit_kernel: AuditKernel,
+        ledger: Optional[Ledger] = None,
+        *,
+        audit_log_path: Optional[Path] = None,
+        diagnostics_path: Optional[Path] = None,
+        engine_seed: Optional[int] = None,
+    ) -> None:
         self.audit_kernel = audit_kernel
         self.ledger = ledger or Ledger()
+        self._audit_log_path = Path(audit_log_path) if audit_log_path else Path("logs/metabolism_audit.jsonl")
+        self._diagnostics_path = Path(diagnostics_path) if diagnostics_path else Path("logs/metabolism_diagnostics.jsonl")
+        self._engine_seed = engine_seed if engine_seed is not None else 0
 
     def reconcile(self, contradictions: Sequence[ContradictionRecord]) -> List[ClarityStatement]:
         """Reconcile a batch of contradictions into clarity statements."""
@@ -51,7 +63,39 @@ class ReconciliationEngine:
             )
             statements.append(statement)
             self.ledger.append(_ClarityDecision(statement))
+            self._emit_audit_record(record, statement)
+        if statements:
+            self._emit_diagnostics(statements, len(contradictions))
         return statements
+
+    def _emit_audit_record(self, record: ContradictionRecord, statement: ClarityStatement) -> None:
+        payload = {
+            "event_type": "METABOLISM_RECONCILIATION",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "engine_seed": self._engine_seed,
+            "ordered_inputs": [claim.claim_id for claim in record.sorted_pair()],
+            "contradiction_delta": record.delta,
+            "statement": statement.to_receipt(),
+        }
+        self._write_jsonl(self._audit_log_path, payload)
+
+    def _emit_diagnostics(self, statements: List[ClarityStatement], total_inputs: int) -> None:
+        diagnostics = {
+            "event_type": "METABOLISM_DIAGNOSTICS",
+            "date": datetime.now(timezone.utc).date().isoformat(),
+            "engine_seed": self._engine_seed,
+            "processed_events": len(statements),
+            "input_count": total_inputs,
+            "average_confidence": round(mean(s.confidence for s in statements), 6),
+            "clarity_total": round(sum(s.clarity_fuel for s in statements), 6),
+        }
+        self._write_jsonl(self._diagnostics_path, diagnostics)
+
+    @staticmethod
+    def _write_jsonl(path: Path, payload: dict) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, sort_keys=True) + "\n")
 
 
 def _parse_timestamp(value: str) -> datetime:

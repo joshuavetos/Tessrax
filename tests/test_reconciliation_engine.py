@@ -21,7 +21,7 @@ def _claim(claim_id: str, subject: str) -> Claim:
     )
 
 
-def test_reconciliation_engine_emits_clarity_receipt() -> None:
+def test_reconciliation_engine_emits_clarity_receipt(tmp_path) -> None:
     claim_a = _claim("claim-a", "biosphere")
     claim_b = _claim("claim-b", "biosphere")
     record = ContradictionRecord(
@@ -32,7 +32,14 @@ def test_reconciliation_engine_emits_clarity_receipt() -> None:
         reasoning="Sensors disagree on oxygenation levels.",
     )
 
-    engine = ReconciliationEngine(AuditKernel())
+    audit_log = tmp_path / "audit.jsonl"
+    diagnostics_log = tmp_path / "diag.jsonl"
+    engine = ReconciliationEngine(
+        AuditKernel(),
+        audit_log_path=audit_log,
+        diagnostics_path=diagnostics_log,
+        engine_seed=42,
+    )
     statements = engine.reconcile([record])
 
     assert len(statements) == 1
@@ -51,6 +58,18 @@ def test_reconciliation_engine_emits_clarity_receipt() -> None:
     assert payload["severity"] == "high"
     assert payload["action"] == "SYNTHESIZE_CLARITY"
     assert payload["rationale"]
+
+    audit_entries = [json.loads(line) for line in audit_log.read_text(encoding="utf-8").splitlines() if line]
+    assert audit_entries
+    assert audit_entries[0]["engine_seed"] == 42
+    assert audit_entries[0]["ordered_inputs"] == ["claim-a", "claim-b"]
+
+    diagnostics_entries = [
+        json.loads(line) for line in diagnostics_log.read_text(encoding="utf-8").splitlines() if line
+    ]
+    assert diagnostics_entries
+    assert diagnostics_entries[0]["processed_events"] == 1
+    assert diagnostics_entries[0]["input_count"] == 1
 
 
 def test_load_and_cli_flow(tmp_path, capsys) -> None:

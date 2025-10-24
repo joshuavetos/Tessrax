@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .governance_security import DecisionSignature, SignatureAuthority
 from .types import ContradictionRecord, GovernanceDecision
 
 
@@ -14,6 +15,8 @@ class GovernanceKernel:
         metabolism_weight: float = 0.25,
         governance_weight: float = 0.3,
         trust_weight: float = 0.2,
+        *,
+        signature_authority: SignatureAuthority | None = None,
     ) -> None:
         self.weights = {
             "memory": memory_weight,
@@ -21,17 +24,22 @@ class GovernanceKernel:
             "governance": governance_weight,
             "trust": trust_weight,
         }
+        self._signature_authority = signature_authority
 
     def process(self, contradiction: ContradictionRecord) -> GovernanceDecision:
         action = self._select_action(contradiction.severity)
         clarity = self._clarity_fuel(contradiction.delta)
         rationale = self._rationale(contradiction)
-        return GovernanceDecision(
+        decision = GovernanceDecision(
             contradiction=contradiction,
             action=action,
             clarity_fuel=clarity,
             rationale=rationale,
         )
+        if self._signature_authority is not None:
+            signature = self._signature_authority.sign(decision)
+            self._attach_signature(decision, signature)
+        return decision
 
     def _select_action(self, severity: str) -> str:
         mapping = {
@@ -53,3 +61,8 @@ class GovernanceKernel:
             "Governance applied quorum thresholds while Trust signalled observers."
         )
         return protocol_summary
+
+    @staticmethod
+    def _attach_signature(decision: GovernanceDecision, signature: DecisionSignature) -> None:
+        decision.timestamp_token = signature.timestamp_token
+        decision.signature = signature.signature
