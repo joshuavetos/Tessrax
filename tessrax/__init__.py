@@ -4,6 +4,7 @@ from .extraction import ClaimExtractor
 from .contradiction import ContradictionEngine
 from .governance import GovernanceKernel
 from .ledger import Ledger, LedgerReceipt
+from .metabolism.reconcile import ReconciliationEngine
 from .dashboard import build_snapshot
 from .types import Claim, ContradictionRecord, GovernanceDecision
 
@@ -13,6 +14,7 @@ __all__ = [
     "GovernanceKernel",
     "Ledger",
     "LedgerReceipt",
+    "ReconciliationEngine",
     "Claim",
     "ContradictionRecord",
     "GovernanceDecision",

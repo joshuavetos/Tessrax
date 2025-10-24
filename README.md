@@ -21,6 +21,16 @@ This creates a self-auditing governance architecture—one that learns by reconc
 
 ---
 
+## Core Concepts
+
+- **Claim Extractor** – Normalizes raw inputs into structured claims with provenance metadata.
+- **Contradiction Engine** – Flags tensions between claims and quantifies their severity.
+- **Governance Kernel** – Applies Tessrax protocols to decide on remediation paths.
+- **Ledger** – Anchors every governance action to a verifiable, hash-linked receipt.
+- **Reconciliation Engine** – Synthesizes clarity statements from detected contradictions and appends them to the audit ledger.
+
+---
+
 ## Quick Start
 
 ```bash
@@ -109,6 +119,7 @@ Documentation
    •   Getting Started
    •   Governance Protocols
    •   Developer Guide
+   •   [Metabolic Reconciliation](docs/metabolic_reconciliation.md)
 
 ⸻
 
