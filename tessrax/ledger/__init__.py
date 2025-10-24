@@ -86,7 +86,11 @@ def verify_file(path: Path) -> bool:
                     "subject",
                     "metric",
                     "rationale",
+                    "confidence",
+                    "contradiction_ids",
+                    "synthesis",
                 )
+                if key in payload
             }
             expected = Ledger._hash_payload(prev_hash, summary)
             if expected != payload["hash"]:
