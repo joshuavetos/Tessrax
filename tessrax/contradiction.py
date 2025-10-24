@@ -6,7 +6,7 @@ from collections import defaultdict
 from itertools import combinations
 from typing import Dict, List, Sequence
 
-from .types import Claim, ContradictionRecord
+from tessrax.types import Claim, ContradictionRecord
 
 SeverityThresholds = {
     "low": 0.05,

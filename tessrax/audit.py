@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
 
-from .types import ContradictionRecord
+from tessrax.types import ContradictionRecord
 
 
 @dataclass

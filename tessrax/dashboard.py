@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Dict, Iterable
 
-from .types import LedgerReceipt
+from tessrax.types import LedgerReceipt
 
 
 def build_snapshot(receipts: Iterable[LedgerReceipt]) -> Dict[str, object]:

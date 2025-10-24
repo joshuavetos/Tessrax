@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Iterable, Mapping
 
-from .governance_security import DecisionSignature, SignatureAuthority
-from .meta_integrity.analytics import compute_epistemic_metrics
-from .types import ContradictionRecord, GovernanceDecision
+from tessrax.governance_security import DecisionSignature, SignatureAuthority
+from tessrax.meta_integrity.analytics import compute_epistemic_metrics
+from tessrax.types import ContradictionRecord, GovernanceDecision
 
 
 class GovernanceKernel:

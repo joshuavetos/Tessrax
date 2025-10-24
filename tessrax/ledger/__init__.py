@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence
 
-from ..types import GovernanceDecision, LedgerReceipt
+from tessrax.types import GovernanceDecision, LedgerReceipt
 
 GENESIS_HASH = "GENESIS"
 
@@ -118,7 +118,7 @@ def _cli(argv: Optional[Sequence[str]] = None) -> None:
     args = parser.parse_args(argv)
 
     if args.command == "verify":
-        from .verify import main as verify_main
+        from tessrax.ledger.verify import main as verify_main
 
         verify_main([str(args.path)])
 

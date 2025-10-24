@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 from typing import Optional, Sequence
 
-from . import verify_file
+from tessrax.ledger import verify_file
 
 
 def _build_parser() -> argparse.ArgumentParser:

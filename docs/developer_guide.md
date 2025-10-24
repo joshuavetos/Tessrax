@@ -11,13 +11,20 @@ This guide explains how to contribute features, verify governance receipts, and 
 ## Local Development Workflow
 
 ```bash
+python3.10 -m venv .venv --prompt tessrax
+source .venv/bin/activate
+python --version  # should report Python 3.10.x
+pip install -r requirements.txt
 pip install -e .[dev]
 pre-commit install
 ```
 
-1. Create or update tests in `tests/` for each change.
-2. Run `ruff format` to ensure style compliance.
-3. Execute the full test suite before submitting a pull request.
+1. Update dependencies via `requirements.txt` and regenerate `requirements-lock.txt` with `pip freeze > requirements-lock.txt`.
+2. Create or update tests in `tests/` for each change.
+3. Run `ruff format` and respect `.flake8` import rules (absolute `tessrax.*` imports only).
+4. Export `PYTHONPATH=$(pwd):$PYTHONPATH` and execute `pytest -q` before submitting a pull request.
+
+> Placeholder data for runtime stability lives in `ledger/ledger.jsonl` and `tessrax/docs/CorporateFrienthropy/company_frienthropy.csv`. Replace these artifacts with production datasets during deployments.
 
 ## Running the Test Suite
 

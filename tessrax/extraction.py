@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import List, Mapping, Sequence
 
-from .types import Claim
+from tessrax.types import Claim
 
 
 class ClaimExtractor:

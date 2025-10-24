@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 
-from . import main
+from tessrax.ledger import main
 
 
 def run() -> None:

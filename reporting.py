@@ -21,9 +21,13 @@ def _load_ledger(path: Path) -> List[dict]:
             if not line:
                 continue
             try:
-                entries.append(json.loads(line))
+                payload = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            records = payload if isinstance(payload, list) else [payload]
+            for record in records:
+                if isinstance(record, dict):
+                    entries.append(record)
     return entries
 
 

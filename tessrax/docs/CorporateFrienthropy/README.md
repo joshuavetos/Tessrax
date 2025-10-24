@@ -1,5 +1,7 @@
 # Corporate Frienthropy Package
 
+> Placeholder data for runtime stability. Replace with production ledger or dataset.
+
 Frienthropy: borrowed from friendship entropy — measures the decay between what’s promised and what’s delivered.
 
 This package tracks a company’s **Charter → Output** drift by scoring each promise on how far the actual results fall short of the target.

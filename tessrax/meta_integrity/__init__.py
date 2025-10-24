@@ -1,8 +1,8 @@
 """Meta-integrity utilities for Tessrax governance workflows."""
 
-from .claim_extractor import ClaimExtractor
-from .truthscore import TruthScore, TruthVerdict
-from .analytics import compute_epistemic_metrics
+from tessrax.meta_integrity.claim_extractor import ClaimExtractor
+from tessrax.meta_integrity.truthscore import TruthScore, TruthVerdict
+from tessrax.meta_integrity.analytics import compute_epistemic_metrics
 
 __all__ = [
     "ClaimExtractor",
