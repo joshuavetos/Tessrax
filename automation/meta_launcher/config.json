@@ -1,0 +1,162 @@
+{
+  "campaign": {
+    "name": "Tessrax Launch Campaign",
+    "timezone": "UTC",
+    "stagger_hours": 3,
+    "governance_receipt_path": "automation/meta_launcher/governance_receipt.json",
+    "logs_directory": "automation/meta_launcher/logs",
+    "ledger_path": "automation/meta_launcher/logs/ledger.log"
+  },
+  "channels": [
+    {
+      "id": "hacker_news",
+      "channel": "Hacker News",
+      "window_start": "2025-11-01T12:00:00Z",
+      "window_end": "2025-11-01T13:00:00Z",
+      "post_template": "automation/meta_launcher/post_templates/hacker_news.md",
+      "client": "hacker_news",
+      "platform_context": {
+        "platform": "Hacker News (AI Safety & Governance)",
+        "community": "social/professional",
+        "activity_level": "high",
+        "content_style": "discussions, news sharing, debates",
+        "examples": ["https://news.ycombinator.com/"]
+      }
+    },
+    {
+      "id": "reddit_machinelearning",
+      "channel": "Reddit /r/MachineLearning",
+      "window_start": "2025-11-01T15:00:00Z",
+      "window_end": "2025-11-01T16:00:00Z",
+      "post_template": "automation/meta_launcher/post_templates/reddit_machinelearning.md",
+      "client": "reddit",
+      "platform_context": {
+        "platform": "r/MachineLearning and r/AILegislation on Reddit",
+        "community": "social/open discussion",
+        "activity_level": "high",
+        "content_style": "informal discussions, project sharing, Q&A",
+        "examples": ["https://www.reddit.com/r/MachineLearning/", "https://www.reddit.com/r/AILegislation/"]
+      }
+    },
+    {
+      "id": "ai_alignment_forum",
+      "channel": "AI Alignment Forum",
+      "window_start": "2025-11-01T18:00:00Z",
+      "window_end": "2025-11-01T19:00:00Z",
+      "post_template": "automation/meta_launcher/post_templates/ai_alignment_forum.md",
+      "client": "forum",
+      "platform_context": {
+        "platform": "Complexity Science Research Groups",
+        "community": "academic/research",
+        "activity_level": "moderate",
+        "content_style": "papers, simulations, theoretical work",
+        "examples": ["https://www.complexityexplorer.org/"]
+      }
+    },
+    {
+      "id": "github_topics",
+      "channel": "GitHub Topics: ai-governance",
+      "window_start": "2025-11-01T21:00:00Z",
+      "window_end": "2025-11-01T22:00:00Z",
+      "post_template": "automation/meta_launcher/post_templates/github_topics_ai_governance.md",
+      "client": "github",
+      "platform_context": {
+        "platform": "GitHub - AI Governance Topic",
+        "community": "open-source",
+        "activity_level": "high",
+        "content_style": "repositories, code, collaboration",
+        "examples": ["https://github.com/topics/ai-governance"]
+      }
+    },
+    {
+      "id": "linkedin",
+      "channel": "LinkedIn",
+      "window_start": "2025-11-02T00:00:00Z",
+      "window_end": "2025-11-02T01:00:00Z",
+      "post_template": "automation/meta_launcher/post_templates/linkedin.md",
+      "client": "linkedin",
+      "platform_context": {
+        "platform": "Open Governance Tech Networks",
+        "community": "professional/civic tech",
+        "activity_level": "moderate",
+        "content_style": "policy, open source civic tech projects, governance models",
+        "examples": ["https://opengovernance.tech/"]
+      }
+    },
+    {
+      "id": "x_thread",
+      "channel": "X Thread",
+      "window_start": "2025-11-02T03:00:00Z",
+      "window_end": "2025-11-02T04:00:00Z",
+      "post_template": "automation/meta_launcher/post_templates/x_thread.md",
+      "client": "x",
+      "platform_context": {
+        "platform": "GitHub Copilot User Community",
+        "community": "open-source/professional",
+        "activity_level": "high",
+        "content_style": "AI developer tools, coding assistance, productivity hacks",
+        "examples": ["https://github.blog/ai-and-ml/github-copilot/"]
+      }
+    },
+    {
+      "id": "substack",
+      "channel": "Substack",
+      "window_start": "2025-11-02T06:00:00Z",
+      "window_end": "2025-11-02T07:00:00Z",
+      "post_template": "automation/meta_launcher/post_templates/substack.md",
+      "client": "newsletter",
+      "platform_context": {
+        "platform": "AI Governance Framework (FINOS)",
+        "community": "professional",
+        "activity_level": "moderate to high",
+        "content_style": "frameworks, professional discussion, practical implementation",
+        "examples": ["https://github.com/finos/ai-governance-framework"]
+      }
+    },
+    {
+      "id": "medium",
+      "channel": "Medium",
+      "window_start": "2025-11-02T09:00:00Z",
+      "window_end": "2025-11-02T10:00:00Z",
+      "post_template": "automation/meta_launcher/post_templates/medium.md",
+      "client": "blog",
+      "platform_context": {
+        "platform": "AI Community of Practice (US Federal Government)",
+        "community": "professional",
+        "activity_level": "moderate",
+        "content_style": "collaboration, resources, policy discussion",
+        "examples": ["https://github.com/GSA/The-AI-Community-of-Practice"]
+      }
+    },
+    {
+      "id": "reddit_civictech",
+      "channel": "Reddit /r/CivicTech",
+      "window_start": "2025-11-02T12:00:00Z",
+      "window_end": "2025-11-02T13:00:00Z",
+      "post_template": "automation/meta_launcher/post_templates/reddit_civictech.md",
+      "client": "reddit",
+      "platform_context": {
+        "platform": "Civic Tech Startups & Incubators",
+        "community": "professional/startup",
+        "activity_level": "moderate",
+        "content_style": "innovation, startup pitches, collaboration",
+        "examples": ["https://civictech.guide/startups/"]
+      }
+    },
+    {
+      "id": "research_portals",
+      "channel": "ResearchGate / Academia.edu",
+      "window_start": "2025-11-02T15:00:00Z",
+      "window_end": "2025-11-02T16:00:00Z",
+      "post_template": "automation/meta_launcher/post_templates/research_portals.md",
+      "client": "academic",
+      "platform_context": {
+        "platform": "AAAI AI Governance Workshop (AIGOV)",
+        "community": "academic",
+        "activity_level": "seasonal peaks",
+        "content_style": "papers, workshops, deep research discussions",
+        "examples": ["https://aigovernance.github.io"]
+      }
+    }
+  ]
+}
