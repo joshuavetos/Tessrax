@@ -65,5 +65,5 @@ pytest --cov=tessrax --cov-report=term-missing
 
 - **Dependency Conflicts** – Recreate the virtual environment and reinstall with `pip install -e .[dev]`.
 - **Missing Dashboard Build Tools** – Install Node.js and pnpm/yarn if you prefer alternative package managers.
-- **Ledger Verification Errors** – Run `python -m tessrax.ledger verify path/to/ledger.jsonl` to pinpoint the invalid receipt.
+- **Ledger Verification Errors** – Run `python -m tessrax.ledger.verify path/to/ledger.jsonl` (or `python -m tessrax.ledger verify ...`) to pinpoint the invalid receipt.
 - **Security Concerns** – Follow the disclosure process in [SECURITY.md](../SECURITY.md).
