@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 import json
+import os
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List
 
+import requests
 import streamlit as st
+from streamlit.components.v1 import html
 
 from config_loader import load_config
 from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
 
 config = load_config()
 default_ledger = Path(config.logging.ledger_path)
+DEFAULT_EPI_ENDPOINT = os.getenv("TESSRAX_GOVERNANCE_API", "http://localhost:8000/epistemic_metrics")
+POLL_INTERVAL_SECONDS = 30
+HISTORY_STATE_KEY = "epistemic_metrics_history"
 
 
 @st.cache_data(show_spinner=False)
@@ -41,6 +48,33 @@ def _enrich_records(records: Iterable[dict]) -> List[dict]:
         lane = route_to_governance_lane(stability, config.thresholds)
         enriched.append({**record, "stability_score": stability, "governance_lane": lane})
     return enriched
+
+
+def _fetch_epistemic_metrics(url: str) -> tuple[dict, str | None]:
+    """Pull the latest epistemic metrics from the governance API."""
+
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        payload = response.json()
+    except requests.RequestException as exc:
+        return {}, f"{exc}"
+    except ValueError as exc:
+        return {}, f"Invalid JSON payload: {exc}"
+    if not isinstance(payload, dict):
+        return {}, "Epistemic metrics payload must be a JSON object"
+    return payload, None
+
+
+
+def _record_metrics_history(entry: dict[str, float]) -> list[dict[str, float]]:
+    """Persist metrics history in Streamlit session state."""
+
+    history = st.session_state.get(HISTORY_STATE_KEY, [])
+    history.append({"timestamp": datetime.utcnow().isoformat(), **entry})
+    st.session_state[HISTORY_STATE_KEY] = history[-120:]
+    return st.session_state[HISTORY_STATE_KEY]
+
 
 
 def _summarise(records: Iterable[dict]) -> dict:
@@ -74,6 +108,46 @@ def main() -> None:
         st.dataframe(ledger_records)
     else:
         st.info(f"No ledger records found at {default_ledger}")
+
+    st.divider()
+    st.subheader("Epistemic Metrics")
+    html(f"<script>setTimeout(() => window.location.reload(), {POLL_INTERVAL_SECONDS * 1000});</script>", height=0)
+    st.caption(
+        f"Polling {DEFAULT_EPI_ENDPOINT} every {POLL_INTERVAL_SECONDS} seconds for epistemic integrity telemetry."
+    )
+    metrics, error = _fetch_epistemic_metrics(DEFAULT_EPI_ENDPOINT)
+    if error:
+        st.warning(f"Epistemic metrics unavailable: {error}")
+    else:
+        history = _record_metrics_history(metrics)
+        integrity = float(metrics.get("epistemic_integrity", 0.0))
+        drift_values = [entry.get("epistemic_drift", 0.0) for entry in history]
+        resilience = float(metrics.get("adversarial_resilience", 0.0))
+        hallucination = float(metrics.get("hallucination_rate", 0.0))
+
+        col1, col2 = st.columns(2)
+        gauge_value = max(0.0, min(integrity, 1.0))
+        col1.metric("Epistemic Integrity Score", f"{integrity:.2%}", delta="Target ≥ 85%")
+        col1.progress(int(gauge_value * 100))
+        col2.metric("Adversarial Resilience", f"{resilience:.2%}", delta="Target ≥ 90%")
+        col2.bar_chart({"Resilience": [resilience]}, use_container_width=True)
+
+        st.line_chart({"Epistemic Drift": drift_values}, use_container_width=True)
+        hallux = max(0.0, min(hallucination, 1.0))
+        heatmap_html = f"""
+        <div style="display:flex;flex-direction:column;gap:0.25rem;">
+            <div style="font-weight:600;">Hallucination Rate</div>
+            <div style="background:rgba(255,99,71,{hallux});padding:0.75rem;border-radius:0.5rem;color:white;">
+                {hallucination:.2%} (≤ 10%)
+            </div>
+        </div>
+        """
+        st.markdown(heatmap_html, unsafe_allow_html=True)
+        if hallux > 0.1:
+            st.error("Hallucination rate exceeds target", icon="🚨")
+        else:
+            st.success("Hallucination rate within target", icon="✅")
+        st.caption(f"Metrics updated: {datetime.utcnow().isoformat()}Z")
 
 
 if __name__ == "__main__":  # pragma: no cover - Streamlit entrypoint
