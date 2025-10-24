@@ -6,11 +6,19 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Sequence
 
-from .types import GovernanceDecision, LedgerReceipt
+from ..types import GovernanceDecision, LedgerReceipt
 
 GENESIS_HASH = "GENESIS"
+
+__all__ = [
+    "GENESIS_HASH",
+    "Ledger",
+    "LedgerReceipt",
+    "verify_file",
+    "build_cli",
+]
 
 
 class Ledger:
@@ -41,7 +49,10 @@ class Ledger:
         for receipt in chain:
             expected = self._hash_payload(prev_hash, receipt.decision.to_summary())
             if expected != receipt.hash:
-                raise ValueError(f"Ledger hash mismatch for decision {receipt.decision.contradiction.claim_a.claim_id}")
+                raise ValueError(
+                    "Ledger hash mismatch for decision "
+                    f"{receipt.decision.contradiction.claim_a.claim_id}"
+                )
             prev_hash = receipt.hash
         return True
 
@@ -84,19 +95,30 @@ def verify_file(path: Path) -> bool:
     return True
 
 
-def _cli() -> None:
+def build_cli(argv: Optional[Sequence[str]] = None) -> argparse.ArgumentParser:
+    """Create the canonical ledger CLI parser."""
+
     parser = argparse.ArgumentParser(description="Verify Tessrax ledger receipts")
     subparsers = parser.add_subparsers(dest="command", required=True)
     verify_parser = subparsers.add_parser("verify", help="Verify a JSONL ledger file")
     verify_parser.add_argument("path", type=Path, help="Path to ledger JSONL file")
-    args = parser.parse_args()
+    return parser
+
+
+def _cli(argv: Optional[Sequence[str]] = None) -> None:
+    parser = build_cli(argv)
+    args = parser.parse_args(argv)
 
     if args.command == "verify":
-        try:
-            verify_file(args.path)
-        except Exception as exc:  # pragma: no cover - surfaced to CLI
-            raise SystemExit(f"Ledger verification failed: {exc}")
-        print("Ledger verified: integrity intact.")
+        from .verify import main as verify_main
+
+        verify_main([str(args.path)])
+
+
+def main(argv: Optional[Sequence[str]] = None) -> None:
+    """Entry-point used by ``python -m tessrax.ledger``."""
+
+    _cli(argv)
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
