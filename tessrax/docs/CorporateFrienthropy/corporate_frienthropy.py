@@ -1,6 +1,6 @@
 """
 Corporate Frienthropy Analyzer
-Tracks decay between a company’s chartered promises and its actual output.
+Tracks decay between a company's chartered promises and its actual output.
 
 Requirements:
     pip install pandas matplotlib

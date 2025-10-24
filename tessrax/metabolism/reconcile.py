@@ -10,10 +10,10 @@ from pathlib import Path
 from statistics import mean
 from typing import List, Optional, Sequence
 
-from ..audit import AuditKernel
-from ..ledger import Ledger
-from ..schema import ClarityStatement
-from ..types import Claim, ContradictionRecord
+from tessrax.audit import AuditKernel
+from tessrax.ledger import Ledger
+from tessrax.schema import ClarityStatement
+from tessrax.types import Claim, ContradictionRecord
 
 
 @dataclass

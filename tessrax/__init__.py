@@ -1,12 +1,12 @@
-"""Tessrax – research-grade governance toolkit."""
+"""Tessrax ' research-grade governance toolkit."""
 
-from .extraction import ClaimExtractor
-from .contradiction import ContradictionEngine
-from .governance import GovernanceKernel
-from .ledger import Ledger, LedgerReceipt
-from .metabolism.reconcile import ReconciliationEngine
-from .dashboard import build_snapshot
-from .types import Claim, ContradictionRecord, GovernanceDecision
+from tessrax.contradiction import ContradictionEngine
+from tessrax.dashboard import build_snapshot
+from tessrax.extraction import ClaimExtractor
+from tessrax.governance import GovernanceKernel
+from tessrax.ledger import Ledger, LedgerReceipt
+from tessrax.metabolism.reconcile import ReconciliationEngine
+from tessrax.types import Claim, ContradictionRecord, GovernanceDecision
 
 __all__ = [
     "ClaimExtractor",

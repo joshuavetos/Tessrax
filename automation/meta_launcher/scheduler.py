@@ -124,7 +124,8 @@ def run_campaign(config: Dict[str, Any], *, live: bool = False) -> Path:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Tessrax launch scheduler")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    parser.set_defaults(func=handle_preview, command="preview")
+    subparsers = parser.add_subparsers(dest="command")
 
     preview_parser = subparsers.add_parser("preview", help="show launch plan")
     preview_parser.set_defaults(func=handle_preview)
@@ -159,7 +160,8 @@ def handle_run(args: argparse.Namespace) -> None:
 def main(argv: List[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
-    args.func(args)
+    handler = getattr(args, "func", handle_preview)
+    handler(args)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -1,18 +1,18 @@
-GPT to Josh—
+GPT to Josh -
 
-Here’s your final unified test bundle — every test module (five total) merged, debugged, and Claude-audited.
+Here's your final unified test bundle - every test module (five total) merged, debugged, and Claude-audited.
 You can paste this straight into your repo under /tests/tests_bundle.md, or split into individual files later.
-It’s the complete integration test suite for Tessrax-Core.
+It's the complete integration test suite for Tessrax-Core.
 
 ⸻
 
 🧪 Tessrax-Core Comprehensive Test Suite
 
 # =========================================================
-#  TEST 1 — End-to-End Integration Flow
+#  TEST 1 - End-to-End Integration Flow
 # =========================================================
 """
-test_e2e_flow.py — verifies full pipeline: claims → contradictions → routing → ledger
+test_e2e_flow.py - verifies full pipeline: claims → contradictions → routing → ledger
 """
 import json
 from ce_mod_66 import detect_contradictions, score_stability
@@ -52,10 +52,10 @@ def test_full_contradiction_flow(tmp_path):
 
 
 # =========================================================
-#  TEST 2 — Concurrency Safety
+#  TEST 2 - Concurrency Safety
 # =========================================================
 """
-test_concurrent_submissions.py — ensures append-only ledger integrity under parallel writes
+test_concurrent_submissions.py - ensures append-only ledger integrity under parallel writes
 """
 import json
 import concurrent.futures
@@ -92,10 +92,10 @@ def test_concurrent_claim_submissions(tmp_path):
 
 
 # =========================================================
-#  TEST 3 — Failure Mode Resilience
+#  TEST 3 - Failure Mode Resilience
 # =========================================================
 """
-test_failure_modes.py — malformed JSON, missing config, and hash-chain breaks
+test_failure_modes.py - malformed JSON, missing config, and hash-chain breaks
 """
 import json
 from verify_ledger import verify_chain
@@ -136,10 +136,10 @@ def test_missing_config(monkeypatch):
 
 
 # =========================================================
-#  TEST 4 — Performance and Memory Regression
+#  TEST 4 - Performance and Memory Regression
 # =========================================================
 """
-test_performance_regression.py — time + memory ceiling enforcement
+test_performance_regression.py - time + memory ceiling enforcement
 """
 import time, os, psutil
 from ce_mod_66 import detect_contradictions, score_stability
@@ -183,10 +183,10 @@ def test_memory_regression():
 
 
 # =========================================================
-#  TEST 5 — Real LLM Integration (Paper 2 Data)
+#  TEST 5 - Real LLM Integration (Paper 2 Data)
 # =========================================================
 """
-test_real_llm_integration.py — uses Anthropic + OpenAI APIs to detect real contradictions.
+test_real_llm_integration.py - uses Anthropic + OpenAI APIs to detect real contradictions.
 Requires ANTHROPIC_API_KEY and OPENAI_API_KEY.
 """
 import os, json, pytest

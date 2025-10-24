@@ -1,8 +1,1 @@
-promise_id,charter_promise,metric_name,metric_unit,target_value,actual_value,period_start,period_end,weight,notes
-P001,"Reduce carbon footprint by 50% by 2028",annual_CO2_emissions,tons/year,1200000,1600000,2025-01-01,2025-12-31,0.25,"based on audited ESG report"
-P002,"Resolve 90% of support tickets in 24 hrs",support_ticket_SLA_24h,percent,90,72,2025-01-01,2025-06-30,0.20,"pulled from Zendesk logs"
-P003,"Launch 3 accessibility features per Qtr",features_released_Q1,count/qtr,3,1,2025-01-01,2025-03-31,0.15,"product-roadmap vs shipped"
-P004,"Maintain employee satisfaction ≥ 8/10",avg_employee_survey,score/10,8,7.1,2025-04-01,2025-06-30,0.15,"HR quarterly survey"
-P005,"Increase R&D spend to 20% of revenue",RnD_spend_ratio,percent_of_revenue,20,14,2025-01-01,2025-12-31,0.25,"finance report"
-
-This is a starter example with dummy values—replace or append rows with real corporate promises and metrics.
+company,score

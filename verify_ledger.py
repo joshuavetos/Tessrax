@@ -22,21 +22,25 @@ def verify_chain(path: Optional[str] = None) -> Tuple[bool, Optional[str]]:
             if not line:
                 continue
             try:
-                record = json.loads(line)
+                payload = json.loads(line)
             except json.JSONDecodeError:
                 return False, f"Invalid JSON at line {index}"
 
-            claims = record.get("claims", [])
-            computed_stability = calculate_stability(claims)
-            expected_lane = route_to_governance_lane(computed_stability, config.thresholds)
+            records = payload if isinstance(payload, list) else [payload]
+            for offset, record in enumerate(records, start=0):
+                if not isinstance(record, dict):
+                    continue
+                claims = record.get("claims", [])
+                computed_stability = calculate_stability(claims)
+                expected_lane = route_to_governance_lane(computed_stability, config.thresholds)
 
-            stored_stability = record.get("stability_score")
-            stored_lane = record.get("governance_lane")
+                stored_stability = record.get("stability_score")
+                stored_lane = record.get("governance_lane")
 
-            if stored_stability is not None and abs(stored_stability - computed_stability) > 1e-6:
-                return False, f"Stability mismatch at line {index}"
-            if stored_lane is not None and stored_lane != expected_lane:
-                return False, f"Lane mismatch at line {index}"
+                if stored_stability is not None and abs(stored_stability - computed_stability) > 1e-6:
+                    return False, f"Stability mismatch at line {index} (entry {offset + 1})"
+                if stored_lane is not None and stored_lane != expected_lane:
+                    return False, f"Lane mismatch at line {index} (entry {offset + 1})"
     return True, None
 
 
