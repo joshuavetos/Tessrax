@@ -56,6 +56,23 @@ class AdversarialAgent:
         n = min(n, self.max_batch)
         return [self.synthesize_contradiction() for _ in range(n)]
 
+    def generate(self, current_integrity: float) -> List[Dict]:
+        budget = compute_adversarial_budget(current_integrity, self.max_batch)
+        return self.run_batch(budget)
+
+
+def compute_adversarial_budget(
+    integrity: float,
+    max_batch: int,
+    alpha: float = 2.0,
+) -> int:
+    if integrity >= 0.999:
+        return max_batch
+    denom = max(1.0 - integrity, 1e-6)
+    raw = alpha / denom
+    allowed = min(max_batch, int(raw))
+    return max(0, allowed)
+
 
 def _build_cli() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate adversarial contradiction batches")
@@ -67,6 +84,12 @@ def _build_cli() -> argparse.ArgumentParser:
         default=MAX_BATCH,
         help="Upper bound for synthetic contradiction generation",
     )
+    parser.add_argument(
+        "--integrity",
+        type=float,
+        default=0.93,
+        help="Current system integrity score for adversarial budgeting",
+    )
     return parser
 
 
@@ -74,7 +97,9 @@ def main(argv: List[str] | None = None) -> None:
     parser = _build_cli()
     args = parser.parse_args(argv)
     agent = AdversarialAgent(seed=args.seed, max_batch=args.max_batch)
-    batch = agent.run_batch(args.batch)
+    requested = min(args.batch, args.max_batch)
+    integrity_limited_budget = compute_adversarial_budget(args.integrity, requested)
+    batch = agent.run_batch(integrity_limited_budget)
     for record in batch:
         json.dump(record, sys.stdout)
         sys.stdout.write("\n")

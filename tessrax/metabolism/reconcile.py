@@ -67,6 +67,20 @@ class ReconciliationEngine:
         self._diagnostics_path = Path(diagnostics_path) if diagnostics_path else Path("logs/metabolism_diagnostics.jsonl")
         self._engine_seed = engine_seed if engine_seed is not None else 0
         self._drift_tracker = DriftTracker()
+        self._clarity_baseline = 0.5
+
+    @staticmethod
+    def _kalman_update(
+        prior_mean: float,
+        measurement: float,
+        measurement_confidence: float,
+        process_uncertainty: float = 0.05,
+    ) -> float:
+        """Blend prior clarity belief with new measurement using a Kalman gain."""
+
+        meas_noise = max(1.0 - measurement_confidence, 1e-6)
+        K_t = process_uncertainty / (process_uncertainty + meas_noise)
+        return prior_mean + K_t * (measurement - prior_mean)
 
     def reconcile(self, contradictions: Sequence[ContradictionRecord]) -> List[ClarityStatement]:
         """Reconcile a batch of contradictions into clarity statements."""
@@ -77,8 +91,15 @@ class ReconciliationEngine:
             severity_weight = self._severity_weight(record.severity)
             self._drift_tracker.update(insight.confidence, severity_weight)
             current_drift = self._drift_tracker.drift()
-            weight = max(0.1, 1.0 - current_drift)
-            clarity_fuel = insight.confidence * 10.0 * weight
+            measurement_confidence = getattr(record, "confidence", 0.5)
+            new_candidate_value = insight.confidence * max(0.1, 1.0 - current_drift)
+            updated_clarity = self._kalman_update(
+                prior_mean=self._clarity_baseline,
+                measurement=new_candidate_value,
+                measurement_confidence=measurement_confidence,
+            )
+            self._clarity_baseline = max(0.0, min(1.0, updated_clarity))
+            clarity_fuel = self._clarity_baseline * 10.0
             statement = ClarityStatement(
                 subject=record.claim_a.subject,
                 metric=record.claim_a.metric,
