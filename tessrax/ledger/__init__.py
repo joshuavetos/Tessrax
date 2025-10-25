@@ -6,7 +6,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence
+from typing import Any, Iterable, List, Mapping, Optional, Sequence
 
 from tessrax.types import GovernanceDecision, LedgerReceipt
 
@@ -18,7 +18,27 @@ __all__ = [
     "LedgerReceipt",
     "verify_file",
     "build_cli",
+    "compute_merkle_root",
 ]
+
+
+def compute_merkle_root(batch: Sequence[Mapping[str, Any]]) -> Optional[str]:
+    """Compute recursive Merkle root for a batch of ledger entries."""
+
+    if not batch:
+        return None
+    nodes = [
+        hashlib.sha256(json.dumps(entry, sort_keys=True).encode("utf-8")).hexdigest()
+        for entry in batch
+    ]
+    while len(nodes) > 1:
+        paired: List[str] = []
+        for index in range(0, len(nodes), 2):
+            left = nodes[index]
+            right = nodes[index + 1] if index + 1 < len(nodes) else nodes[index]
+            paired.append(hashlib.sha256((left + right).encode("utf-8")).hexdigest())
+        nodes = paired
+    return nodes[0]
 
 
 class Ledger:
@@ -26,8 +46,15 @@ class Ledger:
 
     def __init__(self) -> None:
         self._receipts: List[LedgerReceipt] = []
+        self._meta_events: List[dict[str, Any]] = []
 
-    def append(self, decision: GovernanceDecision, signature: Optional[str] = None) -> LedgerReceipt:
+    def append(
+        self,
+        decision: GovernanceDecision,
+        signature: Optional[str] = None,
+        *,
+        sub_merkle_root: Optional[str] = None,
+    ) -> LedgerReceipt:
         prev_hash = self._receipts[-1].hash if self._receipts else GENESIS_HASH
         payload = decision.to_summary()
         digest = self._hash_payload(prev_hash, payload)
@@ -36,6 +63,7 @@ class Ledger:
             prev_hash=prev_hash,
             hash=digest,
             signature=signature,
+            sub_merkle_root=sub_merkle_root,
         )
         self._receipts.append(receipt)
         return receipt
@@ -61,6 +89,38 @@ class Ledger:
         with path.open("w", encoding="utf-8") as handle:
             for receipt in self._receipts:
                 handle.write(json.dumps(receipt.to_json(), sort_keys=True) + "\n")
+
+    def append_meta(self, channel: str, payload: Mapping[str, Any]) -> None:
+        """Record supplementary ledger metadata events."""
+
+        event = {"channel": channel, **dict(payload)}
+        self._meta_events.append(event)
+
+    def meta_events(self) -> List[dict[str, Any]]:
+        """Expose recorded metadata events for downstream telemetry."""
+
+        return list(self._meta_events)
+
+    def append_batch(
+        self,
+        decisions: Iterable[GovernanceDecision],
+        *,
+        consensus_nodes: Optional[Iterable[Any]] = None,
+    ) -> Optional[str]:
+        """Append a batch of decisions and emit a sub-Merkle root for verification."""
+
+        decisions_list = list(decisions)
+        if not decisions_list:
+            return None
+        payloads = [decision.to_summary() for decision in decisions_list]
+        root = compute_merkle_root(payloads)
+        for decision in decisions_list:
+            self.append(decision, sub_merkle_root=root)
+        if consensus_nodes:
+            for node in consensus_nodes:
+                if hasattr(node, "commit"):
+                    node.commit(root)
+        return root
 
     @staticmethod
     def _hash_payload(prev_hash: str, payload: dict) -> str:

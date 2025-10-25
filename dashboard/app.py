@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List
 
+import pandas as pd
+import plotly.express as px
 import requests
 import streamlit as st
 from streamlit.components.v1 import html
@@ -82,6 +84,44 @@ def _summarise(records: Iterable[dict]) -> dict:
     return {"total": sum(lanes.values()), "lanes": dict(lanes)}
 
 
+def render_integrity_gradient(clarity_records: List[dict], alert_threshold: float = 0.05) -> None:
+    """Visualise reconciliation integrity with drift overlays and alerts."""
+
+    if not clarity_records:
+        st.info("Integrity gradient unavailable – no telemetry yet.")
+        return
+    frame = pd.DataFrame(clarity_records)
+    if {"timestamp", "integrity_score", "domain"} - set(frame.columns):
+        st.warning("Integrity gradient requires timestamp, domain, and integrity_score fields.")
+        return
+    frame = frame.sort_values("timestamp")
+    frame["rolling_mean"] = frame.groupby("domain")["integrity_score"].transform(
+        lambda series: series.rolling(10, min_periods=1).mean()
+    )
+    fig = px.line(
+        frame,
+        x="timestamp",
+        y="integrity_score",
+        color="domain",
+        color_discrete_sequence=px.colors.sequential.Viridis,
+        title="Integrity Gradient — Contradiction → Clarity Over Time",
+    )
+    fig.add_scatter(
+        x=frame["timestamp"],
+        y=frame["rolling_mean"],
+        mode="lines",
+        name="Rolling Avg",
+        line=dict(dash="dot"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    recent_window = frame.tail(5)
+    if not recent_window.empty:
+        drift = abs(recent_window["integrity_score"].mean() - recent_window["rolling_mean"].iloc[-1])
+        if drift > alert_threshold:
+            st.warning(f"⚠️ Epistemic drift anomaly detected ({drift:.3f})")
+
+
 def main() -> None:
     st.set_page_config(page_title="Tessrax Ledger Dashboard", layout="wide")
     st.title("Tessrax Governance Ledger")
@@ -125,6 +165,15 @@ def main() -> None:
         resilience = float(metrics.get("adversarial_resilience", 0.0))
         hallucination = float(metrics.get("hallucination_rate", 0.0))
 
+        clarity_records = [
+            {
+                "timestamp": entry["timestamp"],
+                "integrity_score": entry.get("epistemic_integrity", 0.0),
+                "domain": "global",
+            }
+            for entry in history
+        ]
+
         col1, col2 = st.columns(2)
         gauge_value = max(0.0, min(integrity, 1.0))
         col1.metric("Epistemic Integrity Score", f"{integrity:.2%}", delta="Target ≥ 85%")
@@ -148,6 +197,8 @@ def main() -> None:
         else:
             st.success("Hallucination rate within target", icon="✅")
         st.caption(f"Metrics updated: {datetime.utcnow().isoformat()}Z")
+        st.subheader("Integrity Gradient")
+        render_integrity_gradient(clarity_records)
 
 
 if __name__ == "__main__":  # pragma: no cover - Streamlit entrypoint
