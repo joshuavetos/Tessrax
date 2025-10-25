@@ -113,7 +113,7 @@ python examples/<script>.py
 ## Runtime Environment & Verification
 
 - Supported interpreter: **Python 3.10.x**. GitHub Actions pins this version via the CI matrix and local work should mirror it.
-- Dependencies: install with `pip install -r requirements.txt` and refresh `requirements-lock.txt` using `pip freeze > requirements-lock.txt` when dependencies change.
+- Dependencies: install with `pip install -r requirements.txt` and refresh `requirements-lock.txt` via `automation/regenerate_lock.sh`, which enforces Python version alignment before freezing dependencies.
 - Import discipline: only absolute `tessrax.*` imports are allowed; `.flake8` enforces this rule.
 - Stub data lives in `ledger/ledger.jsonl` and `tessrax/docs/CorporateFrienthropy/company_frienthropy.csv`—replace them before production use.
 - Verification commands: export `PYTHONPATH=$(pwd):$PYTHONPATH` and run `pytest -q` to confirm runtime integrity.
