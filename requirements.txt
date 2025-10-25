@@ -10,3 +10,4 @@ schedule
 plotly
 matplotlib
 scikit-learn
+sentence-transformers
