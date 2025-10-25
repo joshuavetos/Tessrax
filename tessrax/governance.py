@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from types import SimpleNamespace
 from typing import Iterable, Mapping, Optional, Sequence
 
 try:  # pragma: no cover - optional dependency with heavyweight backend
@@ -207,3 +208,37 @@ class GovernanceKernel:
     def _attach_signature(decision: GovernanceDecision, signature: DecisionSignature) -> None:
         decision.timestamp_token = signature.timestamp_token
         decision.signature = signature.signature
+
+    def ingest_record(self, record: Mapping[str, object] | ContradictionRecord) -> str:
+        """Route inbound records to the appropriate governance lane."""
+
+        if isinstance(record, Mapping):
+            raw_meta = dict(record.get("meta", {})) if isinstance(record.get("meta"), Mapping) else {}
+            event_type = record.get("event_type")
+            lane_source = SimpleNamespace(**{k: v for k, v in record.items() if k.isidentifier()})
+        else:
+            meta_attr = getattr(record, "meta", {})
+            raw_meta = dict(meta_attr) if isinstance(meta_attr, Mapping) else {}
+            event_type = getattr(record, "event_type", None)
+            lane_source = record
+
+        if raw_meta.get("synthetic"):
+            lane = "sandbox_lane"
+        elif event_type == "FEDERATED_EXCHANGE":
+            lane = "federated_import_lane"
+        else:
+            lane = route_to_governance_lane(lane_source)
+
+        ledger = self._epistemic_ledger
+        if ledger is not None and hasattr(ledger, "append_meta"):
+            ledger.append_meta(
+                "governance_ingest",
+                {
+                    "event_type": "GOVERNANCE_INGEST",
+                    "record_id": getattr(record, "id", None) or (record.get("id") if isinstance(record, Mapping) else None),
+                    "lane": lane,
+                    "meta": raw_meta,
+                },
+            )
+
+        return lane

@@ -94,6 +94,13 @@ class Ledger:
         """Record supplementary ledger metadata events."""
 
         event = {"channel": channel, **dict(payload)}
+        if event.get("source") == "adversarial_generator":
+            meta = event.get("meta")
+            if not isinstance(meta, dict):
+                meta = {}
+            meta["synthetic"] = True
+            event["meta"] = meta
+        event.setdefault("event_type", event.get("event_type", "UNKNOWN"))
         self._meta_events.append(event)
 
     def meta_events(self) -> List[dict[str, Any]]:
