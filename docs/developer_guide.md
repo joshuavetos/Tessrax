@@ -19,7 +19,7 @@ pip install -e .[dev]
 pre-commit install
 ```
 
-1. Update dependencies via `requirements.txt` and regenerate `requirements-lock.txt` with `pip freeze > requirements-lock.txt`.
+1. Update dependencies via `requirements.txt` and regenerate `requirements-lock.txt` with `automation/regenerate_lock.sh` to ensure the Python Sync Guard validates your interpreter first.
 2. Create or update tests in `tests/` for each change.
 3. Run `ruff format` and respect `.flake8` import rules (absolute `tessrax.*` imports only).
 4. Export `PYTHONPATH=$(pwd):$PYTHONPATH` and execute `pytest -q` before submitting a pull request.
