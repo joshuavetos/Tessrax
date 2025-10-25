@@ -34,6 +34,7 @@ class AuditKernel:
 
         confidence = self._confidence_score(contradiction)
         narrative = self._narrative(contradiction)
+        contradiction.confidence = confidence
         return AuditInsights(narrative=narrative, confidence=confidence)
 
     def _confidence_score(self, contradiction: ContradictionRecord) -> float:

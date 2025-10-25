@@ -2,11 +2,110 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Mapping
+import logging
+from typing import Iterable, Mapping, Optional, Sequence
+
+try:  # pragma: no cover - optional dependency with heavyweight backend
+    from sentence_transformers import SentenceTransformer, util
+except Exception:  # pragma: no cover - graceful fallback when unavailable
+    SentenceTransformer = None  # type: ignore[assignment]
+    util = None  # type: ignore[assignment]
 
 from tessrax.governance_security import DecisionSignature, SignatureAuthority
 from tessrax.meta_integrity.analytics import compute_epistemic_metrics
 from tessrax.types import ContradictionRecord, GovernanceDecision
+
+logger = logging.getLogger(__name__)
+
+_MODEL: Optional[SentenceTransformer] = None
+
+
+def _load_model() -> Optional[SentenceTransformer]:
+    """Lazily load the sentence transformer used for contradiction typing."""
+
+    global _MODEL
+    if _MODEL is not None or SentenceTransformer is None:
+        return _MODEL
+    try:
+        _MODEL = SentenceTransformer("all-MiniLM-L6-v2")
+    except Exception as exc:  # pragma: no cover - defensive path when model load fails
+        logger.warning("Falling back to heuristic contradiction classification: %s", exc)
+        _MODEL = None
+    return _MODEL
+
+
+def _token_overlap_ratio(text_a: str, text_b: str) -> float:
+    tokens_a = {token.lower() for token in text_a.split() if token}
+    tokens_b = {token.lower() for token in text_b.split() if token}
+    if not tokens_a or not tokens_b:
+        return 0.0
+    overlap = len(tokens_a & tokens_b)
+    union = len(tokens_a | tokens_b)
+    return overlap / union if union else 0.0
+
+
+def _claim_to_text(claim: object) -> str:
+    if hasattr(claim, "subject") and hasattr(claim, "metric") and hasattr(claim, "value"):
+        subject = getattr(claim, "subject", "")
+        metric = getattr(claim, "metric", "")
+        value = getattr(claim, "value", "")
+        return f"{subject} {metric} {value}".strip()
+    return str(claim)
+
+
+def classify_contradiction(text_a: str, text_b: str) -> str:
+    """Lightweight semantic contradiction classifier."""
+
+    model = _load_model()
+    if model is not None and util is not None:
+        try:
+            emb_a, emb_b = model.encode([text_a, text_b], convert_to_tensor=True)
+            score = util.pytorch_cos_sim(emb_a, emb_b).item()
+        except Exception as exc:  # pragma: no cover - catch runtime backend errors
+            logger.warning("Semantic model error – reverting to heuristic scoring: %s", exc)
+            score = None
+        else:
+            if score < 0.4:
+                return "semantic"
+            if score < 0.75:
+                return "procedural"
+            return "normative"
+    ratio = _token_overlap_ratio(text_a, text_b)
+    if ratio < 0.2:
+        return "semantic"
+    if ratio < 0.6:
+        return "procedural"
+    return "normative"
+
+
+def route_to_governance_lane(contradiction_record: ContradictionRecord) -> str:
+    """Route contradiction to the proper governance lane.
+
+    The routing strategy prioritises semantic or logical contradictions with
+    sufficient confidence, otherwise delegating to review or general queues.
+    """
+
+    ctype = getattr(contradiction_record, "contradiction_type", None)
+    claims: Sequence = getattr(contradiction_record, "claims", ())
+    if (ctype is None or not isinstance(ctype, str)) and len(claims) == 2:
+        claim_texts = (_claim_to_text(claims[0]), _claim_to_text(claims[1]))
+        ctype = classify_contradiction(*claim_texts)
+
+    confidence = getattr(contradiction_record, "confidence", 0.5) or 0.5
+    if ctype in ("semantic", "logical") and confidence >= 0.7:
+        lane = "high_priority_lane"
+    elif ctype in ("procedural", "normative"):
+        lane = "review_lane"
+    else:
+        lane = "general_lane"
+
+    logger.debug(
+        "Routing contradiction type=%s confidence=%s → %s",
+        ctype or "unknown",
+        round(confidence, 3),
+        lane,
+    )
+    return lane
 
 
 class GovernanceKernel:

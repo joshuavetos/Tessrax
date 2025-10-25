@@ -52,6 +52,14 @@ class ContradictionRecord:
     severity: Severity
     delta: float
     reasoning: str
+    confidence: float = 0.5
+    contradiction_type: Optional[str] = None
+
+    @property
+    def claims(self) -> tuple[Claim, Claim]:
+        """Return the ordered claim pair to support semantic classifiers."""
+
+        return (self.claim_a, self.claim_b)
 
     def sorted_pair(self) -> Iterable[Claim]:
         """Yield claims in deterministic order for reproducibility."""
@@ -108,6 +116,7 @@ class LedgerReceipt:
     prev_hash: str
     hash: str
     signature: Optional[str]
+    sub_merkle_root: Optional[str] = None
 
     def to_json(self) -> Dict[str, object]:
         payload = self.decision.to_summary()
@@ -115,6 +124,8 @@ class LedgerReceipt:
             "prev_hash": self.prev_hash,
             "hash": self.hash,
         })
+        if self.sub_merkle_root is not None:
+            payload["sub_merkle_root"] = self.sub_merkle_root
         if self.signature is not None:
             payload["signature"] = self.signature
         return payload

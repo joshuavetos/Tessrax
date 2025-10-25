@@ -10,10 +10,33 @@ from pathlib import Path
 from statistics import mean
 from typing import List, Optional, Sequence
 
+from tessrax.governance import route_to_governance_lane
+
 from tessrax.audit import AuditKernel
 from tessrax.ledger import Ledger
 from tessrax.schema import ClarityStatement
 from tessrax.types import Claim, ContradictionRecord
+
+
+class DriftTracker:
+    """Tracks and stabilises epistemic drift across reconciliation cycles."""
+
+    def __init__(self) -> None:
+        self.history: List[tuple[str, float]] = []
+
+    def update(self, integrity_score: float, severity: float = 1.0) -> None:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        weighted_score = integrity_score * severity
+        self.history.append((timestamp, weighted_score))
+        if len(self.history) > 100:
+            self.history.pop(0)
+
+    def drift(self) -> float:
+        if len(self.history) < 2:
+            return 0.0
+        scores = [score for _, score in self.history]
+        baseline = sum(scores[:-1]) / max(len(scores) - 1, 1)
+        return abs(scores[-1] - baseline)
 
 
 @dataclass
@@ -43,6 +66,7 @@ class ReconciliationEngine:
         self._audit_log_path = Path(audit_log_path) if audit_log_path else Path("logs/metabolism_audit.jsonl")
         self._diagnostics_path = Path(diagnostics_path) if diagnostics_path else Path("logs/metabolism_diagnostics.jsonl")
         self._engine_seed = engine_seed if engine_seed is not None else 0
+        self._drift_tracker = DriftTracker()
 
     def reconcile(self, contradictions: Sequence[ContradictionRecord]) -> List[ClarityStatement]:
         """Reconcile a batch of contradictions into clarity statements."""
@@ -50,7 +74,11 @@ class ReconciliationEngine:
         statements: List[ClarityStatement] = []
         for record in contradictions:
             insight = self.audit_kernel.assess(record)
-            clarity_fuel = insight.confidence * 10.0
+            severity_weight = self._severity_weight(record.severity)
+            self._drift_tracker.update(insight.confidence, severity_weight)
+            current_drift = self._drift_tracker.drift()
+            weight = max(0.1, 1.0 - current_drift)
+            clarity_fuel = insight.confidence * 10.0 * weight
             statement = ClarityStatement(
                 subject=record.claim_a.subject,
                 metric=record.claim_a.metric,
@@ -63,10 +91,39 @@ class ReconciliationEngine:
             )
             statements.append(statement)
             self.ledger.append(_ClarityDecision(statement))
+            self._log_drift_metadata(record, statement, current_drift)
             self._emit_audit_record(record, statement)
         if statements:
             self._emit_diagnostics(statements, len(contradictions))
         return statements
+
+    @staticmethod
+    def _severity_weight(severity: str) -> float:
+        ladder = {
+            "low": 0.6,
+            "medium": 0.8,
+            "high": 1.0,
+            "critical": 1.2,
+        }
+        return ladder.get(severity.lower(), 0.75)
+
+    def _log_drift_metadata(
+        self,
+        record: ContradictionRecord,
+        statement: ClarityStatement,
+        drift: float,
+    ) -> None:
+        if not hasattr(self.ledger, "append_meta"):
+            return
+        lane = route_to_governance_lane(record)
+        payload = {
+            "event_type": "METABOLISM_DRIFT",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "drift_value": drift,
+            "governance_lane": lane,
+            "clarity_receipt": statement.to_receipt(),
+        }
+        self.ledger.append_meta("metabolism", payload)
 
     def _emit_audit_record(self, record: ContradictionRecord, statement: ClarityStatement) -> None:
         payload = {
