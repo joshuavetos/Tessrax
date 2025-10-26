@@ -1,5 +1,5 @@
-fastapi[all]
-uvicorn[standard]
+fastapi>=0.110.0
+uvicorn>=0.27.0
 pydantic
 pytest
 pytest-asyncio
@@ -17,4 +17,4 @@ streamlit
 tox
 black
 pylint
-tessrax-core==15.1.2
+-e .
