@@ -1,0 +1,25 @@
+thresholds:
+  contradiction: 0.65
+  unknown: 0.25
+calibration:
+  integrity_min: 0.94
+  drift_max: 0.04
+  severity_max: 0.05
+redis:
+  enabled: false
+  url: redis://localhost:6379/0
+jwt:
+  issuer: tessrax-truth-api
+  algorithm: HS256
+  expires_minutes: 60
+  secret: development-jwt-secret
+billing:
+  onboarding_key: create
+  tiers:
+    free:
+      limit: 100
+    pro:
+      limit: 1000
+    enterprise:
+      limit: null
+hmac_secret: development-hmac-secret
