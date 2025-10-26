@@ -53,6 +53,8 @@ class ContradictionRecord:
     delta: float
     reasoning: str
     confidence: float = 0.5
+    energy: float = 0.0
+    kappa: float = 0.0
     contradiction_type: Optional[str] = None
 
     @property
