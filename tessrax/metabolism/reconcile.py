@@ -17,6 +17,9 @@ from tessrax.ledger import Ledger
 from tessrax.schema import ClarityStatement
 from tessrax.types import Claim, ContradictionRecord
 
+from tessrax.physics.dynamics import SystemDynamics
+from tessrax.physics.phases import GovernancePhase, PhaseTransition
+
 
 class DriftTracker:
     """Tracks and stabilises epistemic drift across reconciliation cycles."""
@@ -68,6 +71,9 @@ class ReconciliationEngine:
         self._engine_seed = engine_seed if engine_seed is not None else 0
         self._drift_tracker = DriftTracker()
         self._clarity_baseline = 0.5
+        self.phase_transition = PhaseTransition()
+        self.dynamics = SystemDynamics()
+        self._current_phase = GovernancePhase.STABLE
 
     @staticmethod
     def _kalman_update(
@@ -82,6 +88,13 @@ class ReconciliationEngine:
         K_t = process_uncertainty / (process_uncertainty + meas_noise)
         return prior_mean + K_t * (measurement - prior_mean)
 
+    @staticmethod
+    def _apply_trust_adjustment(candidate: float, trust_delta: float) -> float:
+        """Blend system dynamics feedback into the clarity baseline."""
+
+        bounded_delta = max(min(trust_delta, 0.15), -0.15)
+        return max(0.0, min(1.0, candidate + bounded_delta))
+
     def reconcile(self, contradictions: Sequence[ContradictionRecord]) -> List[ClarityStatement]:
         """Reconcile a batch of contradictions into clarity statements."""
 
@@ -91,6 +104,9 @@ class ReconciliationEngine:
             severity_weight = self._severity_weight(record.severity)
             self._drift_tracker.update(insight.confidence, severity_weight)
             current_drift = self._drift_tracker.drift()
+            energy_value = getattr(record, "energy", 0.0)
+            phase = self.phase_transition.compute_phase(self._clarity_baseline, current_drift)
+            self._current_phase = phase
             measurement_confidence = getattr(record, "confidence", 0.5)
             new_candidate_value = insight.confidence * max(0.1, 1.0 - current_drift)
             updated_clarity = self._kalman_update(
@@ -98,8 +114,18 @@ class ReconciliationEngine:
                 measurement=new_candidate_value,
                 measurement_confidence=measurement_confidence,
             )
-            self._clarity_baseline = max(0.0, min(1.0, updated_clarity))
-            clarity_fuel = self._clarity_baseline * 10.0
+            trust_adjustment = self.dynamics.trust_evolution(
+                (self._clarity_baseline,),
+                0.0,
+                insight.confidence,
+                energy_value,
+                current_drift,
+            )[0]
+            self._clarity_baseline = self._apply_trust_adjustment(updated_clarity, trust_adjustment)
+            # Compute clarity fuel from contradiction energy
+            efficiency = 0.8
+            clarity_fuel = efficiency * (energy_value if energy_value else self._clarity_baseline * 10.0)
+            projected_energy = self.dynamics.energy_evolution(energy_value, 0.0, lambda _t: energy_value)
             statement = ClarityStatement(
                 subject=record.claim_a.subject,
                 metric=record.claim_a.metric,
@@ -112,8 +138,8 @@ class ReconciliationEngine:
             )
             statements.append(statement)
             self.ledger.append(_ClarityDecision(statement))
-            self._log_drift_metadata(record, statement, current_drift)
-            self._emit_audit_record(record, statement)
+            self._log_drift_metadata(record, statement, current_drift, phase, projected_energy)
+            self._emit_audit_record(record, statement, phase, projected_energy)
         if statements:
             self._emit_diagnostics(statements, len(contradictions))
         return statements
@@ -133,6 +159,8 @@ class ReconciliationEngine:
         record: ContradictionRecord,
         statement: ClarityStatement,
         drift: float,
+        phase: GovernancePhase,
+        projected_energy: float,
     ) -> None:
         if not hasattr(self.ledger, "append_meta"):
             return
@@ -143,10 +171,18 @@ class ReconciliationEngine:
             "drift_value": drift,
             "governance_lane": lane,
             "clarity_receipt": statement.to_receipt(),
+            "governance_phase": phase.value,
+            "projected_energy": projected_energy,
         }
         self.ledger.append_meta("metabolism", payload)
 
-    def _emit_audit_record(self, record: ContradictionRecord, statement: ClarityStatement) -> None:
+    def _emit_audit_record(
+        self,
+        record: ContradictionRecord,
+        statement: ClarityStatement,
+        phase: GovernancePhase,
+        projected_energy: float,
+    ) -> None:
         payload = {
             "event_type": "METABOLISM_RECONCILIATION",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -154,6 +190,10 @@ class ReconciliationEngine:
             "ordered_inputs": [claim.claim_id for claim in record.sorted_pair()],
             "contradiction_delta": record.delta,
             "statement": statement.to_receipt(),
+            "governance_phase": phase.value,
+            "contradiction_energy": getattr(record, "energy", 0.0),
+            "contextual_kappa": getattr(record, "kappa", 0.0),
+            "projected_energy": projected_energy,
         }
         self._write_jsonl(self._audit_log_path, payload)
 
@@ -166,6 +206,7 @@ class ReconciliationEngine:
             "input_count": total_inputs,
             "average_confidence": round(mean(s.confidence for s in statements), 6),
             "clarity_total": round(sum(s.clarity_fuel for s in statements), 6),
+            "governance_phase": self._current_phase.value,
         }
         self._write_jsonl(self._diagnostics_path, diagnostics)
 
