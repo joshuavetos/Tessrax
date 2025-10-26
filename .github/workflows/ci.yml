@@ -1,10 +1,12 @@
+---
+# yamllint disable rule:truthy
 name: Epistemic Meta Audit
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   epistemic_meta_audit:
