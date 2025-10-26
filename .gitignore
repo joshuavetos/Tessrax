@@ -30,6 +30,7 @@ venv/
 *.log
 *.tmp
 .DS_Store
+out/
 
 # Node / dashboard assets
 node_modules/
