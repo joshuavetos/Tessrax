@@ -1,0 +1,30 @@
+Tessrax Coherence Repair – Audit Summary
+========================================
+
+Fixed Imports
+-------------
+- Added package initialisers for `tessrax_truth_api.engine`, `.middleware`, and `.services` so relative imports resolve consistently during packaging and tests.
+- Converted the non-Python documentation artefact `tessrax/docs/unified_test_bundle.py` into a Markdown document to prevent syntax errors during module discovery.
+
+Dependency Changes
+------------------
+- Declared the full runtime dependency set inside `pyproject.toml`/`setup.cfg`, aligned with Python 3.11 support (`python_requires = ">=3.10,<3.12"`).
+- Promoted runtime pins for FastAPI, Starlette, Redis, Celery, Streamlit, pandas, matplotlib, plotly, etc., and introduced a light-weight `[ml]` extra for optional `sentence-transformers` usage.
+- Updated `requirements.txt` to mirror the packaging metadata, add explicit versions, and call out the ML extra for optional installation.
+
+Added Files
+-----------
+- `setup.cfg` with unified packaging metadata.
+- `tessrax_truth_api/engine/__init__.py`
+- `tessrax_truth_api/middleware/__init__.py`
+- `tessrax_truth_api/services/__init__.py`
+- `tessrax/docs/unified_test_bundle.md`
+
+CI / Workflow Notes
+-------------------
+- Existing GitHub Actions already target Python 3.11 and install dependencies before running tests; no YAML changes were required.
+
+Validation
+----------
+- Created a dedicated Python 3.11 virtual environment with `uv` and verified `pip install -e .` plus `pip install -e .[dev]` complete successfully.
+- Pytest suite passes in the Python 3.11 environment: `pytest -q` (39 passed).
