@@ -1,6 +1,13 @@
 """Tests for the Truth-Lock FastAPI service primitives."""
 
-from truth_lock_api import RedTeamSummary, TruthLockService
+import pytest
+
+try:  # pragma: no cover - optional FastAPI dependency in CI
+    from truth_lock_api import RedTeamSummary, TruthLockService
+except ModuleNotFoundError as exc:  # pragma: no cover - skip when FastAPI missing
+    if exc.name == "fastapi":
+        pytest.skip("fastapi not installed", allow_module_level=True)
+    raise
 
 
 def test_query_returns_verified_answer_for_known_fact(tmp_path, monkeypatch):
