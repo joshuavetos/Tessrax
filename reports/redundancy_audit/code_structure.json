@@ -1,0 +1,254 @@
+[
+  {
+    "file": "tessrax/tessrax_engine.py",
+    "functions": [
+      "_normalise_claim_text",
+      "calculate_stability",
+      "route_to_governance_lane"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/governance.py",
+    "functions": [
+      "_load_model",
+      "_token_overlap_ratio",
+      "_claim_to_text",
+      "classify_contradiction",
+      "route_to_governance_lane",
+      "__init__",
+      "process",
+      "_select_action",
+      "_clarity_fuel",
+      "_rationale",
+      "process_meta_audit",
+      "log_to_ledger",
+      "alert",
+      "epistemic_metrics_log",
+      "alerts",
+      "_attach_signature",
+      "ingest_record"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/extraction.py",
+    "functions": [
+      "__init__",
+      "extract",
+      "_parse_timestamp"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/audit.py",
+    "functions": [
+      "__init__",
+      "assess",
+      "_confidence_score",
+      "_narrative",
+      "batch_assess"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/types.py",
+    "functions": [
+      "_generate_uuid7",
+      "_generate_uuid7",
+      "key",
+      "claims",
+      "sorted_pair",
+      "to_summary",
+      "canonical_document",
+      "to_json"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/contradiction.py",
+    "functions": [
+      "__init__",
+      "detect",
+      "_grade"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/dashboard.py",
+    "functions": [
+      "build_snapshot"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/schema.py",
+    "functions": [
+      "_ensure_timezone",
+      "to_receipt",
+      "__post_init__",
+      "to_receipt"
+    ],
+    "classes": [
+      "ClarityStatement"
+    ]
+  },
+  {
+    "file": "tessrax/governance_security.py",
+    "functions": [
+      "_json_dumps",
+      "encode",
+      "decode",
+      "__init__",
+      "_digest",
+      "issue",
+      "verify",
+      "__init__",
+      "_payload_bytes",
+      "sign",
+      "verify"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/analytics/pattern_extractor.py",
+    "functions": [
+      "extract_patterns_from_stream",
+      "_load_lines",
+      "_build_cli",
+      "main"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/meta_integrity/truthscore.py",
+    "functions": [
+      "__init__",
+      "score",
+      "_normalise_verdict"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/meta_integrity/claim_extractor.py",
+    "functions": [
+      "as_dict",
+      "__init__",
+      "extract",
+      "_segment",
+      "_infer_object",
+      "_estimate_certainty"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/meta_integrity/analytics.py",
+    "functions": [
+      "compute_epistemic_metrics"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/metrics/epistemic_health.py",
+    "functions": [
+      "compute_integrity",
+      "compute_drift",
+      "compute_severity",
+      "compute_entropy"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/metabolism/adversarial.py",
+    "functions": [
+      "__init__",
+      "synthesize_contradiction",
+      "run_batch",
+      "generate",
+      "compute_adversarial_budget",
+      "_build_cli",
+      "main"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/metabolism/reconcile.py",
+    "functions": [
+      "__init__",
+      "update",
+      "drift",
+      "to_summary",
+      "__init__",
+      "_kalman_update",
+      "reconcile",
+      "_severity_weight",
+      "_log_drift_metadata",
+      "_emit_audit_record",
+      "_emit_diagnostics",
+      "_write_jsonl",
+      "_parse_timestamp",
+      "_claim_from_payload",
+      "_record_from_payload",
+      "load_contradictions",
+      "build_cli",
+      "_emit_ledger",
+      "main"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/ledger/__init__.py",
+    "functions": [
+      "compute_merkle_root",
+      "__init__",
+      "append",
+      "receipts",
+      "verify",
+      "export",
+      "append_meta",
+      "meta_events",
+      "append_batch",
+      "_hash_payload",
+      "verify_file",
+      "build_cli",
+      "_cli",
+      "main"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/ledger/verify.py",
+    "functions": [
+      "_build_parser",
+      "main"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/ledger/__main__.py",
+    "functions": [
+      "run"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/trust/bayesian_calibration.py",
+    "functions": [
+      "__post_init__",
+      "update",
+      "last_update",
+      "score",
+      "redeem",
+      "to_dict"
+    ],
+    "classes": []
+  },
+  {
+    "file": "tessrax/federation/translator.py",
+    "functions": [
+      "to_exchange_packet",
+      "from_exchange_packet"
+    ],
+    "classes": []
+  }
+]
