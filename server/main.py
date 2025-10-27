@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -18,7 +20,6 @@ from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
 from tessrax.types import Claim
 
 config = load_config()
-app = FastAPI(title="Tessrax-Core API", version="1.0.0")
 
 ledger_path = Path(config.logging.ledger_path)
 ledger_path.parent.mkdir(parents=True, exist_ok=True)
@@ -27,14 +28,16 @@ governance_ledger = Ledger()
 detector = AsyncContradictionDetector(governance_ledger)
 
 
-@app.on_event("startup")
-async def _startup_detector() -> None:
-    detector.start()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await detector.start()
+    try:
+        yield
+    finally:
+        await detector.stop()
 
 
-@app.on_event("shutdown")
-async def _shutdown_detector() -> None:
-    await detector.shutdown()
+app = FastAPI(title="Tessrax-Core API", version="1.0.0", lifespan=lifespan)
 
 
 class AgentClaim(BaseModel):
@@ -135,3 +138,8 @@ async def submit_structured_claims(claims: List[StructuredClaim]) -> Dict[str, o
 @app.get("/contradictions/live")
 async def get_live_contradictions() -> Dict[str, int]:
     return {"active": len(detector.seen)}
+
+
+@app.get("/metrics")
+async def metrics() -> Dict[str, int]:
+    return detector.metrics()
