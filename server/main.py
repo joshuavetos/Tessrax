@@ -12,13 +12,29 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from config_loader import load_config
+from tessrax.ledger import Ledger
+from tessrax.metabolism.async_detector import AsyncContradictionDetector
 from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
+from tessrax.types import Claim
 
 config = load_config()
 app = FastAPI(title="Tessrax-Core API", version="1.0.0")
 
 ledger_path = Path(config.logging.ledger_path)
 ledger_path.parent.mkdir(parents=True, exist_ok=True)
+
+governance_ledger = Ledger()
+detector = AsyncContradictionDetector(governance_ledger)
+
+
+@app.on_event("startup")
+async def _startup_detector() -> None:
+    detector.start()
+
+
+@app.on_event("shutdown")
+async def _shutdown_detector() -> None:
+    await detector.shutdown()
 
 
 class AgentClaim(BaseModel):
@@ -79,3 +95,43 @@ async def get_ledger() -> JSONResponse:
 @app.get("/healthz")
 async def health() -> Dict[str, str]:
     return {"status": "ok"}
+
+
+class StructuredClaim(BaseModel):
+    """Pydantic payload used for asynchronous contradiction detection."""
+
+    claim_id: str
+    subject: str
+    metric: str
+    value: float
+    unit: str
+    timestamp: datetime
+    source: str
+    context: Dict[str, str] = Field(default_factory=dict)
+
+    def to_claim(self) -> Claim:
+        return Claim(
+            claim_id=self.claim_id,
+            subject=self.subject,
+            metric=self.metric,
+            value=self.value,
+            unit=self.unit,
+            timestamp=self.timestamp,
+            source=self.source,
+            context=dict(self.context),
+        )
+
+
+@app.post("/claims")
+async def submit_structured_claims(claims: List[StructuredClaim]) -> Dict[str, object]:
+    if not claims:
+        raise HTTPException(status_code=400, detail="At least one claim is required")
+
+    for payload in claims:
+        await detector.publish(payload.to_claim())
+    return {"status": "queued", "count": len(claims)}
+
+
+@app.get("/contradictions/live")
+async def get_live_contradictions() -> Dict[str, int]:
+    return {"active": len(detector.seen)}

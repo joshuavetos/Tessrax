@@ -90,6 +90,12 @@ class Ledger:
             for receipt in self._receipts:
                 handle.write(json.dumps(receipt.to_json(), sort_keys=True) + "\n")
 
+    @property
+    def last_hash(self) -> str:
+        """Return the hash of the most recent ledger receipt or ``GENESIS``."""
+
+        return self._receipts[-1].hash if self._receipts else GENESIS_HASH
+
     def append_meta(self, channel: str, payload: Mapping[str, Any]) -> None:
         """Record supplementary ledger metadata events."""
 
