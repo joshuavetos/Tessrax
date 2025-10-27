@@ -1,0 +1,12 @@
+name: Nightly Adversarial Tests
+on:
+  schedule:
+    - cron: "0 3 * * *"
+jobs:
+  nightly-adversarial:
+    runs-on: ubuntu-latest
+    env:
+      TESSRAX_ENV: prod
+    steps:
+      - uses: actions/checkout@v4
+      - run: pytest -q tests_adversarial
