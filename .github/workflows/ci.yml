@@ -11,6 +11,8 @@ on:
 jobs:
   epistemic_meta_audit:
     runs-on: ubuntu-latest
+    env:
+      TESSRAX_ENV: prod
     strategy:
       matrix:
         python-version: ["3.11"]
