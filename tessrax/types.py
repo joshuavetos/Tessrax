@@ -42,6 +42,22 @@ class Claim:
 
         return f"{self.subject}:{self.metric}:{self.unit}".lower()
 
+    def to_json(self) -> Dict[str, object]:
+        """Serialise the claim into a JSON-compatible mapping."""
+
+        payload: Dict[str, object] = {
+            "claim_id": self.claim_id,
+            "subject": self.subject,
+            "metric": self.metric,
+            "value": self.value,
+            "unit": self.unit,
+            "timestamp": self.timestamp.isoformat(),
+            "source": self.source,
+        }
+        if self.context:
+            payload["context"] = dict(self.context)
+        return payload
+
 
 @dataclass(slots=True)
 class ContradictionRecord:
@@ -67,6 +83,23 @@ class ContradictionRecord:
         """Yield claims in deterministic order for reproducibility."""
 
         return tuple(sorted((self.claim_a, self.claim_b), key=lambda c: c.claim_id))
+
+    def to_json(self) -> Dict[str, object]:
+        """Serialise the contradiction and its claims."""
+
+        payload: Dict[str, object] = {
+            "claim_a": self.claim_a.to_json(),
+            "claim_b": self.claim_b.to_json(),
+            "severity": self.severity,
+            "delta": self.delta,
+            "reasoning": self.reasoning,
+            "confidence": self.confidence,
+            "energy": self.energy,
+            "kappa": self.kappa,
+        }
+        if self.contradiction_type is not None:
+            payload["contradiction_type"] = self.contradiction_type
+        return payload
 
 
 @dataclass(slots=True)
@@ -109,6 +142,24 @@ class GovernanceDecision:
         payload.pop("timestamp_token", None)
         return payload
 
+    def to_decision_payload(self) -> Dict[str, object]:
+        """Return a detailed representation including contradiction context."""
+
+        payload: Dict[str, object] = {
+            "action": self.action,
+            "clarity_fuel": round(self.clarity_fuel, 3),
+            "protocol": self.protocol,
+            "issued_at": self.issued_at.isoformat(),
+            "contradiction": self.contradiction.to_json(),
+            "severity": self.contradiction.severity,
+            "decision_id": str(self.decision_id),
+        }
+        if self.timestamp_token is not None:
+            payload["timestamp_token"] = self.timestamp_token
+        if self.signature is not None:
+            payload["signature"] = self.signature
+        return payload
+
 
 @dataclass(slots=True)
 class LedgerReceipt:
@@ -126,6 +177,11 @@ class LedgerReceipt:
             "prev_hash": self.prev_hash,
             "hash": self.hash,
         })
+        decision_payload = self.decision.to_decision_payload()
+        payload["decision"] = decision_payload
+        contradiction_payload = decision_payload.get("contradiction")
+        if contradiction_payload is not None:
+            payload.setdefault("contradiction", contradiction_payload)
         if self.sub_merkle_root is not None:
             payload["sub_merkle_root"] = self.sub_merkle_root
         if self.signature is not None:

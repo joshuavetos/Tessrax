@@ -42,11 +42,15 @@ def compute_merkle_root(batch: Sequence[Mapping[str, Any]]) -> Optional[str]:
 
 
 class Ledger:
-    """Append-only ledger with hash chaining."""
+    """Append-only ledger with hash chaining and optional persistence."""
 
-    def __init__(self) -> None:
+    def __init__(self, path: Optional[Path] = None) -> None:
         self._receipts: List[LedgerReceipt] = []
         self._meta_events: List[dict[str, Any]] = []
+        self.path: Optional[Path] = Path(path) if path is not None else None
+        if self.path is not None:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.path.touch(exist_ok=True)
 
     def append(
         self,
@@ -66,6 +70,8 @@ class Ledger:
             sub_merkle_root=sub_merkle_root,
         )
         self._receipts.append(receipt)
+        if self.path is not None:
+            self._persist(receipt)
         return receipt
 
     def receipts(self) -> List[LedgerReceipt]:
@@ -89,6 +95,12 @@ class Ledger:
         with path.open("w", encoding="utf-8") as handle:
             for receipt in self._receipts:
                 handle.write(json.dumps(receipt.to_json(), sort_keys=True) + "\n")
+
+    def _persist(self, receipt: LedgerReceipt) -> None:
+        if self.path is None:
+            return
+        with self.path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(receipt.to_json(), sort_keys=True) + "\n")
 
     @property
     def last_hash(self) -> str:

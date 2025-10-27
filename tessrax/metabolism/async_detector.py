@@ -1,79 +1,118 @@
-"""Asynchronous contradiction detection pipeline."""
+"""Asynchronous contradiction detection pipeline with bounded queue and observability."""
 
 from __future__ import annotations
 
+import argparse
 import asyncio
-from typing import List
+import logging
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Iterable, List
 
 from tessrax.contradiction import ContradictionEngine
 from tessrax.ledger import Ledger
+from tessrax.ledger.ledger_index import LedgerIndex
 from tessrax.types import Claim, ContradictionRecord, GovernanceDecision
 
 
 class AsyncContradictionDetector:
-    """Run contradiction detection in the background using :mod:`asyncio`."""
+    """Detect contradictions asynchronously with ledger-indexed history."""
 
-    def __init__(self, ledger: Ledger, concurrency: int = 8) -> None:
+    def __init__(self, ledger: Ledger, maxsize: int = 1000) -> None:
         self.ledger = ledger
-        self.concurrency = max(1, concurrency)
-        self.queue: asyncio.Queue[Claim] = asyncio.Queue()
+        ledger_path = getattr(ledger, "path", None) or os.getenv("LEDGER_PATH", "./data/ledger.jsonl")
+        self.index = LedgerIndex(ledger_path)
+
+        try:
+            queue_size = int(os.getenv("QUEUE_MAXSIZE", str(maxsize)))
+        except ValueError:
+            queue_size = maxsize
+        self.queue: asyncio.Queue[Claim] = asyncio.Queue(maxsize=queue_size)
         self.engine = ContradictionEngine()
-        self.seen: set[str] = set()
-        self.claim_store: List[Claim] = []
-        self._lock = asyncio.Lock()
-        self._workers: list[asyncio.Task[None]] = []
+        self.workers = int(os.getenv("TESSRAX_ASYNC_WORKERS", "8"))
 
-    async def publish(self, claim: Claim) -> None:
-        """Submit a claim for asynchronous contradiction evaluation."""
+        self._running = False
+        self._tasks: list[asyncio.Task[None]] = []
+        self._sync_task: asyncio.Task[None] | None = None
 
-        await self.queue.put(claim)
+        self._seen_tokens: set[str] = set()
+
+        self.stats = dict(
+            published=0,
+            dropped=0,
+            detected=0,
+        )
+
+    async def publish(self, claim: Claim, timeout: float = 1.0) -> None:
+        """Attempt to enqueue a claim for processing."""
+
+        try:
+            await asyncio.wait_for(self.queue.put(claim), timeout)
+            self.stats["published"] += 1
+        except asyncio.TimeoutError:
+            self.stats["dropped"] += 1
+            logging.warning("AsyncContradictionDetector backpressure: claim dropped")
 
     async def worker(self) -> None:
-        """Continuously process queued claims."""
+        """Process claims from the queue."""
 
         while True:
             try:
                 claim = await self.queue.get()
-            except asyncio.CancelledError:  # pragma: no cover - cooperative shutdown
+            except asyncio.CancelledError:
                 break
 
-            claim_key = claim.key()
-            seen_token = f"{claim_key}::{claim.claim_id}"
-            if seen_token in self.seen:
+            token = self._claim_token(claim)
+            if token in self._seen_tokens:
                 self.queue.task_done()
                 continue
-
-            self.seen.add(seen_token)
+            self._seen_tokens.add(token)
 
             try:
-                contradictions = await self.detect_async(claim)
-                for contradiction in contradictions:
-                    decision = self._to_ledger_record(contradiction)
-                    self.ledger.append(decision)
+                historical = self.index.query_similar(claim.subject, claim.metric)
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logging.error("LedgerIndex query failed: %s", exc)
+                historical = []
+
+            try:
+                contradictions = await self.detect_async(claim, historical)
+                await self._record_results(claim, contradictions)
             finally:
                 self.queue.task_done()
 
-    async def detect_async(self, claim: Claim) -> List[ContradictionRecord]:
-        """Run contradiction detection for a claim in a background executor."""
+    async def detect_async(self, claim: Claim, historical: Iterable[Claim]) -> List[ContradictionRecord]:
+        """Run contradiction detection in a background executor."""
 
-        async with self._lock:
-            related_claims = [
-                stored_claim for stored_claim in self.claim_store if stored_claim.key() == claim.key()
-            ]
-            related_claims.append(claim)
-            self.claim_store.append(claim)
         loop = asyncio.get_running_loop()
-        results = await loop.run_in_executor(None, self.engine.detect, related_claims)
-        claim_id = claim.claim_id
-        return [
-            record
-            for record in results
-            if claim_id in (record.claim_a.claim_id, record.claim_b.claim_id)
-        ]
+        claims = [claim, *historical]
+        return await loop.run_in_executor(None, self.engine.detect, claims)
+
+    async def _record_results(self, claim: Claim, contradictions: Iterable[ContradictionRecord]) -> None:
+        """Append governance decisions and refresh the ledger index."""
+
+        decisions = list(contradictions)
+        for record in decisions:
+            decision = self._to_ledger_record(record)
+            self.ledger.append(decision)
+            self.stats["detected"] += 1
+            for claim in (record.claim_a, record.claim_b):
+                try:
+                    self.index.record_claim(claim)
+                except Exception as exc:  # pragma: no cover - defensive logging
+                    logging.error("LedgerIndex record_claim failed: %s", exc)
+
+        # Ensure the triggering claim is available for future comparisons.
+        try:
+            self.index.record_claim(claim)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logging.error("LedgerIndex record_claim failed: %s", exc)
+
+    def _claim_token(self, claim: Claim) -> str:
+        timestamp = claim.timestamp.isoformat()
+        return f"{claim.key()}::{claim.claim_id}::{timestamp}::{claim.value}"
 
     def _to_ledger_record(self, contradiction: ContradictionRecord) -> GovernanceDecision:
-        """Convert a contradiction into a ledger governance decision."""
-
         rationale = (
             f"Detected asynchronous contradiction between {contradiction.claim_a.claim_id} "
             f"and {contradiction.claim_b.claim_id}: {contradiction.reasoning}"
@@ -86,32 +125,125 @@ class AsyncContradictionDetector:
             protocol="ASYNC_METABOLISM_V1",
         )
 
-    async def run(self) -> None:
-        """Spawn worker tasks and keep them alive until cancelled."""
+    async def start(self) -> None:
+        """Initialise worker pool and background sync."""
 
-        self.start()
-        try:
-            await self.queue.join()
-        finally:
-            await self._cancel_workers()
-
-    def start(self) -> None:
-        """Ensure worker tasks are running."""
-
-        if self._workers:
+        if self._running:
             return
-        self._workers = [asyncio.create_task(self.worker()) for _ in range(self.concurrency)]
+        self._running = True
+        self._seen_tokens.clear()
+        self.index.sync(limit=None)
+        self._tasks = [asyncio.create_task(self.worker()) for _ in range(self.workers)]
+        self._sync_task = asyncio.create_task(self._periodic_sync())
 
-    async def shutdown(self) -> None:
-        """Cancel worker tasks and wait for them to finish."""
+    async def stop(self) -> None:
+        """Gracefully stop workers and close the ledger index."""
 
+        if not self._running:
+            return
+
+        final_depth = self.queue.qsize()
+        if final_depth > 0:
+            logging.warning(
+                "AsyncContradictionDetector shutdown with %s unprocessed claims", final_depth
+            )
+
+        self._running = False
         await self.queue.join()
-        await self._cancel_workers()
 
-    async def _cancel_workers(self) -> None:
-        if not self._workers:
-            return
-        for task in self._workers:
+        for task in self._tasks:
             task.cancel()
-        await asyncio.gather(*self._workers, return_exceptions=True)
-        self._workers.clear()
+        if self._tasks:
+            await asyncio.gather(*self._tasks, return_exceptions=True)
+        self._tasks.clear()
+
+        if self._sync_task is not None:
+            self._sync_task.cancel()
+            await asyncio.gather(self._sync_task, return_exceptions=True)
+            self._sync_task = None
+
+        self.index.close()
+
+    async def _periodic_sync(self, interval: int = 60) -> None:
+        while True:
+            try:
+                await asyncio.sleep(interval)
+            except asyncio.CancelledError:
+                break
+            try:
+                self.index.sync()
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logging.error("LedgerIndex periodic sync error: %s", exc)
+
+    def metrics(self) -> dict[str, int]:
+        return {
+            "queue_depth": self.queue.qsize(),
+            "claims_seen": len(self._seen_tokens),
+            "workers": self.workers,
+            **self.stats,
+        }
+
+    @property
+    def seen(self) -> set[str]:
+        """Expose the deduplicated claim tokens for compatibility."""
+
+        return set(self._seen_tokens)
+
+
+async def _run_self_test() -> None:
+    logging.basicConfig(level=logging.INFO)
+    tmp_path = Path("./out/async_detector_self_test")
+    tmp_path.mkdir(parents=True, exist_ok=True)
+
+    ledger_path = tmp_path / "ledger.jsonl"
+    ledger = Ledger(ledger_path)
+    detector = AsyncContradictionDetector(ledger, maxsize=10)
+    await detector.start()
+
+    try:
+        now = datetime.now(timezone.utc)
+        claim_a = Claim(
+            claim_id="self-test-a",
+            subject="async",
+            metric="temperature",
+            value=10.0,
+            unit="celsius",
+            timestamp=now,
+            source="sensor-a",
+        )
+        claim_b = Claim(
+            claim_id="self-test-b",
+            subject="async",
+            metric="temperature",
+            value=-10.0,
+            unit="celsius",
+            timestamp=now,
+            source="sensor-b",
+        )
+
+        await detector.publish(claim_a)
+        await detector.publish(claim_b)
+        await asyncio.sleep(0.5)
+    finally:
+        await detector.stop()
+
+    logging.info("AsyncContradictionDetector metrics: %s", detector.metrics())
+
+
+def _build_cli() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Tessrax Async Contradiction Detector utilities")
+    parser.add_argument("--self-test", action="store_true", help="Run the async detector self-test")
+    return parser
+
+
+def main() -> None:
+    parser = _build_cli()
+    args = parser.parse_args()
+    if args.self_test:
+        asyncio.run(_run_self_test())
+    else:
+        parser.print_help()
+
+
+if __name__ == "__main__":  # pragma: no cover - CLI entry point
+    main()
