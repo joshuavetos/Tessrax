@@ -23,13 +23,24 @@ def append_merkle(entry: Any) -> Dict[str, Any]:
     """Append the entry to the merkle log with a digest receipt."""
     _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     serialized = _serialize(entry)
-    digest = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
-    record = {
+    serialized_bytes = serialized.encode("utf-8")
+    digest = hashlib.sha256(serialized_bytes).hexdigest()
+    timestamp = time.time()
+
+    persisted_record = {
+        "mode": "merkle",
+        "entry": serialized,
+        "hash": digest,
+        "timestamp": timestamp,
+    }
+
+    with _LOG_PATH.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(persisted_record) + "\n")
+
+    return {
         "mode": "merkle",
         "entry": entry,
         "hash": digest,
-        "timestamp": time.time(),
+        "timestamp": timestamp,
+        "serialized": serialized,
     }
-    with _LOG_PATH.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, default=str) + "\n")
-    return record
