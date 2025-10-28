@@ -28,7 +28,7 @@ def test_field_evidence_expected_keywords() -> None:
 
 def test_field_evidence_count() -> None:
     records = load_field_evidence()
-    assert len(records) == 22
+    assert len(records) == 47
 
 
 @pytest.mark.parametrize("path_type", (str, pathlib.Path))
