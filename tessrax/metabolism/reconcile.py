@@ -51,6 +51,24 @@ class _ClarityDecision:
     def to_summary(self) -> dict:
         return self.statement.to_receipt()
 
+    def to_decision_payload(self) -> dict:
+        receipt = self.statement.to_receipt()
+        contradiction = {
+            "contradiction_ids": receipt.get("contradiction_ids", []),
+            "severity": receipt.get("severity"),
+            "subject": receipt.get("subject"),
+            "metric": receipt.get("metric"),
+        }
+        return {
+            "protocol": "metabolism",
+            "issued_at": receipt.get("timestamp"),
+            "clarity_fuel": receipt.get("clarity_fuel"),
+            "confidence": receipt.get("confidence"),
+            "synthesis": receipt.get("synthesis"),
+            "rationale": receipt.get("rationale"),
+            "contradiction": contradiction,
+        }
+
 
 class ReconciliationEngine:
     """Generate clarity statements from contradictions and log them to the ledger."""

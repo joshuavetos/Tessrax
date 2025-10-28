@@ -107,6 +107,27 @@ python examples/<script>.py
 
 ⸻
 
+## 🗂️ Field Evidence Archive (2025-10-28)
+
+Tessrax ships with the **Field Evidence Archive (2025-10-28)**, a machine-readable JSONL dataset that captures on-the-ground audits, contradiction analyses, and policy alignment checkpoints gathered during field deployments. The archive powers simulation benchmarks inside the governance kernel and feeds the audit and compliance modules with immutable, provenance-rich evidence packets.
+
+Each record in `tessrax/data/evidence/field_evidence_archive_2025-10-28.jsonl` follows this schema:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `str` | Stable identifier for the evidence entry |
+| `category` | `str` | Governance domain (e.g., supply_chain, governance, safety) |
+| `year` | `int` | Calendar year the evidence was captured |
+| `source_type` | `str` | Provenance channel such as field_report, audit log, or simulation |
+| `summary` | `str` | Narrative synopsis of the evidence |
+| `key_findings` | `list[str]` | Bullet-style findings extracted from the source |
+| `alignment` | `dict` | Policy alignment metadata including `policy_reference`, status, and score |
+| `citations` | `list[str]` | Human-readable citations or references |
+
+The archive is immutable—subsequent updates should be delivered as new timestamped JSONL files under `tessrax/data/evidence/`. Provenance is maintained through field operations memos, regulatory site visits, and governance simulations recorded by Tessrax teams between 2023 and 2025.
+
+⸻
+
 🧩 System Architecture
 
 Concept	Description
