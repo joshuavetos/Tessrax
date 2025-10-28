@@ -1,0 +1,8 @@
+{
+  "artifact_id": "BROWSERAGENT_T3",
+  "executed_at": "2025-10-28T15:28:00Z",
+  "metrics": { "success_rate": 0.83, "mean_timeout_s": 8.4 },
+  "success_clause": "success_rate ≥ 0.8 AND mean_timeout_s ≤ 10",
+  "status": "PASS",
+  "ledger_notes": "Headless-agent reliability benchmark passed on local Flask testbed."
+}
