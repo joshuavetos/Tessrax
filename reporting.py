@@ -33,7 +33,7 @@ def _load_ledger(path: Path) -> List[dict]:
 
 def summarise_ledger(entries: Iterable[dict]) -> Dict[str, object]:
     config = load_config()
-    lane_counts = Counter()
+    lane_counts: Counter[str] = Counter()
     for entry in entries:
         claims = entry.get("claims", [])
         stability = calculate_stability(claims)

@@ -37,3 +37,8 @@ out/
 node_modules/
 dashboard/.cache/
 dashboard/build/
+
+# Tessrax generated artifacts
+analytics/output/
+data/
+pycache/

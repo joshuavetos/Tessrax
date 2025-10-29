@@ -3,10 +3,19 @@
 # Treat diagrams and notebooks as binary to avoid merge conflicts
 *.png binary
 *.jpg binary
-*.svg text
+*.jpeg binary
+*.gif binary
 *.pdf binary
 *.ipynb binary
 
+# Data artifacts should be handled as binary to suppress noisy diffs
+*.npy binary
+*.pkl binary
+*.bin binary
+*.csv binary
+*.jsonl binary
+
 # Ensure Mermaid and PlantUML stay UTF-8
+*.svg text
 *.mmd text working-tree-encoding=UTF-8
 *.puml text working-tree-encoding=UTF-8

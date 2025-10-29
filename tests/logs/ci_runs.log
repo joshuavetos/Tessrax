@@ -1,0 +1,622 @@
+## CI verification run @ 2025-10-29T00:42:53.274468+00:00
+===================================================== test session starts ======================================================
+platform linux -- Python 3.13.3, pytest-8.4.1, pluggy-1.6.0
+rootdir: /workspace/Tessrax
+configfile: pyproject.toml
+testpaths: tests
+collected 19 items / 7 errors / 1 skipped
+
+<Dir Tessrax>
+  <Package tests>
+    <Module test_async_contradiction_detector.py>
+      <Function test_backpressure_drops>
+      <Function test_deduplication>
+      <Function test_historical_contradiction>
+      <Function test_integration_metrics_and_shutdown>
+    <Module test_config_loader.py>
+      <Function test_validate_config_accepts_valid_schema>
+      <Function test_validate_config_rejects_invalid_threshold>
+      <Function test_load_config_reads_from_disk>
+    <Module test_contradiction_engine.py>
+      <Function test_detects_high_contradiction>
+      <Function test_respects_tolerance>
+    <Module test_governance_security.py>
+      <Function test_governance_kernel_attaches_signature>
+      <Function test_signature_verification_detects_tampering>
+    <Module test_ledger.py>
+      <Function test_append_sets_genesis_hash>
+      <Function test_verify_round_trip>
+      <Function test_verify_detects_tampering>
+    <Module test_ledger_integrity.py>
+      <Function test_ledger_hash_continuity>
+    <Module test_meta_audit.py>
+      <Function test_meta_audit_thresholds[normal-What protocol secures Tessrax timestamps?-Tessrax uses RFC-3161 timestamps for ledgers.-verified]>
+      <Function test_meta_audit_thresholds[adversarial-Does Tessrax use blockchain timestamps?-Yes, Tessrax writes directly to Bitcoin for compliance.-contradicted]>
+      <Function test_meta_audit_thresholds[ambiguous-How might Tessrax secure governance logs?-It might rely on RFC-3161 or similar trusted services.-unverified]>
+      <Function test_meta_audit_thresholds[hallucinatory-Where is the lunar mirror backup?-Tessrax data is mirrored on the moon under ESA guidance.-contradicted]>
+
+============================================================ ERRORS ============================================================
+____________________________________ ERROR collecting tests/test_adversarial_predictive.py _____________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_adversarial_predictive.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_adversarial_predictive.py:5: in <module>
+    from tessrax.analytics.pattern_extractor import extract_patterns_from_stream
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+_______________________________________ ERROR collecting tests/test_epistemic_metrics.py _______________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_epistemic_metrics.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_epistemic_metrics.py:1: in <module>
+    from tessrax.metrics.epistemic_health import (
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+________________________________________ ERROR collecting tests/test_evidence_loader.py ________________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_evidence_loader.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_evidence_loader.py:7: in <module>
+    from tessrax.data.evidence_loader import load_field_evidence
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+_____________________________________ ERROR collecting tests/test_reconciliation_engine.py _____________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_reconciliation_engine.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_reconciliation_engine.py:5: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+_________________________________________ ERROR collecting tests/test_tessrax_core.py __________________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_tessrax_core.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_tessrax_core.py:8: in <module>
+    from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+______________________________________ ERROR collecting tests/test_truth_api_contracts.py ______________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_truth_api_contracts.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_truth_api_contracts.py:5: in <module>
+    import jwt
+E   ModuleNotFoundError: No module named 'jwt'
+__________________________________________ ERROR collecting tests/test_v14_3_patch.py __________________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_v14_3_patch.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_v14_3_patch.py:7: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+=================================================== short test summary info ====================================================
+ERROR tests/test_adversarial_predictive.py
+ERROR tests/test_epistemic_metrics.py
+ERROR tests/test_evidence_loader.py
+ERROR tests/test_reconciliation_engine.py
+ERROR tests/test_tessrax_core.py
+ERROR tests/test_truth_api_contracts.py
+ERROR tests/test_v14_3_patch.py
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Interrupted: 7 errors during collection !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================================ 19 tests collected, 7 errors in 1.01s =============================================
+
+exit_code=2
+## CI verification run @ 2025-10-29T00:43:29.814689+00:00
+===================================================== test session starts ======================================================
+platform linux -- Python 3.13.3, pytest-8.4.1, pluggy-1.6.0
+rootdir: /workspace/Tessrax
+configfile: pyproject.toml
+testpaths: tests
+collected 41 items / 2 skipped
+
+<Dir Tessrax>
+  <Package tests>
+    <Module test_adversarial_predictive.py>
+      <Function test_adversarial_batch_size>
+      <Function test_pattern_extractor>
+    <Module test_async_contradiction_detector.py>
+      <Function test_backpressure_drops>
+      <Function test_deduplication>
+      <Function test_historical_contradiction>
+      <Function test_integration_metrics_and_shutdown>
+    <Module test_config_loader.py>
+      <Function test_validate_config_accepts_valid_schema>
+      <Function test_validate_config_rejects_invalid_threshold>
+      <Function test_load_config_reads_from_disk>
+    <Module test_contradiction_engine.py>
+      <Function test_detects_high_contradiction>
+      <Function test_respects_tolerance>
+    <Module test_epistemic_metrics.py>
+      <Function test_integrity_range>
+      <Function test_drift_behavior>
+      <Function test_severity_monotonic>
+      <Function test_entropy_normalized>
+    <Module test_evidence_loader.py>
+      <Function test_load_field_evidence_returns_records>
+      <Function test_field_evidence_expected_keywords>
+      <Function test_field_evidence_count>
+      <Function test_load_field_evidence_supports_path_override[str]>
+      <Function test_load_field_evidence_supports_path_override[Path]>
+    <Module test_governance_security.py>
+      <Function test_governance_kernel_attaches_signature>
+      <Function test_signature_verification_detects_tampering>
+    <Module test_ledger.py>
+      <Function test_append_sets_genesis_hash>
+      <Function test_verify_round_trip>
+      <Function test_verify_detects_tampering>
+    <Module test_ledger_integrity.py>
+      <Function test_ledger_hash_continuity>
+    <Module test_meta_audit.py>
+      <Function test_meta_audit_thresholds[normal-What protocol secures Tessrax timestamps?-Tessrax uses RFC-3161 timestamps for ledgers.-verified]>
+      <Function test_meta_audit_thresholds[adversarial-Does Tessrax use blockchain timestamps?-Yes, Tessrax writes directly to Bitcoin for compliance.-contradicted]>
+      <Function test_meta_audit_thresholds[ambiguous-How might Tessrax secure governance logs?-It might rely on RFC-3161 or similar trusted services.-unverified]>
+      <Function test_meta_audit_thresholds[hallucinatory-Where is the lunar mirror backup?-Tessrax data is mirrored on the moon under ESA guidance.-contradicted]>
+    <Module test_reconciliation_engine.py>
+      <Function test_reconciliation_engine_emits_clarity_receipt>
+      <Function test_load_and_cli_flow>
+    <Module test_tessrax_core.py>
+      <Function test_calculate_stability_high_consensus>
+      <Function test_calculate_stability_low_consensus>
+      <Function test_route_to_governance_lane_thresholds>
+    <Module test_v14_3_patch.py>
+      <Function test_classify_contradiction_heuristic>
+      <Function test_route_to_governance_lane_high_priority>
+      <Function test_drift_tracker_detects_change>
+      <Function test_reconciliation_engine_records_drift>
+      <Function test_compute_merkle_root_and_batch>
+      <Function test_bayesian_trust_progression>
+
+================================================= 41 tests collected in 0.50s ==================================================
+
+exit_code=0
+## CI verification run @ 2025-10-29T00:47:31.399515+00:00
+===================================================== test session starts ======================================================
+platform linux -- Python 3.13.3, pytest-8.4.1, pluggy-1.6.0
+rootdir: /workspace/Tessrax
+configfile: pyproject.toml
+testpaths: tests
+collected 41 items / 2 skipped
+
+<Dir Tessrax>
+  <Package tests>
+    <Module test_adversarial_predictive.py>
+      <Function test_adversarial_batch_size>
+      <Function test_pattern_extractor>
+    <Module test_async_contradiction_detector.py>
+      <Function test_backpressure_drops>
+      <Function test_deduplication>
+      <Function test_historical_contradiction>
+      <Function test_integration_metrics_and_shutdown>
+    <Module test_config_loader.py>
+      <Function test_validate_config_accepts_valid_schema>
+      <Function test_validate_config_rejects_invalid_threshold>
+      <Function test_load_config_reads_from_disk>
+    <Module test_contradiction_engine.py>
+      <Function test_detects_high_contradiction>
+      <Function test_respects_tolerance>
+    <Module test_epistemic_metrics.py>
+      <Function test_integrity_range>
+      <Function test_drift_behavior>
+      <Function test_severity_monotonic>
+      <Function test_entropy_normalized>
+    <Module test_evidence_loader.py>
+      <Function test_load_field_evidence_returns_records>
+      <Function test_field_evidence_expected_keywords>
+      <Function test_field_evidence_count>
+      <Function test_load_field_evidence_supports_path_override[str]>
+      <Function test_load_field_evidence_supports_path_override[Path]>
+    <Module test_governance_security.py>
+      <Function test_governance_kernel_attaches_signature>
+      <Function test_signature_verification_detects_tampering>
+    <Module test_ledger.py>
+      <Function test_append_sets_genesis_hash>
+      <Function test_verify_round_trip>
+      <Function test_verify_detects_tampering>
+    <Module test_ledger_integrity.py>
+      <Function test_ledger_hash_continuity>
+    <Module test_meta_audit.py>
+      <Function test_meta_audit_thresholds[normal-What protocol secures Tessrax timestamps?-Tessrax uses RFC-3161 timestamps for ledgers.-verified]>
+      <Function test_meta_audit_thresholds[adversarial-Does Tessrax use blockchain timestamps?-Yes, Tessrax writes directly to Bitcoin for compliance.-contradicted]>
+      <Function test_meta_audit_thresholds[ambiguous-How might Tessrax secure governance logs?-It might rely on RFC-3161 or similar trusted services.-unverified]>
+      <Function test_meta_audit_thresholds[hallucinatory-Where is the lunar mirror backup?-Tessrax data is mirrored on the moon under ESA guidance.-contradicted]>
+    <Module test_reconciliation_engine.py>
+      <Function test_reconciliation_engine_emits_clarity_receipt>
+      <Function test_load_and_cli_flow>
+    <Module test_tessrax_core.py>
+      <Function test_calculate_stability_high_consensus>
+      <Function test_calculate_stability_low_consensus>
+      <Function test_route_to_governance_lane_thresholds>
+    <Module test_v14_3_patch.py>
+      <Function test_classify_contradiction_heuristic>
+      <Function test_route_to_governance_lane_high_priority>
+      <Function test_drift_tracker_detects_change>
+      <Function test_reconciliation_engine_records_drift>
+      <Function test_compute_merkle_root_and_batch>
+      <Function test_bayesian_trust_progression>
+
+================================================= 41 tests collected in 0.47s ==================================================
+
+exit_code=0
+## CI verification run @ 2025-10-29T01:16:44.887744+00:00
+===================================================== test session starts ======================================================
+platform linux -- Python 3.13.3, pytest-8.4.1, pluggy-1.6.0
+rootdir: /workspace/Tessrax
+configfile: pyproject.toml
+testpaths: tests
+collected 19 items / 7 errors / 1 skipped
+
+<Dir Tessrax>
+  <Package tests>
+    <Module test_async_contradiction_detector.py>
+      <Function test_backpressure_drops>
+      <Function test_deduplication>
+      <Function test_historical_contradiction>
+      <Function test_integration_metrics_and_shutdown>
+    <Module test_config_loader.py>
+      <Function test_validate_config_accepts_valid_schema>
+      <Function test_validate_config_rejects_invalid_threshold>
+      <Function test_load_config_reads_from_disk>
+    <Module test_contradiction_engine.py>
+      <Function test_detects_high_contradiction>
+      <Function test_respects_tolerance>
+    <Module test_governance_security.py>
+      <Function test_governance_kernel_attaches_signature>
+      <Function test_signature_verification_detects_tampering>
+    <Module test_ledger.py>
+      <Function test_append_sets_genesis_hash>
+      <Function test_verify_round_trip>
+      <Function test_verify_detects_tampering>
+    <Module test_ledger_integrity.py>
+      <Function test_ledger_hash_continuity>
+    <Module test_meta_audit.py>
+      <Function test_meta_audit_thresholds[normal-What protocol secures Tessrax timestamps?-Tessrax uses RFC-3161 timestamps for ledgers.-verified]>
+      <Function test_meta_audit_thresholds[adversarial-Does Tessrax use blockchain timestamps?-Yes, Tessrax writes directly to Bitcoin for compliance.-contradicted]>
+      <Function test_meta_audit_thresholds[ambiguous-How might Tessrax secure governance logs?-It might rely on RFC-3161 or similar trusted services.-unverified]>
+      <Function test_meta_audit_thresholds[hallucinatory-Where is the lunar mirror backup?-Tessrax data is mirrored on the moon under ESA guidance.-contradicted]>
+
+============================================================ ERRORS ============================================================
+____________________________________ ERROR collecting tests/test_adversarial_predictive.py _____________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_adversarial_predictive.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_adversarial_predictive.py:5: in <module>
+    from tessrax.analytics.pattern_extractor import extract_patterns_from_stream
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+_______________________________________ ERROR collecting tests/test_epistemic_metrics.py _______________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_epistemic_metrics.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_epistemic_metrics.py:1: in <module>
+    from tessrax.metrics.epistemic_health import (
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+________________________________________ ERROR collecting tests/test_evidence_loader.py ________________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_evidence_loader.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_evidence_loader.py:7: in <module>
+    from tessrax.data.evidence_loader import load_field_evidence
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+_____________________________________ ERROR collecting tests/test_reconciliation_engine.py _____________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_reconciliation_engine.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_reconciliation_engine.py:5: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+_________________________________________ ERROR collecting tests/test_tessrax_core.py __________________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_tessrax_core.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_tessrax_core.py:8: in <module>
+    from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+______________________________________ ERROR collecting tests/test_truth_api_contracts.py ______________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_truth_api_contracts.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_truth_api_contracts.py:5: in <module>
+    import jwt
+E   ModuleNotFoundError: No module named 'jwt'
+__________________________________________ ERROR collecting tests/test_v14_3_patch.py __________________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_v14_3_patch.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_v14_3_patch.py:7: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/__init__.py:8: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/__init__.py:5: in <module>
+    from tessrax.metabolism.reconcile import ReconciliationEngine
+tessrax/metabolism/reconcile.py:15: in <module>
+    from tessrax.audit import AuditKernel
+tessrax/audit.py:8: in <module>
+    from audit_kernel import audit_confidence
+E   ModuleNotFoundError: No module named 'audit_kernel'
+=================================================== short test summary info ====================================================
+ERROR tests/test_adversarial_predictive.py
+ERROR tests/test_epistemic_metrics.py
+ERROR tests/test_evidence_loader.py
+ERROR tests/test_reconciliation_engine.py
+ERROR tests/test_tessrax_core.py
+ERROR tests/test_truth_api_contracts.py
+ERROR tests/test_v14_3_patch.py
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Interrupted: 7 errors during collection !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================================ 19 tests collected, 7 errors in 0.53s =============================================
+
+exit_code=2
+## CI verification run @ 2025-10-29T01:17:07.283849+00:00
+===================================================== test session starts ======================================================
+platform linux -- Python 3.13.3, pytest-8.4.1, pluggy-1.6.0
+rootdir: /workspace/Tessrax
+configfile: pyproject.toml
+testpaths: tests
+collected 41 items / 1 error / 1 skipped
+
+<Dir Tessrax>
+  <Package tests>
+    <Module test_adversarial_predictive.py>
+      <Function test_adversarial_batch_size>
+      <Function test_pattern_extractor>
+    <Module test_async_contradiction_detector.py>
+      <Function test_backpressure_drops>
+      <Function test_deduplication>
+      <Function test_historical_contradiction>
+      <Function test_integration_metrics_and_shutdown>
+    <Module test_config_loader.py>
+      <Function test_validate_config_accepts_valid_schema>
+      <Function test_validate_config_rejects_invalid_threshold>
+      <Function test_load_config_reads_from_disk>
+    <Module test_contradiction_engine.py>
+      <Function test_detects_high_contradiction>
+      <Function test_respects_tolerance>
+    <Module test_epistemic_metrics.py>
+      <Function test_integrity_range>
+      <Function test_drift_behavior>
+      <Function test_severity_monotonic>
+      <Function test_entropy_normalized>
+    <Module test_evidence_loader.py>
+      <Function test_load_field_evidence_returns_records>
+      <Function test_field_evidence_expected_keywords>
+      <Function test_field_evidence_count>
+      <Function test_load_field_evidence_supports_path_override[str]>
+      <Function test_load_field_evidence_supports_path_override[Path]>
+    <Module test_governance_security.py>
+      <Function test_governance_kernel_attaches_signature>
+      <Function test_signature_verification_detects_tampering>
+    <Module test_ledger.py>
+      <Function test_append_sets_genesis_hash>
+      <Function test_verify_round_trip>
+      <Function test_verify_detects_tampering>
+    <Module test_ledger_integrity.py>
+      <Function test_ledger_hash_continuity>
+    <Module test_meta_audit.py>
+      <Function test_meta_audit_thresholds[normal-What protocol secures Tessrax timestamps?-Tessrax uses RFC-3161 timestamps for ledgers.-verified]>
+      <Function test_meta_audit_thresholds[adversarial-Does Tessrax use blockchain timestamps?-Yes, Tessrax writes directly to Bitcoin for compliance.-contradicted]>
+      <Function test_meta_audit_thresholds[ambiguous-How might Tessrax secure governance logs?-It might rely on RFC-3161 or similar trusted services.-unverified]>
+      <Function test_meta_audit_thresholds[hallucinatory-Where is the lunar mirror backup?-Tessrax data is mirrored on the moon under ESA guidance.-contradicted]>
+    <Module test_reconciliation_engine.py>
+      <Function test_reconciliation_engine_emits_clarity_receipt>
+      <Function test_load_and_cli_flow>
+    <Module test_tessrax_core.py>
+      <Function test_calculate_stability_high_consensus>
+      <Function test_calculate_stability_low_consensus>
+      <Function test_route_to_governance_lane_thresholds>
+    <Module test_v14_3_patch.py>
+      <Function test_classify_contradiction_heuristic>
+      <Function test_route_to_governance_lane_high_priority>
+      <Function test_drift_tracker_detects_change>
+      <Function test_reconciliation_engine_records_drift>
+      <Function test_compute_merkle_root_and_batch>
+      <Function test_bayesian_trust_progression>
+
+============================================================ ERRORS ============================================================
+______________________________________ ERROR collecting tests/test_truth_api_contracts.py ______________________________________
+ImportError while importing test module '/workspace/Tessrax/tests/test_truth_api_contracts.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.3/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_truth_api_contracts.py:5: in <module>
+    import jwt
+E   ModuleNotFoundError: No module named 'jwt'
+=================================================== short test summary info ====================================================
+ERROR tests/test_truth_api_contracts.py
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================================= 41 tests collected, 1 error in 0.34s =============================================
+
+exit_code=2
+## CI verification run @ 2025-10-29T01:17:22.247528+00:00
+===================================================== test session starts ======================================================
+platform linux -- Python 3.13.3, pytest-8.4.1, pluggy-1.6.0
+rootdir: /workspace/Tessrax
+configfile: pyproject.toml
+testpaths: tests
+collected 41 items / 2 skipped
+
+<Dir Tessrax>
+  <Package tests>
+    <Module test_adversarial_predictive.py>
+      <Function test_adversarial_batch_size>
+      <Function test_pattern_extractor>
+    <Module test_async_contradiction_detector.py>
+      <Function test_backpressure_drops>
+      <Function test_deduplication>
+      <Function test_historical_contradiction>
+      <Function test_integration_metrics_and_shutdown>
+    <Module test_config_loader.py>
+      <Function test_validate_config_accepts_valid_schema>
+      <Function test_validate_config_rejects_invalid_threshold>
+      <Function test_load_config_reads_from_disk>
+    <Module test_contradiction_engine.py>
+      <Function test_detects_high_contradiction>
+      <Function test_respects_tolerance>
+    <Module test_epistemic_metrics.py>
+      <Function test_integrity_range>
+      <Function test_drift_behavior>
+      <Function test_severity_monotonic>
+      <Function test_entropy_normalized>
+    <Module test_evidence_loader.py>
+      <Function test_load_field_evidence_returns_records>
+      <Function test_field_evidence_expected_keywords>
+      <Function test_field_evidence_count>
+      <Function test_load_field_evidence_supports_path_override[str]>
+      <Function test_load_field_evidence_supports_path_override[Path]>
+    <Module test_governance_security.py>
+      <Function test_governance_kernel_attaches_signature>
+      <Function test_signature_verification_detects_tampering>
+    <Module test_ledger.py>
+      <Function test_append_sets_genesis_hash>
+      <Function test_verify_round_trip>
+      <Function test_verify_detects_tampering>
+    <Module test_ledger_integrity.py>
+      <Function test_ledger_hash_continuity>
+    <Module test_meta_audit.py>
+      <Function test_meta_audit_thresholds[normal-What protocol secures Tessrax timestamps?-Tessrax uses RFC-3161 timestamps for ledgers.-verified]>
+      <Function test_meta_audit_thresholds[adversarial-Does Tessrax use blockchain timestamps?-Yes, Tessrax writes directly to Bitcoin for compliance.-contradicted]>
+      <Function test_meta_audit_thresholds[ambiguous-How might Tessrax secure governance logs?-It might rely on RFC-3161 or similar trusted services.-unverified]>
+      <Function test_meta_audit_thresholds[hallucinatory-Where is the lunar mirror backup?-Tessrax data is mirrored on the moon under ESA guidance.-contradicted]>
+    <Module test_reconciliation_engine.py>
+      <Function test_reconciliation_engine_emits_clarity_receipt>
+      <Function test_load_and_cli_flow>
+    <Module test_tessrax_core.py>
+      <Function test_calculate_stability_high_consensus>
+      <Function test_calculate_stability_low_consensus>
+      <Function test_route_to_governance_lane_thresholds>
+    <Module test_v14_3_patch.py>
+      <Function test_classify_contradiction_heuristic>
+      <Function test_route_to_governance_lane_high_priority>
+      <Function test_drift_tracker_detects_change>
+      <Function test_reconciliation_engine_records_drift>
+      <Function test_compute_merkle_root_and_batch>
+      <Function test_bayesian_trust_progression>
+
+================================================= 41 tests collected in 0.26s ==================================================
+
+exit_code=0

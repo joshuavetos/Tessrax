@@ -23,8 +23,10 @@ Added Files
 CI / Workflow Notes
 -------------------
 - Existing GitHub Actions already target Python 3.11 and install dependencies before running tests; no YAML changes were required.
+- Added `tests/verify_ci.py` to execute `pytest --collect-only` locally and persist the output in `tests/logs/ci_runs.log` for reproducible evidence trails.
 
 Validation
 ----------
 - Created a dedicated Python 3.11 virtual environment with `uv` and verified `pip install -e .` plus `pip install -e .[dev]` complete successfully.
 - Pytest suite passes in the Python 3.11 environment: `pytest -q` (39 passed).
+- `python tests/verify_ci.py` records the `pytest --collect-only` digest inside `tests/logs/ci_runs.log` to back audit claims with machine-verifiable artifacts.

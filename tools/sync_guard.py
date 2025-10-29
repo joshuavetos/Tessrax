@@ -5,7 +5,7 @@ import argparse
 import pathlib
 import subprocess
 import sys
-from typing import Iterable
+from typing import Sequence
 
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -48,7 +48,7 @@ def verify() -> bool:
     return matches
 
 
-def main(argv: Iterable[str] | None = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--verify", action="store_true", help="Verify dependency synchronization")
     args = parser.parse_args(argv)

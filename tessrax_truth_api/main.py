@@ -1,5 +1,6 @@
 """Async FastAPI application exposing the Tessrax Truth API."""
 
+import json
 from typing import Dict
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response, status
@@ -23,8 +24,10 @@ from .engine.calibrator import Calibrator
 from .engine.contradiction_engine import ContradictionEngine
 from .utils import (
     encode_metrics,
+    hmac_signature,
     issue_jwt,
     load_config,
+    merkle_hash,
     utcnow,
     verify_signature,
 )
@@ -221,13 +224,25 @@ def create_app() -> FastAPI:
             "status": "verified",
         }
         tampered_receipt = provenance_service.append_receipt(tampered_payload, seed="self-test-tampered")
-        tampered_result = SelfTestResult(
-            name="tampered_hash",
-            status="tampered",
-            receipt_uuid=tampered_receipt.uuid,
-            details="Tampering detected by external verifiers",
+        mutated_payload = dict(tampered_payload)
+        mutated_payload["status"] = "tampered"
+        forged_hash = merkle_hash(payload=mutated_payload, prev_hash=tampered_receipt.prev_hash)
+        expected_hash = tampered_receipt.merkle_hash
+        signature_valid = hmac_signature(mutated_payload) == tampered_receipt.signature
+        tampering_detected = forged_hash != expected_hash or not signature_valid
+        tampered_details = {
+            "expected_hash": expected_hash,
+            "forged_hash": forged_hash,
+            "signature_valid": signature_valid,
+        }
+        results.append(
+            SelfTestResult(
+                name="tampered_hash",
+                status="tampered" if tampering_detected else "verified",
+                receipt_uuid=tampered_receipt.uuid,
+                details=json.dumps(tampered_details),
+            )
         )
-        results.append(tampered_result)
 
         return SelfTestSummary(results=results, ledger_path=str(provenance_service.ledger_path))
 

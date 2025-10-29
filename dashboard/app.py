@@ -68,7 +68,6 @@ def _fetch_epistemic_metrics(url: str) -> tuple[dict, str | None]:
     return payload, None
 
 
-
 def _record_metrics_history(entry: dict[str, float]) -> list[dict[str, float]]:
     """Persist metrics history in Streamlit session state."""
 
@@ -76,7 +75,6 @@ def _record_metrics_history(entry: dict[str, float]) -> list[dict[str, float]]:
     history.append({"timestamp": datetime.utcnow().isoformat(), **entry})
     st.session_state[HISTORY_STATE_KEY] = history[-120:]
     return st.session_state[HISTORY_STATE_KEY]
-
 
 
 def _summarise(records: Iterable[dict]) -> dict:

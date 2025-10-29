@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from typing import Any, Dict
 
 import httpx
@@ -11,23 +10,51 @@ import streamlit as st
 
 API_BASE = st.secrets.get("truth_api_base", "http://localhost:8000")
 
+FALLBACK_METRICS = {
+    "truth_api_integrity": 0.0,
+    "truth_api_drift": 0.0,
+    "truth_api_severity": 0.0,
+}
+
+FALLBACK_SELF_TEST = {
+    "results": [
+        {"name": "offline", "status": "unknown", "receipt_uuid": None, "details": "API offline"}
+    ],
+    "ledger_path": "offline",
+}
+
 
 def fetch_metrics() -> Dict[str, Any]:
-    response = httpx.get(f"{API_BASE}/metrics", timeout=5.0)
-    response.raise_for_status()
-    metrics_data = {}
+    try:
+        response = httpx.get(f"{API_BASE}/metrics", timeout=5.0)
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        st.warning(f"Truth API metrics unavailable: {exc}")
+        return dict(FALLBACK_METRICS)
+    metrics_data: Dict[str, float] = {}
     for line in response.text.splitlines():
         if line.startswith("#") or not line.strip():
             continue
-        name, value = line.split()
-        metrics_data[name] = float(value)
-    return metrics_data
+        try:
+            name, value = line.split()
+            metrics_data[name] = float(value)
+        except ValueError:
+            continue
+    return metrics_data or dict(FALLBACK_METRICS)
 
 
 def fetch_self_test() -> Dict[str, Any]:
-    response = httpx.get(f"{API_BASE}/self_test", timeout=5.0)
-    response.raise_for_status()
-    return response.json()
+    try:
+        response = httpx.get(f"{API_BASE}/self_test", timeout=5.0)
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        st.warning(f"Truth API self-test unavailable: {exc}")
+        return dict(FALLBACK_SELF_TEST)
+    payload = response.json()
+    if "results" not in payload or not isinstance(payload["results"], list):
+        st.warning("Truth API self-test returned unexpected payload; using fallback data.")
+        return dict(FALLBACK_SELF_TEST)
+    return payload
 
 
 st.set_page_config(page_title="Tessrax Truth Dashboard", layout="wide")

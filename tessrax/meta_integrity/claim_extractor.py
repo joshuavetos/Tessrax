@@ -17,7 +17,7 @@ class ExtractedClaim:
     claim_id: str
     prompt_id: str
     statement: str
-    object: str
+    object_text: str
     certainty: float
     metadata: Mapping[str, object]
 
@@ -28,7 +28,7 @@ class ExtractedClaim:
             "claim_id": self.claim_id,
             "prompt_id": self.prompt_id,
             "statement": self.statement,
-            "object": self.object,
+            "object": self.object_text,
             "certainty": self.certainty,
             "metadata": dict(self.metadata),
         }
@@ -81,7 +81,7 @@ class ClaimExtractor:
                 claim_id=f"{prompt_id}-{index}",
                 prompt_id=prompt_id,
                 statement=sentence,
-                object=object_fragment,
+                object_text=object_fragment,
                 certainty=certainty,
                 metadata=metadata or {},
             )

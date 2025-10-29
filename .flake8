@@ -1,5 +1,4 @@
 [flake8]
-per-file-ignores =
-    tessrax/__init__.py:F401
-import-order-style = google
-application-import-names = tessrax
+max-line-length = 120
+extend-ignore = E203,E266,E501,W503,E402,F401,F541,E741
+exclude = .git,__pycache__,build,dist

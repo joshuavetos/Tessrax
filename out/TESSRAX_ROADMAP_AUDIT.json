@@ -6,6 +6,41 @@
     "grounding_grade": "C",
     "legitimacy_index": 0.3
   },
-  "claims": [...],
-  "scars": [...]
+  "claims": [
+    {
+      "id": "roadmap-claim-001",
+      "statement": "Tier III deliverables are fully deployed across governance lanes.",
+      "status": "unsubstantiated",
+      "evidence_refs": [],
+      "remediation": "Publish ledger receipts and CI logs for each lane deployment."
+    },
+    {
+      "id": "roadmap-claim-002",
+      "statement": "Truth dashboard maintains resilience under API outages.",
+      "status": "contradicted",
+      "evidence_refs": ["dashboard/truth_dashboard.py"],
+      "remediation": "Wrap outbound calls in fault-tolerant handlers and replay self-tests." 
+    },
+    {
+      "id": "roadmap-claim-003",
+      "statement": "Semantic routing kernel is in production.",
+      "status": "at-risk",
+      "evidence_refs": ["requirements.txt"],
+      "remediation": "Declare `sentence-transformers` and capture runtime evidence before promotion."
+    }
+  ],
+  "scars": [
+    {
+      "id": "scar-001",
+      "observation": "Multi-agent validation artifacts missing, only narrative summaries present.",
+      "impact": "high",
+      "recommended_action": "Log semantic overlap scores to tests/logs/multi_agent_consistency.log"
+    },
+    {
+      "id": "scar-002",
+      "observation": "CI runs referenced without any archived `pytest --collect-only` transcripts.",
+      "impact": "medium",
+      "recommended_action": "Automate `python tests/verify_ci.py` during audit checkpoints."
+    }
+  ]
 }
