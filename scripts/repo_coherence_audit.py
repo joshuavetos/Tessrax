@@ -52,7 +52,7 @@ def attempt_import(module_path: Path, module_name: str) -> Tuple[bool, str | Non
         if spec is None or spec.loader is None:
             return False, "Unable to load module spec"
         module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)  # type: ignore[arg-type]
+        spec.loader.exec_module(module)
     except Exception as exc:  # pragma: no cover - failure path logging only
         return False, str(exc)
     return True, None

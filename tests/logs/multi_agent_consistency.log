@@ -1,0 +1,1423 @@
+{
+  "timestamp": "2025-10-29T00:45:47.210142+00:00",
+  "consistency_score": 0.3896,
+  "passed": false,
+  "agents": [
+    {
+      "agent": "alpha",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "alpha-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8653,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.205132+00:00",
+            "source": "audit::alpha"
+          },
+          "claim_b": {
+            "claim_id": "alpha-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9708,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.205132+00:00",
+            "source": "ops::alpha"
+          },
+          "severity": "medium",
+          "delta": 0.10550000000000004,
+          "reasoning": "water purity differs from ops::alpha by 10.6% (0.8653 vs 0.9708).",
+          "confidence": 0.5,
+          "energy": 0.0015304093750000013,
+          "kappa": 0.275
+        },
+        {
+          "claim_a": {
+            "claim_id": "alpha-safety-audit",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.1074,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.205132+00:00",
+            "source": "audit::alpha"
+          },
+          "claim_b": {
+            "claim_id": "alpha-safety-ops",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.0303,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.205132+00:00",
+            "source": "ops::alpha"
+          },
+          "severity": "medium",
+          "delta": 0.0771,
+          "reasoning": "safety incident_rate differs from ops::alpha by 7.7% (0.1074 vs 0.0303).",
+          "confidence": 0.5,
+          "energy": 0.00040867818750000006,
+          "kappa": 0.1375
+        }
+      ],
+      "summary": "safety:incident_rate:medium:0.077 | water:purity:medium:0.106"
+    },
+    {
+      "agent": "beta",
+      "contradictions": [],
+      "summary": ""
+    },
+    {
+      "agent": "delta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "delta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8866,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.207628+00:00",
+            "source": "audit::delta"
+          },
+          "claim_b": {
+            "claim_id": "delta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9842,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.207628+00:00",
+            "source": "ops::delta"
+          },
+          "severity": "medium",
+          "delta": 0.09759999999999991,
+          "reasoning": "water purity differs from ops::delta by 9.8% (0.8866 vs 0.9842).",
+          "confidence": 0.5,
+          "energy": 0.0013097919999999976,
+          "kappa": 0.275
+        },
+        {
+          "claim_a": {
+            "claim_id": "delta-safety-audit",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.1038,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.207628+00:00",
+            "source": "audit::delta"
+          },
+          "claim_b": {
+            "claim_id": "delta-safety-ops",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.0208,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.207628+00:00",
+            "source": "ops::delta"
+          },
+          "severity": "medium",
+          "delta": 0.083,
+          "reasoning": "safety incident_rate differs from ops::delta by 8.3% (0.1038 vs 0.0208).",
+          "confidence": 0.5,
+          "energy": 0.0004736187500000001,
+          "kappa": 0.1375
+        }
+      ],
+      "summary": "safety:incident_rate:medium:0.083 | water:purity:medium:0.098"
+    },
+    {
+      "agent": "epsilon",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "epsilon-grid-audit",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.8321,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.208062+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-grid-ops",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.9284,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.208062+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.09630000000000005,
+          "reasoning": "grid availability differs from ops::epsilon by 9.6% (0.8321 vs 0.9284).",
+          "confidence": 0.5,
+          "energy": 0.0006375661875000008,
+          "kappa": 0.1375
+        },
+        {
+          "claim_a": {
+            "claim_id": "epsilon-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.865,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.208062+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9563,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.208062+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.09130000000000005,
+          "reasoning": "water purity differs from ops::epsilon by 9.1% (0.865 vs 0.9563).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        }
+      ],
+      "summary": "grid:availability:medium:0.096 | water:purity:medium:0.091"
+    },
+    {
+      "agent": "gamma",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "gamma-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8557,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.206726+00:00",
+            "source": "audit::gamma"
+          },
+          "claim_b": {
+            "claim_id": "gamma-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9867,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:45:47.206726+00:00",
+            "source": "ops::gamma"
+          },
+          "severity": "medium",
+          "delta": 0.131,
+          "reasoning": "water purity differs from ops::gamma by 13.1% (0.8557 vs 0.9867).",
+          "confidence": 0.5,
+          "energy": 0.0023596375000000005,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium:0.131"
+    }
+  ],
+  "tolerance": 0.075
+}
+{
+  "timestamp": "2025-10-29T00:46:00.709692+00:00",
+  "consistency_score": 0.7849,
+  "passed": false,
+  "agents": [
+    {
+      "agent": "alpha",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "alpha-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8761,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.704063+00:00",
+            "source": "audit::alpha"
+          },
+          "claim_b": {
+            "claim_id": "alpha-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9702,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.704063+00:00",
+            "source": "ops::alpha"
+          },
+          "severity": "medium",
+          "delta": 0.09409999999999996,
+          "reasoning": "water purity differs from ops::alpha by 9.4% (0.8761 vs 0.9702).",
+          "confidence": 0.5,
+          "energy": 0.0012175363749999991,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium:0.094"
+    },
+    {
+      "agent": "beta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "beta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8879,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.705382+00:00",
+            "source": "audit::beta"
+          },
+          "claim_b": {
+            "claim_id": "beta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9656,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.705382+00:00",
+            "source": "ops::beta"
+          },
+          "severity": "medium",
+          "delta": 0.07769999999999999,
+          "reasoning": "water purity differs from ops::beta by 7.8% (0.8879 vs 0.9656).",
+          "confidence": 0.5,
+          "energy": 0.000830127375,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium:0.078"
+    },
+    {
+      "agent": "delta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "delta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8818,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.707378+00:00",
+            "source": "audit::delta"
+          },
+          "claim_b": {
+            "claim_id": "delta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9736,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.707378+00:00",
+            "source": "ops::delta"
+          },
+          "severity": "medium",
+          "delta": 0.09179999999999999,
+          "reasoning": "water purity differs from ops::delta by 9.2% (0.8818 vs 0.9736).",
+          "confidence": 0.5,
+          "energy": 0.0011587455,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium:0.092"
+    },
+    {
+      "agent": "epsilon",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "epsilon-grid-audit",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.8379,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.706929+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-grid-ops",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.9146,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.706929+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.07669999999999999,
+          "reasoning": "grid availability differs from ops::epsilon by 7.7% (0.8379 vs 0.9146).",
+          "confidence": 0.5,
+          "energy": 0.0004044486874999999,
+          "kappa": 0.1375
+        },
+        {
+          "claim_a": {
+            "claim_id": "epsilon-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.876,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.706929+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9666,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.706929+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.09060000000000001,
+          "reasoning": "water purity differs from ops::epsilon by 9.1% (0.876 vs 0.9666).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        }
+      ],
+      "summary": "grid:availability:medium:0.077 | water:purity:medium:0.091"
+    },
+    {
+      "agent": "gamma",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "gamma-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8735,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.705907+00:00",
+            "source": "audit::gamma"
+          },
+          "claim_b": {
+            "claim_id": "gamma-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9742,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:00.705907+00:00",
+            "source": "ops::gamma"
+          },
+          "severity": "medium",
+          "delta": 0.1006999999999999,
+          "reasoning": "water purity differs from ops::gamma by 10.1% (0.8735 vs 0.9742).",
+          "confidence": 0.5,
+          "energy": 0.0013943173749999974,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium:0.101"
+    }
+  ],
+  "tolerance": 0.075
+}
+{
+  "timestamp": "2025-10-29T00:46:14.742966+00:00",
+  "consistency_score": 0.7849,
+  "passed": false,
+  "agents": [
+    {
+      "agent": "alpha",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "alpha-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8761,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.738105+00:00",
+            "source": "audit::alpha"
+          },
+          "claim_b": {
+            "claim_id": "alpha-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9702,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.738105+00:00",
+            "source": "ops::alpha"
+          },
+          "severity": "medium",
+          "delta": 0.09409999999999996,
+          "reasoning": "water purity differs from ops::alpha by 9.4% (0.8761 vs 0.9702).",
+          "confidence": 0.5,
+          "energy": 0.0012175363749999991,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium:0.094"
+    },
+    {
+      "agent": "beta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "beta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8879,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.739228+00:00",
+            "source": "audit::beta"
+          },
+          "claim_b": {
+            "claim_id": "beta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9656,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.739228+00:00",
+            "source": "ops::beta"
+          },
+          "severity": "medium",
+          "delta": 0.07769999999999999,
+          "reasoning": "water purity differs from ops::beta by 7.8% (0.8879 vs 0.9656).",
+          "confidence": 0.5,
+          "energy": 0.000830127375,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium:0.078"
+    },
+    {
+      "agent": "delta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "delta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8818,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.740316+00:00",
+            "source": "audit::delta"
+          },
+          "claim_b": {
+            "claim_id": "delta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9736,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.740316+00:00",
+            "source": "ops::delta"
+          },
+          "severity": "medium",
+          "delta": 0.09179999999999999,
+          "reasoning": "water purity differs from ops::delta by 9.2% (0.8818 vs 0.9736).",
+          "confidence": 0.5,
+          "energy": 0.0011587455,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium:0.092"
+    },
+    {
+      "agent": "epsilon",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "epsilon-grid-audit",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.8379,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.740712+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-grid-ops",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.9146,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.740712+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.07669999999999999,
+          "reasoning": "grid availability differs from ops::epsilon by 7.7% (0.8379 vs 0.9146).",
+          "confidence": 0.5,
+          "energy": 0.0004044486874999999,
+          "kappa": 0.1375
+        },
+        {
+          "claim_a": {
+            "claim_id": "epsilon-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.876,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.740712+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9666,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.740712+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.09060000000000001,
+          "reasoning": "water purity differs from ops::epsilon by 9.1% (0.876 vs 0.9666).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        }
+      ],
+      "summary": "grid:availability:medium:0.077 | water:purity:medium:0.091"
+    },
+    {
+      "agent": "gamma",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "gamma-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8735,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.739559+00:00",
+            "source": "audit::gamma"
+          },
+          "claim_b": {
+            "claim_id": "gamma-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9742,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:14.739559+00:00",
+            "source": "ops::gamma"
+          },
+          "severity": "medium",
+          "delta": 0.1006999999999999,
+          "reasoning": "water purity differs from ops::gamma by 10.1% (0.8735 vs 0.9742).",
+          "confidence": 0.5,
+          "energy": 0.0013943173749999974,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium:0.101"
+    }
+  ],
+  "tolerance": 0.075
+}
+{
+  "timestamp": "2025-10-29T00:46:30.415218+00:00",
+  "consistency_score": 0.8338,
+  "passed": false,
+  "agents": [
+    {
+      "agent": "alpha",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "alpha-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8761,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.411249+00:00",
+            "source": "audit::alpha"
+          },
+          "claim_b": {
+            "claim_id": "alpha-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9702,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.411249+00:00",
+            "source": "ops::alpha"
+          },
+          "severity": "medium",
+          "delta": 0.09409999999999996,
+          "reasoning": "water purity differs from ops::alpha by 9.4% (0.8761 vs 0.9702).",
+          "confidence": 0.5,
+          "energy": 0.0012175363749999991,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium"
+    },
+    {
+      "agent": "beta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "beta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8879,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.412289+00:00",
+            "source": "audit::beta"
+          },
+          "claim_b": {
+            "claim_id": "beta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9656,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.412289+00:00",
+            "source": "ops::beta"
+          },
+          "severity": "medium",
+          "delta": 0.07769999999999999,
+          "reasoning": "water purity differs from ops::beta by 7.8% (0.8879 vs 0.9656).",
+          "confidence": 0.5,
+          "energy": 0.000830127375,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium"
+    },
+    {
+      "agent": "delta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "delta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8818,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.413269+00:00",
+            "source": "audit::delta"
+          },
+          "claim_b": {
+            "claim_id": "delta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9736,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.413269+00:00",
+            "source": "ops::delta"
+          },
+          "severity": "medium",
+          "delta": 0.09179999999999999,
+          "reasoning": "water purity differs from ops::delta by 9.2% (0.8818 vs 0.9736).",
+          "confidence": 0.5,
+          "energy": 0.0011587455,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium"
+    },
+    {
+      "agent": "epsilon",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "epsilon-grid-audit",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.8379,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.413676+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-grid-ops",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.9146,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.413676+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.07669999999999999,
+          "reasoning": "grid availability differs from ops::epsilon by 7.7% (0.8379 vs 0.9146).",
+          "confidence": 0.5,
+          "energy": 0.0004044486874999999,
+          "kappa": 0.1375
+        },
+        {
+          "claim_a": {
+            "claim_id": "epsilon-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.876,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.413676+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9666,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.413676+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.09060000000000001,
+          "reasoning": "water purity differs from ops::epsilon by 9.1% (0.876 vs 0.9666).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        }
+      ],
+      "summary": "grid:availability:medium | water:purity:medium"
+    },
+    {
+      "agent": "gamma",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "gamma-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8735,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.412512+00:00",
+            "source": "audit::gamma"
+          },
+          "claim_b": {
+            "claim_id": "gamma-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9742,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:30.412512+00:00",
+            "source": "ops::gamma"
+          },
+          "severity": "medium",
+          "delta": 0.1006999999999999,
+          "reasoning": "water purity differs from ops::gamma by 10.1% (0.8735 vs 0.9742).",
+          "confidence": 0.5,
+          "energy": 0.0013943173749999974,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity:medium"
+    }
+  ],
+  "tolerance": 0.075
+}
+{
+  "timestamp": "2025-10-29T00:46:48.726346+00:00",
+  "consistency_score": 0.8182,
+  "passed": false,
+  "agents": [
+    {
+      "agent": "alpha",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "alpha-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8761,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.720617+00:00",
+            "source": "audit::alpha"
+          },
+          "claim_b": {
+            "claim_id": "alpha-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9702,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.720617+00:00",
+            "source": "ops::alpha"
+          },
+          "severity": "medium",
+          "delta": 0.09409999999999996,
+          "reasoning": "water purity differs from ops::alpha by 9.4% (0.8761 vs 0.9702).",
+          "confidence": 0.5,
+          "energy": 0.0012175363749999991,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity"
+    },
+    {
+      "agent": "beta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "beta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8879,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.722163+00:00",
+            "source": "audit::beta"
+          },
+          "claim_b": {
+            "claim_id": "beta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9656,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.722163+00:00",
+            "source": "ops::beta"
+          },
+          "severity": "medium",
+          "delta": 0.07769999999999999,
+          "reasoning": "water purity differs from ops::beta by 7.8% (0.8879 vs 0.9656).",
+          "confidence": 0.5,
+          "energy": 0.000830127375,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity"
+    },
+    {
+      "agent": "delta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "delta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8818,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.723474+00:00",
+            "source": "audit::delta"
+          },
+          "claim_b": {
+            "claim_id": "delta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9736,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.723474+00:00",
+            "source": "ops::delta"
+          },
+          "severity": "medium",
+          "delta": 0.09179999999999999,
+          "reasoning": "water purity differs from ops::delta by 9.2% (0.8818 vs 0.9736).",
+          "confidence": 0.5,
+          "energy": 0.0011587455,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity"
+    },
+    {
+      "agent": "epsilon",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "epsilon-grid-audit",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.8379,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.724036+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-grid-ops",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.9146,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.724036+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.07669999999999999,
+          "reasoning": "grid availability differs from ops::epsilon by 7.7% (0.8379 vs 0.9146).",
+          "confidence": 0.5,
+          "energy": 0.0004044486874999999,
+          "kappa": 0.1375
+        },
+        {
+          "claim_a": {
+            "claim_id": "epsilon-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.876,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.724036+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9666,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.724036+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.09060000000000001,
+          "reasoning": "water purity differs from ops::epsilon by 9.1% (0.876 vs 0.9666).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        }
+      ],
+      "summary": "grid:availability | water:purity"
+    },
+    {
+      "agent": "gamma",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "gamma-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8735,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.722434+00:00",
+            "source": "audit::gamma"
+          },
+          "claim_b": {
+            "claim_id": "gamma-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9742,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:46:48.722434+00:00",
+            "source": "ops::gamma"
+          },
+          "severity": "medium",
+          "delta": 0.1006999999999999,
+          "reasoning": "water purity differs from ops::gamma by 10.1% (0.8735 vs 0.9742).",
+          "confidence": 0.5,
+          "energy": 0.0013943173749999974,
+          "kappa": 0.275
+        }
+      ],
+      "summary": "water:purity"
+    }
+  ],
+  "tolerance": 0.075
+}
+{
+  "timestamp": "2025-10-29T00:47:17.908749+00:00",
+  "consistency_score": 1.0,
+  "passed": true,
+  "agents": [
+    {
+      "agent": "alpha",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "alpha-grid-audit",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.8152,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.902893+00:00",
+            "source": "audit::alpha"
+          },
+          "claim_b": {
+            "claim_id": "alpha-grid-ops",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.9144,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.902893+00:00",
+            "source": "ops::alpha"
+          },
+          "severity": "medium",
+          "delta": 0.09919999999999995,
+          "reasoning": "grid availability differs from ops::alpha by 9.9% (0.8152 vs 0.9144).",
+          "confidence": 0.5,
+          "energy": 0.0006765439999999994,
+          "kappa": 0.1375
+        },
+        {
+          "claim_a": {
+            "claim_id": "alpha-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8561,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.902893+00:00",
+            "source": "audit::alpha"
+          },
+          "claim_b": {
+            "claim_id": "alpha-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9702,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.902893+00:00",
+            "source": "ops::alpha"
+          },
+          "severity": "medium",
+          "delta": 0.11409999999999998,
+          "reasoning": "water purity differs from ops::alpha by 11.4% (0.8561 vs 0.9702).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        },
+        {
+          "claim_a": {
+            "claim_id": "alpha-safety-audit",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.1746,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.902893+00:00",
+            "source": "audit::alpha"
+          },
+          "claim_b": {
+            "claim_id": "alpha-safety-ops",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.0376,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.902893+00:00",
+            "source": "ops::alpha"
+          },
+          "severity": "medium",
+          "delta": 0.137,
+          "reasoning": "safety incident_rate differs from ops::alpha by 13.7% (0.1746 vs 0.0376).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        }
+      ],
+      "summary": "grid:availability | safety:incident_rate | water:purity"
+    },
+    {
+      "agent": "beta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "beta-grid-audit",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.8134,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904280+00:00",
+            "source": "audit::beta"
+          },
+          "claim_b": {
+            "claim_id": "beta-grid-ops",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.9079,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904280+00:00",
+            "source": "ops::beta"
+          },
+          "severity": "medium",
+          "delta": 0.09450000000000003,
+          "reasoning": "grid availability differs from ops::beta by 9.5% (0.8134 vs 0.9079).",
+          "confidence": 0.5,
+          "energy": 0.0006139546875000005,
+          "kappa": 0.1375
+        },
+        {
+          "claim_a": {
+            "claim_id": "beta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8679,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904280+00:00",
+            "source": "audit::beta"
+          },
+          "claim_b": {
+            "claim_id": "beta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9656,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904280+00:00",
+            "source": "ops::beta"
+          },
+          "severity": "medium",
+          "delta": 0.09770000000000001,
+          "reasoning": "water purity differs from ops::beta by 9.8% (0.8679 vs 0.9656).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        },
+        {
+          "claim_a": {
+            "claim_id": "beta-safety-audit",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.1651,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904280+00:00",
+            "source": "audit::beta"
+          },
+          "claim_b": {
+            "claim_id": "beta-safety-ops",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.0361,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904280+00:00",
+            "source": "ops::beta"
+          },
+          "severity": "medium",
+          "delta": 0.129,
+          "reasoning": "safety incident_rate differs from ops::beta by 12.9% (0.1651 vs 0.0361).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        }
+      ],
+      "summary": "grid:availability | safety:incident_rate | water:purity"
+    },
+    {
+      "agent": "delta",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "delta-grid-audit",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.8082,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.905521+00:00",
+            "source": "audit::delta"
+          },
+          "claim_b": {
+            "claim_id": "delta-grid-ops",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.9058,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.905521+00:00",
+            "source": "ops::delta"
+          },
+          "severity": "medium",
+          "delta": 0.09760000000000002,
+          "reasoning": "grid availability differs from ops::delta by 9.8% (0.8082 vs 0.9058).",
+          "confidence": 0.5,
+          "energy": 0.0006548960000000004,
+          "kappa": 0.1375
+        },
+        {
+          "claim_a": {
+            "claim_id": "delta-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8618,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.905521+00:00",
+            "source": "audit::delta"
+          },
+          "claim_b": {
+            "claim_id": "delta-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9736,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.905521+00:00",
+            "source": "ops::delta"
+          },
+          "severity": "medium",
+          "delta": 0.11180000000000001,
+          "reasoning": "water purity differs from ops::delta by 11.2% (0.8618 vs 0.9736).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        },
+        {
+          "claim_a": {
+            "claim_id": "delta-safety-audit",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.1737,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.905521+00:00",
+            "source": "audit::delta"
+          },
+          "claim_b": {
+            "claim_id": "delta-safety-ops",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.0352,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.905521+00:00",
+            "source": "ops::delta"
+          },
+          "severity": "medium",
+          "delta": 0.13849999999999998,
+          "reasoning": "safety incident_rate differs from ops::delta by 13.8% (0.1737 vs 0.0352).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        }
+      ],
+      "summary": "grid:availability | safety:incident_rate | water:purity"
+    },
+    {
+      "agent": "epsilon",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "epsilon-grid-audit",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.8079,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.906073+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-grid-ops",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.9146,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.906073+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.10670000000000002,
+          "reasoning": "grid availability differs from ops::epsilon by 10.7% (0.8079 vs 0.9146).",
+          "confidence": 0.5,
+          "energy": 0.0007827111875000003,
+          "kappa": 0.1375
+        },
+        {
+          "claim_a": {
+            "claim_id": "epsilon-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.856,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.906073+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9666,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.906073+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.11060000000000003,
+          "reasoning": "water purity differs from ops::epsilon by 11.1% (0.856 vs 0.9666).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        },
+        {
+          "claim_a": {
+            "claim_id": "epsilon-safety-audit",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.1654,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.906073+00:00",
+            "source": "audit::epsilon"
+          },
+          "claim_b": {
+            "claim_id": "epsilon-safety-ops",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.0359,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.906073+00:00",
+            "source": "ops::epsilon"
+          },
+          "severity": "medium",
+          "delta": 0.1295,
+          "reasoning": "safety incident_rate differs from ops::epsilon by 13.0% (0.1654 vs 0.0359).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        }
+      ],
+      "summary": "grid:availability | safety:incident_rate | water:purity"
+    },
+    {
+      "agent": "gamma",
+      "contradictions": [
+        {
+          "claim_a": {
+            "claim_id": "gamma-grid-audit",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.8173,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904610+00:00",
+            "source": "audit::gamma"
+          },
+          "claim_b": {
+            "claim_id": "gamma-grid-ops",
+            "subject": "grid",
+            "metric": "availability",
+            "value": 0.9066,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904610+00:00",
+            "source": "ops::gamma"
+          },
+          "severity": "medium",
+          "delta": 0.08929999999999993,
+          "reasoning": "grid availability differs from ops::gamma by 8.9% (0.8173 vs 0.9066).",
+          "confidence": 0.5,
+          "energy": 0.0005482461874999993,
+          "kappa": 0.1375
+        },
+        {
+          "claim_a": {
+            "claim_id": "gamma-water-audit",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.8535,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904610+00:00",
+            "source": "audit::gamma"
+          },
+          "claim_b": {
+            "claim_id": "gamma-water-ops",
+            "subject": "water",
+            "metric": "purity",
+            "value": 0.9742,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904610+00:00",
+            "source": "ops::gamma"
+          },
+          "severity": "medium",
+          "delta": 0.12069999999999992,
+          "reasoning": "water purity differs from ops::gamma by 12.1% (0.8535 vs 0.9742).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        },
+        {
+          "claim_a": {
+            "claim_id": "gamma-safety-audit",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.1694,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904610+00:00",
+            "source": "audit::gamma"
+          },
+          "claim_b": {
+            "claim_id": "gamma-safety-ops",
+            "subject": "safety",
+            "metric": "incident_rate",
+            "value": 0.0443,
+            "unit": "ratio",
+            "timestamp": "2025-10-29T00:47:17.904610+00:00",
+            "source": "ops::gamma"
+          },
+          "severity": "medium",
+          "delta": 0.1251,
+          "reasoning": "safety incident_rate differs from ops::gamma by 12.5% (0.1694 vs 0.0443).",
+          "confidence": 0.5,
+          "energy": 0.0,
+          "kappa": 0.0
+        }
+      ],
+      "summary": "grid:availability | safety:incident_rate | water:purity"
+    }
+  ],
+  "tolerance": 0.075
+}

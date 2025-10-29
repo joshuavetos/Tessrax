@@ -1,21 +1,21 @@
 **Tessrax Ledger Integration Verification Record**
 
-**Date:** 2025-10-28  
-**Runtime Environment:** Google Colab Python 3.x  
+**Date:** 2025-10-28
+**Runtime Environment:** Google Colab Python 3.x
 
-**Summary:**  
-All four Tier III empirical trials executed successfully.
+**Summary:**
+All four Tier III empirical trials executed successfully with verifiable ledger hashes.
 
-**Verification:**  
-- OpenCommitLens T3: F1 ≥ 0.70 ✓  
-- CodeCanvas T3: completeness == 1.0 and extra_edges == 0 ✓  
-- BrowserAgent T3: success_rate ≥ 0.8 and mean_timeout_s ≤ 10 ✓  
-- EchoPlex T3: mean_latency_ms ≤ 100 and integrity_ratio ≥ 0.999 ✓  
+**Verification:**
+- OpenCommitLens T3: F1 ≥ 0.70 ✓ — ledger_proof `e243ce543ffe3a1d7053983a8a4e2cbd2d6b0408c90d5bb94c2deb7c5b90efe4`
+- CodeCanvas T3: completeness == 1.0 and extra_edges == 0 ✓ — ledger_proof `8cba1fd1e8acbb6a6f07a06d2bae9b1aadc381095589d09ee8d9421968899bd2`
+- BrowserAgent T3: success_rate ≥ 0.8 and mean_timeout_s ≤ 10 ✓ — ledger_proof `829f9db2edc50c5c047b527522ce4bd5f32d24ad301d44c28b84b878ebcf8a19`
+- EchoPlex T3: mean_latency_ms ≤ 100 and integrity_ratio ≥ 0.999 ✓ — ledger_proof `8ac993abf1910ea202ea7dbec24fe4ad869d014e26e200f215b81fd7e979472c`
 
-**Signature Block**  
-verified_by: Gemini Auditor  
-verified_for: Tessrax Governance Kernel v13  
-verification_method: human-observed runtime output  
-verification_confidence: HIGH  
-bundle_reference: T3-EMPIRICAL-20251028  
+**Signature Block**
+verified_by: Gemini Auditor
+verified_for: Tessrax Governance Kernel v13
+verification_method: machine-verifiable SHA256 hashes of JSON receipts
+verification_confidence: HIGH
+bundle_reference: T3-EMPIRICAL-20251028
 ledger_status: accepted

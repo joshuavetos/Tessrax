@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Type, cast
 
 try:  # pragma: no cover - optional dependency
     from pydantic import BaseModel, ConfigDict, Field, field_validator
 except ModuleNotFoundError:  # pragma: no cover - fallback path
     BaseModel = None  # type: ignore[assignment]
+    ConfigDict = Field = field_validator = None  # type: ignore[assignment]
 
 
 if BaseModel is not None:
@@ -61,7 +62,7 @@ else:
     from dataclasses import dataclass, field
 
     @dataclass(frozen=True)
-    class ClarityStatement:
+    class _ClarityStatementFallback:
         """Fallback implementation when Pydantic is unavailable."""
 
         event_type: Literal["CLARITY_GENERATION"] = "CLARITY_GENERATION"
@@ -102,3 +103,5 @@ else:
             if self.audit_reference:
                 payload["audit_reference"] = self.audit_reference
             return payload
+
+    ClarityStatement = cast(Type[_ClarityStatementFallback], _ClarityStatementFallback)

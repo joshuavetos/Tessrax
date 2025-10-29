@@ -4,7 +4,9 @@ All outputs are bounded [0,1] and mathematically reproducible.
 """
 
 from __future__ import annotations
-import math, statistics
+
+import math
+import statistics
 from collections import Counter
 from typing import List, Tuple
 

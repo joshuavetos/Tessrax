@@ -1,8 +1,12 @@
 {
   "artifact_id": "ECHOPLEX_T3",
   "executed_at": "2025-10-28T15:28:00Z",
-  "metrics": { "mean_latency_ms": 94.3, "integrity_ratio": 0.9993 },
-  "success_clause": "mean_latency_ms ≤ 100 AND integrity_ratio ≥ 0.999",
+  "metrics": {
+    "mean_latency_ms": 94.3,
+    "integrity_ratio": 0.9993
+  },
+  "success_clause": "mean_latency_ms \u2264 100 AND integrity_ratio \u2265 0.999",
   "status": "PASS",
-  "ledger_notes": "Measured latency and integrity within defined limits under 1000 receipts/s load."
+  "ledger_notes": "Measured latency and integrity within defined limits under 1000 receipts/s load.",
+  "ledger_proof": "8ac993abf1910ea202ea7dbec24fe4ad869d014e26e200f215b81fd7e979472c"
 }

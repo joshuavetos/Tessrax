@@ -1,8 +1,12 @@
 {
   "artifact_id": "BROWSERAGENT_T3",
   "executed_at": "2025-10-28T15:28:00Z",
-  "metrics": { "success_rate": 0.83, "mean_timeout_s": 8.4 },
-  "success_clause": "success_rate ≥ 0.8 AND mean_timeout_s ≤ 10",
+  "metrics": {
+    "success_rate": 0.83,
+    "mean_timeout_s": 8.4
+  },
+  "success_clause": "success_rate \u2265 0.8 AND mean_timeout_s \u2264 10",
   "status": "PASS",
-  "ledger_notes": "Headless-agent reliability benchmark passed on local Flask testbed."
+  "ledger_notes": "Headless-agent reliability benchmark passed on local Flask testbed.",
+  "ledger_proof": "829f9db2edc50c5c047b527522ce4bd5f32d24ad301d44c28b84b878ebcf8a19"
 }

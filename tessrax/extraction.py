@@ -25,15 +25,13 @@ class ClaimExtractor:
         for idx, record in enumerate(records):
             subject = str(record["subject"]).strip()
             metric = str(record["metric"]).strip()
-            value = float(record["value"])
+            value = self._coerce_float(record.get("value"))
             unit = str(record.get("unit", self.default_unit))
             timestamp_raw = record.get("timestamp", datetime.now(timezone.utc).isoformat())
             timestamp = self._parse_timestamp(timestamp_raw)
             source = str(record.get("source", "unknown"))
-            context = {
-                key: str(val)
-                for key, val in record.get("context", {}).items()
-            }
+            context_raw = record.get("context", {})
+            context = {key: str(val) for key, val in context_raw.items()} if isinstance(context_raw, Mapping) else {}
             claim_id = record.get("claim_id") or f"claim-{idx+1}"
             claims.append(
                 Claim(
@@ -56,3 +54,10 @@ class ClaimExtractor:
         if isinstance(value, str):
             return datetime.fromisoformat(value.replace("Z", "+00:00"))
         raise TypeError(f"Unsupported timestamp type: {type(value)!r}")
+
+    @staticmethod
+    def _coerce_float(value: object) -> float:
+        try:
+            return float(value)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            raise TypeError("Record value must be convertible to float") from None

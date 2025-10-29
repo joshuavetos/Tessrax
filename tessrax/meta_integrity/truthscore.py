@@ -51,7 +51,7 @@ class TruthScore:
         verified_weight = 0.0
         severity_weight = 0.0
         for claim in claims:
-            certainty = float(claim.get("certainty", 1.0))
+            certainty = self._coerce_certainty(claim.get("certainty", 1.0))
             weight = max(0.0, min(certainty, 1.0)) or 0.001
             verdict = self._normalise_verdict(self._verifier(claim))
             severity = self._SEVERITY_WEIGHTS.get(verdict, 0.5)
@@ -109,6 +109,19 @@ class TruthScore:
         if not isinstance(verdict, str):
             return "unverified"
         return verdict.strip().lower() or "unverified"
+
+    @staticmethod
+    def _coerce_certainty(raw_value: object) -> float:
+        """Best-effort conversion of arbitrary certainty values to ``float``."""
+
+        if isinstance(raw_value, (int, float)):
+            return float(raw_value)
+        if isinstance(raw_value, str):
+            try:
+                return float(raw_value)
+            except ValueError:
+                return 1.0
+        return 1.0
 
 
 __all__ = ["TruthScore", "TruthVerdict", "ClaimEvaluation"]

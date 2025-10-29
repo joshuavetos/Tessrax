@@ -1,2 +1,1 @@
-"""Middleware components for the Tessrax Truth API."""
-
+"""Middleware utilities for the Tessrax Truth API."""

@@ -13,46 +13,42 @@ from pathlib import Path
 # ------------------------
 # CONFIG
 # ------------------------
-CSV_FILE = "company_frienthropy.csv"
-REPORT_FILE = "cfi_report.csv"
-PLOT_FILE = "cfi_plot.png"
+BASE_DIR = Path(__file__).resolve().parents[3]
+CSV_FILE = BASE_DIR / "data" / "corporate_frienthropy.csv"
+REPORT_FILE = Path(__file__).with_name("corporate_frienthropy_report.csv")
+PLOT_FILE = Path(__file__).with_name("corporate_frienthropy_plot.png")
 
 # ------------------------
 # LOAD & CLEAN DATA
 # ------------------------
-if not Path(CSV_FILE).exists():
-    raise FileNotFoundError(f"{CSV_FILE} not found in working directory.")
+if not CSV_FILE.exists():
+    raise FileNotFoundError(f"{CSV_FILE} not found; run analytics/frienthropy_decay.py first.")
 
-df = pd.read_csv(CSV_FILE)
+df = pd.read_csv(CSV_FILE, parse_dates=["timestamp"])
 
-numeric_cols = ["target_value", "actual_value", "weight"]
+numeric_cols = ["trust_decay", "governance_score", "anomaly_rate"]
 for col in numeric_cols:
     df[col] = pd.to_numeric(df[col], errors="coerce")
-
-# ensure dates
-df["period_start"] = pd.to_datetime(df["period_start"])
-df["period_end"] = pd.to_datetime(df["period_end"])
+    if df[col].isnull().any():
+        raise ValueError(f"Column {col} contained non-numeric data")
 
 # ------------------------
-# CALCULATE CONTRADICTIONS
+# CALCULATE DERIVED METRICS
 # ------------------------
-# contradiction = 1 - (actual / target)
-df["contradiction"] = 1 - (df["actual_value"] / df["target_value"])
-df["contradiction"] = df["contradiction"].clip(lower=0)  # no negatives
-
-# weighted contribution
-df["weighted"] = df["contradiction"] * df["weight"]
+df = df.sort_values("timestamp")
+df["governance_slack"] = (1.0 - df["governance_score"]).clip(lower=0, upper=1)
+df["stability_index"] = 1.0 - df["trust_decay"].clip(lower=0, upper=1)
 
 # ------------------------
-# AGGREGATE BY PERIOD
+# EXPORT REPORT
 # ------------------------
-df["period"] = df["period_end"].dt.to_period("Q").dt.to_timestamp("Q")  # group by quarter
-period_df = (
-    df.groupby("period")[["weighted"]]
-    .sum()
-    .rename(columns={"weighted": "CFI"})
-    .reset_index()
-)
+period_df = df[[
+    "timestamp",
+    "trust_decay",
+    "governance_slack",
+    "anomaly_rate",
+    "stability_index",
+]].copy()
 
 # ------------------------
 # EXPORT REPORT
@@ -65,10 +61,20 @@ print(period_df)
 # PLOT DECAY CURVE
 # ------------------------
 plt.figure(figsize=(8, 4))
-plt.plot(period_df["period"], period_df["CFI"], marker="o", linewidth=2)
+plt.plot(period_df["timestamp"], period_df["trust_decay"], marker="o", linewidth=2, label="Trust Decay")
+plt.plot(
+    period_df["timestamp"],
+    period_df["governance_slack"],
+    marker="s",
+    linewidth=1.8,
+    linestyle="--",
+    label="Governance Slack",
+)
+plt.fill_between(period_df["timestamp"], period_df["anomaly_rate"], color="#f97316", alpha=0.2, label="Anomaly Rate")
 plt.title("Corporate Frienthropy Index Over Time")
-plt.xlabel("Quarter End")
-plt.ylabel("CFI (0 = aligned • 1 = max decay)")
+plt.xlabel("Timestamp")
+plt.ylabel("Risk Proportion")
+plt.legend()
 plt.grid(True, linestyle="--", alpha=0.5)
 plt.tight_layout()
 plt.savefig(PLOT_FILE, dpi=150)

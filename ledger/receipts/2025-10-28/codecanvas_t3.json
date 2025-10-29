@@ -1,8 +1,12 @@
 {
   "artifact_id": "CODECANVAS_T3",
   "executed_at": "2025-10-28T15:28:00Z",
-  "metrics": { "completeness": 1.0, "extra_edges": 0 },
+  "metrics": {
+    "completeness": 1.0,
+    "extra_edges": 0
+  },
   "success_clause": "completeness == 1.0 AND extra_edges == 0",
   "status": "PASS",
-  "ledger_notes": "Graph rendering achieved 100 % completeness with zero spurious edges."
+  "ledger_notes": "Graph rendering achieved 100 % completeness with zero spurious edges.",
+  "ledger_proof": "8cba1fd1e8acbb6a6f07a06d2bae9b1aadc381095589d09ee8d9421968899bd2"
 }

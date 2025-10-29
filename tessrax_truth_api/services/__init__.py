@@ -1,2 +1,1 @@
-"""Service layer package for the Tessrax Truth API."""
-
+"""Service layer exports for the Tessrax Truth API."""

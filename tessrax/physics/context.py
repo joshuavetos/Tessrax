@@ -31,10 +31,16 @@ class AgentAlignment:
     def __init__(self) -> None:
         self._history: dict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0])
 
+    @staticmethod
+    def _ordered_pair(agent_a: str, agent_b: str) -> tuple[str, str]:
+        """Return a stable ordering for agent identifiers."""
+
+        return (agent_a, agent_b) if agent_a <= agent_b else (agent_b, agent_a)
+
     def update(self, agent_a: str, agent_b: str, agreed: bool) -> None:
         """Record whether two agents agreed on a comparison."""
 
-        key = tuple(sorted((agent_a, agent_b)))
+        key = self._ordered_pair(agent_a, agent_b)
         record = self._history[key]
         record[1] += 1
         if agreed:
@@ -43,8 +49,11 @@ class AgentAlignment:
     def compute(self, agent_a: str, agent_b: str) -> float:
         """Return the historical alignment ratio for two agents."""
 
-        key = tuple(sorted((agent_a, agent_b)))
-        successes, trials = self._history.get(key, (0, 0))
+        key = self._ordered_pair(agent_a, agent_b)
+        record = self._history.get(key)
+        if record is None:
+            return 0.5
+        successes, trials = record
         if trials == 0:
             return 0.5
         return successes / trials
