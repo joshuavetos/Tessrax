@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/joshuavetos/Tessrax/actions/workflows/tests.yml/badge.svg)](https://github.com/joshuavetos/Tessrax/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/python-3.10%2B-brightgreen.svg)
+![Python](https://img.shields.io/badge/python-3.11-brightgreen.svg)
 ![Coverage](https://img.shields.io/badge/coverage-85%25-success.svg)
 ![Last Commit](https://img.shields.io/github/last-commit/joshuavetos/Tessrax.svg)
 
@@ -38,11 +38,14 @@ Use Tessrax to:
 
 See [`docs/architecture_overview.md`](docs/architecture_overview.md) for detailed diagrams.
 
+> ℹ️  Need a lightweight deployment? See [README_CORE](README_CORE.md) for the audited runtime
+and [README_ENTERPRISE](README_ENTERPRISE.md) for optional queueing and billing modules.
+
 ---
 
 ## 🚀 Quick Start
 
-Tessrax requires **Python 3.10.x**.
+Tessrax requires **Python 3.11.x**.
 
 ```bash
 # Clone the repo
@@ -50,14 +53,20 @@ git clone https://github.com/joshuavetos/Tessrax.git
 cd Tessrax
 
 # Set up environment
-python3.10 -m venv .venv --prompt tessrax
+python3.11 -m venv .venv --prompt tessrax
 source .venv/bin/activate     # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-pip install -e .
+pip install -e .[dev]
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
 # Run tests and a sample contradiction detection
 pytest -q
+
+# Install enterprise extras if required
+pip install -e .[enterprise]
+ 
+See [`docs/enterprise_migration.md`](docs/enterprise_migration.md) for guidance on the
+v15 → v16 enterprise upgrade path and the temporary Python 3.10 support policy.
 python examples/minimal_detect.py
 
 📄 Full setup: docs/getting_started.md
@@ -98,7 +107,7 @@ python examples/<script>.py
 ⸻
 
 🧬 Runtime & Integrity
-   •   ✅ Python version: 3.10.x (enforced by CI and local lockfiles)
+   •   ✅ Python version: 3.11.x (enforced by CI and local lockfiles)
    •   🔒 Dependency lock: requirements-lock.txt, auto-generated via automation/regenerate_lock.sh
    •   📦 Absolute imports enforced (tessrax.*) via .flake8
    •   🔍 Tests: pytest -q, same as CI runner

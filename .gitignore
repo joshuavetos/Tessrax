@@ -32,6 +32,7 @@ venv/
 .DS_Store
 logs/
 out/
+!out/env_snapshot.json
 
 # Node / dashboard assets
 node_modules/
@@ -41,4 +42,6 @@ dashboard/build/
 # Tessrax generated artifacts
 analytics/output/
 data/
+!tests/data/
+!tests/data/**
 pycache/

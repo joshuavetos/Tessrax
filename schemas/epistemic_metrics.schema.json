@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tessrax.org/schemas/epistemic_metrics.json",
+  "title": "Tessrax Epistemic Metrics",
+  "type": "object",
+  "required": ["metadata", "metrics"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["generated_at", "python_version", "git_commit", "environment_hash"],
+      "additionalProperties": false,
+      "properties": {
+        "generated_at": {"type": "string", "format": "date-time"},
+        "python_version": {"type": "string"},
+        "git_commit": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"},
+        "environment_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "notes": {"type": "string"}
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["integrity", "drift", "severity", "independence"],
+      "additionalProperties": false,
+      "properties": {
+        "integrity": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "drift": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "severity": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "independence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    }
+  }
+}
