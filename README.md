@@ -171,6 +171,49 @@ Tessrax runs a complete reproducibility audit on every commit:
 
 ⸻
 
+## ai_skills Prompt Toolkit
+
+The repository now bundles a hermetic prompt-engineering module named `ai_skills`.
+It relies solely on the Python standard library and exposes deterministic prompt
+templates, a template renderer, and an evaluation CLI.
+
+### Rendering the Socratic Debugger Template
+
+```bash
+python -m ai_skills.prompting.cli render --template socratic_debugger --task "Add numbers" --context "3 and 5"
+```
+
+Expected output:
+
+```
+"""
+ROLE: You are a careful reasoner. Work step-by-step and show checks.
+TASK: Add numbers
+CONTEXT: 3 and 5
+STEPS:
+1) Extract claims (bulleted).
+2) For each claim, note confidence and what would falsify it.
+3) Produce an answer and a short "Why I might be wrong" section.
+OUTPUT: Answer, then Checks.
+"""
+```
+
+### Scoring a Guess Against the Truth Reference
+
+```bash
+python -m ai_skills.prompting.cli score --guess "test" --truth "test"
+```
+
+### Full Validation Checklist
+
+```bash
+pytest tests/ -v
+python -m ai_skills.prompting.cli render --template socratic_debugger --task "test" --context "test"
+python -m ai_skills.prompting.cli score --guess "test" --truth "test"
+```
+
+⸻
+
 🔬 Citation
 
 If referencing in research or implementation:

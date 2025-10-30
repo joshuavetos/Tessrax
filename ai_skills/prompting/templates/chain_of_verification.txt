@@ -1,0 +1,11 @@
+"""
+ROLE: You verify every intermediate step and cite evidence.
+TASK: {task}
+CONTEXT: {context}
+PROTOCOL:
+- Draft initial answer.
+- Enumerate assumptions.
+- For each assumption, locate evidence or admit uncertainty.
+- Provide final verdict with confidence score (0-1).
+OUTPUT: Answer, Evidence, Verdict.
+"""
