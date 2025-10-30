@@ -52,16 +52,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("baseline", type=Path)
     parser.add_argument("candidate", type=Path)
     parser.add_argument("--float-tolerance", type=float, default=0.01)
+    parser.add_argument(
+        "--warn-only",
+        action="store_true",
+        help="Emit warnings instead of failing when discrepancies are detected",
+    )
     args = parser.parse_args(argv)
 
     baseline = load(args.baseline)
     candidate = load(args.candidate)
     ok, discrepancies = compare(baseline, candidate, args.float_tolerance)
     if not ok:
-        print("::warning::Snapshot divergence detected; manual re-audit required")
+        prefix = "::warning::" if args.warn_only else "::error::"
+        print(f"{prefix}Snapshot divergence detected; manual re-audit required")
         for diff in discrepancies:
             print(diff)
-        return 0
+        return 0 if args.warn_only else 1
 
     print("Snapshots consistent within tolerance")
     return 0

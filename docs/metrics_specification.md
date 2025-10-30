@@ -54,8 +54,8 @@ baseline with these rules:
 
 * **Exact match** is required for string, version, and hash values.
 * **Numeric fields** tolerate a ±0.01 delta to account for floating-point jitter.
-* **Regressions** beyond the tolerance thresholds trigger a `needs_reaudit`
-  annotation instead of failing the pipeline to signal manual investigation.
+* **Regressions** beyond the tolerance thresholds fail the verification job and
+  emit a `needs_reaudit` annotation to signal mandatory manual investigation.
 
 ### Manual Overrides
 
@@ -64,7 +64,9 @@ engineer must:
 
 1. Update `out/env_snapshot.json` with a signed commit describing the variance.
 2. Reference the governance ticket in the commit message and ledger entry.
-3. Attach a note to the action run documenting the override and auditor approval.
+3. Re-run the provenance check with either the updated baseline or
+   `tools/compare_env_snapshot.py --warn-only` and attach the run link with the
+   auditor approval note.
 
 ## Test Vector Linkage
 

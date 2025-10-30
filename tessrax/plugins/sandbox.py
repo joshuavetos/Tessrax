@@ -78,11 +78,18 @@ def _sandbox_builtins() -> dict[str, Any]:
 
 
 def _sandbox_open(tmp_root: Path):
+    tmp_root = tmp_root.resolve(strict=True)
+
     def _open(path: str, mode: str = "r", *args: Any, **kwargs: Any):
         candidate = Path(path)
         if not candidate.is_absolute():
-            candidate = (tmp_root / candidate).resolve()
-        if not str(candidate).startswith(str(tmp_root)):
+            candidate = tmp_root / candidate
+        candidate = candidate.resolve(strict=False)
+        try:
+            is_within = candidate.is_relative_to(tmp_root)
+        except AttributeError:  # Python <3.9 fallback (not expected under pyproject pin)
+            is_within = str(candidate).startswith(str(tmp_root))
+        if not is_within:
             raise PermissionError("Plugins may only write within /tmp/plugin_* directories")
         os.makedirs(candidate.parent, exist_ok=True)
         return builtins.open(candidate, mode, *args, **kwargs)
