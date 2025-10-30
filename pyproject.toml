@@ -53,6 +53,9 @@ ml = [
   "sentence-transformers>=2.2",
 ]
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
 include = ["tessrax", "tessrax.*", "ai_skills", "ai_skills.*"]
 
