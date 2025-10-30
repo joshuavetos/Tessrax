@@ -39,6 +39,9 @@ dependencies = [
   "streamlit>=1.32",
 ]
 
+[project.scripts]
+ai-skills = "ai_skills.prompting.cli:main"
+
 [project.optional-dependencies]
 dev = [
   "pytest>=7.4",
@@ -51,7 +54,7 @@ ml = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["tessrax", "tessrax.*"]
+include = ["tessrax", "tessrax.*", "ai_skills", "ai_skills.*"]
 
 [tool.ruff]
 line-length = 100
