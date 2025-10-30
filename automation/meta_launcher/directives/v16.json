@@ -1,0 +1,64 @@
+[
+  {
+    "id": "BUILD_V16_FIELD_VALIDATION",
+    "summary": "Create tessrax/data_ingest/normalize_external.py to normalize Climate TRACE, Data.gov, ESG, Fake Claim, and ManConCorpus datasets into Claim objects.",
+    "target_files": ["tessrax/data_ingest/normalize_external.py", "tests/test_data_ingest.py"],
+    "actions": [
+      "Generate module with ClaimExtractor-compatible normalize() function",
+      "Support --source argument for dataset selection",
+      "Ensure JSONL output compatible with Ledger append"
+    ],
+    "verification": "pytest tests/test_data_ingest.py -q && python -m tessrax.metabolism.reconcile --self-test"
+  },
+  {
+    "id": "BUILD_V16_FEDERATED_CONSENSUS",
+    "summary": "Implement Tendermint-based federated consensus for truth receipts.",
+    "target_files": ["tessrax/federation/consensus.py", "tests/test_federated_consensus.py"],
+    "actions": [
+      "Create minimal Tendermint client",
+      "Simulate 3-node BFT round",
+      "Write deterministic receipt verification test"
+    ],
+    "verification": "pytest tests/test_federated_consensus.py -q"
+  },
+  {
+    "id": "BUILD_V16_EPISTEMIC_METRICS",
+    "summary": "Expand tessrax/metrics/epistemic_health.py to include Shannon Entropy, Bayesian Surprise, and Free-Energy functions.",
+    "target_files": ["tessrax/metrics/epistemic_health.py", "tests/test_epistemic_metrics_v16.py"],
+    "actions": [
+      "Add formulas for entropy, surprise, and free energy",
+      "Emit metrics to ledger JSONL receipts"
+    ],
+    "verification": "pytest tests/test_epistemic_metrics_v16.py -q"
+  },
+  {
+    "id": "BUILD_V16_DASHBOARD_LITERACY",
+    "summary": "Add Streamlit + D3 components for Contradiction Timeline, Clarity Flow, and Surprise Heatmap.",
+    "target_files": ["dashboard/components/clarity_flow.py", "dashboard/components/contradiction_timeline.py", "dashboard/components/surprise_heatmap.py"],
+    "actions": [
+      "Render live ledger JSONL data",
+      "Provide interactive timeline and flow visualization"
+    ],
+    "verification": "streamlit run dashboard/app.py --server.headless true"
+  },
+  {
+    "id": "BUILD_V16_INCENTIVE_ECONOMY",
+    "summary": "Implement Truth Credit economy and arbitration layer.",
+    "target_files": ["tessrax/economy/truth_credit.py", "tessrax/economy/arbitration.py", "tests/test_truth_credit.py"],
+    "actions": [
+      "Create token minting and slashing logic",
+      "Integrate with Ledger receipts"
+    ],
+    "verification": "pytest tests/test_truth_credit.py -q"
+  },
+  {
+    "id": "BUILD_V16_CONTRADICTION_ENERGY",
+    "summary": "Add contradiction energy computation (E = ½κ‖Δ‖²) to metabolism/reconcile.py and display thermograph.",
+    "target_files": ["tessrax/metabolism/reconcile.py", "dashboard/components/thermograph.py"],
+    "actions": [
+      "Compute Δ as prediction error",
+      "Plot energy decay over reconciliation cycles"
+    ],
+    "verification": "pytest tests/test_reconciliation_engine.py -q"
+  }
+]
