@@ -35,7 +35,6 @@ pytest==8.2.2
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 pytz==2025.2
-redis==5.0.1
 requests==2.32.3
 sentence-transformers>=2.2.2
 ruff==0.12.11
@@ -47,3 +46,5 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.2
 uvicorn==0.30.0
+RestrictedPython==8.1
+jsonschema==4.23.0
