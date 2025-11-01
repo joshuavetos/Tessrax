@@ -6,8 +6,8 @@ import argparse
 import json
 from typing import Dict
 
-from .evaluator import Evaluator
-from .template_engine import TemplateEngine
+from ai_skills.prompting.evaluator import Evaluator
+from ai_skills.prompting.template_engine import TemplateEngine
 
 
 def build_parser() -> argparse.ArgumentParser:

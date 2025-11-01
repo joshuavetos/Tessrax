@@ -5,9 +5,9 @@ from typing import Dict
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response, status
 
-from .ledger_link import ledger_guard
-from .middleware.truthlock_middleware import TruthLockMiddleware
-from .models import (
+from tessrax_truth_api.ledger_link import ledger_guard
+from tessrax_truth_api.middleware.truthlock_middleware import TruthLockMiddleware
+from tessrax_truth_api.models import (
     DetectRequest,
     DetectResponse,
     HealthResponse,
@@ -16,13 +16,13 @@ from .models import (
     SelfTestResult,
     SelfTestSummary,
 )
-from .services.billing_service import BillingService
-from .services.cache_service import CacheService, CachedEntry
-from .services.provenance_service import ProvenanceService
-from .services.validation_service import ValidationService
-from .engine.calibrator import Calibrator
-from .engine.contradiction_engine import ContradictionEngine
-from .utils import (
+from tessrax_truth_api.services.billing_service import BillingService
+from tessrax_truth_api.services.cache_service import CacheService, CachedEntry
+from tessrax_truth_api.services.provenance_service import ProvenanceService
+from tessrax_truth_api.services.validation_service import ValidationService
+from tessrax_truth_api.engine.calibrator import Calibrator
+from tessrax_truth_api.engine.contradiction_engine import ContradictionEngine
+from tessrax_truth_api.utils import (
     encode_metrics,
     hmac_signature,
     issue_jwt,

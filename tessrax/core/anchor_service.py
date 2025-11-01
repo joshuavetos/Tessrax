@@ -8,7 +8,7 @@ import os
 import time
 from pathlib import Path
 
-from . import merkle_engine
+from tessrax.core import merkle_engine
 
 _GOVERNANCE_AUDITOR = "Tessrax Governance Kernel v16"
 _CLAUSES = ["AEP-001", "POST-AUDIT-001", "RVC-001", "EAC-001"]

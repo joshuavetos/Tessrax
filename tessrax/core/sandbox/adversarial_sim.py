@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from typing import Dict, Iterable, List, Sequence, Tuple
 
-from ..governance.receipts import write_receipt
+from tessrax.core.governance.receipts import write_receipt
 
 _CANONICAL_BATCH_SIZE = 32
 

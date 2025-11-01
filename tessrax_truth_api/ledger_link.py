@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict
 
 from fastapi import Request
 
-from .services.provenance_service import ProvenanceService
+from tessrax_truth_api.services.provenance_service import ProvenanceService
 
 
 def ledger_guard(provenance: ProvenanceService, event_type: str) -> Callable:

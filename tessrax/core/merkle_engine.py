@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Sequence
 
+from tessrax.core import PROJECT_ROOT
+
 _GOVERNANCE_AUDITOR = "Tessrax Governance Kernel v16"
 _CLAUSES = ["AEP-001", "POST-AUDIT-001", "RVC-001", "EAC-001"]
 _METADATA_FIELDS = {
@@ -35,7 +37,7 @@ def _resolve_ledger_path() -> Path:
     env_override = os.getenv("TESSRAX_LEDGER_PATH")
     if env_override:
         return Path(env_override).expanduser().resolve()
-    return (Path(__file__).resolve().parents[2] / "ledger" / "ledger.jsonl").resolve()
+    return (PROJECT_ROOT / "ledger" / "ledger.jsonl").resolve()
 
 
 @dataclass

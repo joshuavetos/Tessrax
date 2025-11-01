@@ -19,6 +19,7 @@ htmlcov/
 venv/
 .env
 .env.*
+!.env.example
 
 # Editor settings
 *.swp
@@ -31,6 +32,7 @@ venv/
 *.tmp
 .DS_Store
 logs/
+!tests/logs/__init__.py
 out/
 !out/env_snapshot.json
 
@@ -42,6 +44,10 @@ dashboard/build/
 # Tessrax generated artifacts
 analytics/output/
 data/
+tessrax/data/*
+!tessrax/data/__init__.py
+tessrax/data/evidence/*
+!tessrax/data/evidence/__init__.py
 !tests/data/
 !tests/data/**
 pycache/

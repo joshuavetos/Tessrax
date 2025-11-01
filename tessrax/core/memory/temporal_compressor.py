@@ -9,7 +9,7 @@ from collections import defaultdict
 from hashlib import sha256
 from typing import Dict, List, Sequence
 
-from ..governance.receipts import write_receipt
+from tessrax.core.governance.receipts import write_receipt
 
 
 def compress_receipts(receipts: Sequence[Dict[str, str]]) -> Dict[str, object]:

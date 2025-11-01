@@ -8,7 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Sequence
 
-from ..governance.receipts import write_receipt
+from tessrax.core.governance.receipts import write_receipt
 
 ECONOMY_PATH = Path("tessrax/core/metabolism/economy.json")
 ECONOMY_PATH.parent.mkdir(parents=True, exist_ok=True)

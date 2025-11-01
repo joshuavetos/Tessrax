@@ -17,7 +17,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict
 
-RECEIPT_DIR = Path("out/receipts")
+RECEIPT_DIR = (Path(__file__).resolve().parents[3] / "out" / "receipts").resolve()
 RECEIPT_DIR.mkdir(parents=True, exist_ok=True)
 
 
