@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict
 
-from ..utils import base_metrics_snapshot, load_config
+from tessrax_truth_api.utils import base_metrics_snapshot, load_config
 
 
 @dataclass

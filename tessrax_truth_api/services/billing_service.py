@@ -5,7 +5,7 @@ from typing import Dict, Optional
 
 from fastapi import HTTPException, status
 
-from ..utils import load_config, utcnow
+from tessrax_truth_api.utils import load_config, utcnow
 
 
 class BillingService:

@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Dict
 
-from ..governance.receipts import write_receipt
+from tessrax.core.governance.receipts import write_receipt
 
 
 def _embedding(text: str) -> Counter:

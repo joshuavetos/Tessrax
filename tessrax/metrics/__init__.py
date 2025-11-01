@@ -1,6 +1,6 @@
 """Epistemic metrics utilities for Tessrax."""
 
-from .epistemic_health import (
+from tessrax.metrics.epistemic_health import (
     compute_entropy,
     compute_drift,
     compute_integrity,

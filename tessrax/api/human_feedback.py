@@ -12,9 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from fastapi import FastAPI, HTTPException
-from fastapi.testclient import TestClient
-
-from ..core.governance.receipts import write_receipt
+from tessrax.core.governance.receipts import write_receipt
 
 APP = FastAPI(title="Tessrax Human Feedback", version="1.0.0")
 DATA_PATH = Path("tessrax/data/human_feedback.jsonl")
@@ -85,19 +83,12 @@ def get_history() -> Dict[str, Any]:
 
 
 def _self_test() -> bool:
-    """Execute deterministic API round-trip tests using TestClient."""
+    """Execute deterministic API round-trip tests without HTTPX dependency."""
 
-    client = TestClient(APP)
-    response = client.post(
-        "/feedback",
-        json={"rule_id": "R-001", "verdict": "approve", "rationale": "Aligned"},
-    )
-    assert response.status_code == 200, "POST failed"
-    entry = response.json()
+    payload = {"rule_id": "R-001", "verdict": "approve", "rationale": "Aligned"}
+    entry = submit_feedback(payload)
     assert entry["rule_id"] == "R-001", "Incorrect rule id"
-    history_response = client.get("/history")
-    assert history_response.status_code == 200, "GET failed"
-    history_body = history_response.json()
+    history_body = get_history()
     assert history_body["history"], "History should not be empty"
     write_receipt(
         "tessrax.api.human_feedback.self_test",

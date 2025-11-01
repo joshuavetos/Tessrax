@@ -10,7 +10,7 @@ from collections import Counter
 from math import sqrt
 from typing import Dict, Iterable, Sequence
 
-from ..governance.receipts import write_receipt
+from tessrax.core.governance.receipts import write_receipt
 
 
 def _tokenize(rule_set: Sequence[str]) -> Counter:

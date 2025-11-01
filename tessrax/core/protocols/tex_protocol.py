@@ -8,7 +8,7 @@ from __future__ import annotations
 from hashlib import sha256
 from typing import Any, Dict
 
-from ..governance.receipts import write_receipt
+from tessrax.core.governance.receipts import write_receipt
 
 PROTOCOL_SCHEMA: Dict[str, Any] = {
     "type": "object",

@@ -1,4 +1,4 @@
 """Tessrax Truth API package."""
-from .main import create_app, app
+from tessrax_truth_api.main import app, create_app
 
 __all__ = ["create_app", "app"]

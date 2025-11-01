@@ -6,7 +6,7 @@ from typing import Callable
 from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from ..utils import decode_jwt
+from tessrax_truth_api.utils import decode_jwt
 
 
 class TruthLockMiddleware(BaseHTTPMiddleware):

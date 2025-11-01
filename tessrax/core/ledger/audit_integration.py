@@ -9,9 +9,10 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict, List
 
-from ..governance.receipts import write_receipt
+from tessrax.core.governance.receipts import write_receipt
+from tessrax.core import PROJECT_ROOT
 
-LEDGER_PATH = Path("ledger/ledger.jsonl")
+LEDGER_PATH = (PROJECT_ROOT / "ledger" / "ledger.jsonl").resolve()
 LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
 if not LEDGER_PATH.exists():
     LEDGER_PATH.write_text("", encoding="utf-8")

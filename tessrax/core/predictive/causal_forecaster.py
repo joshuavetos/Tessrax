@@ -11,7 +11,7 @@ from math import exp
 from time import perf_counter
 from typing import Dict, Iterable, Sequence
 
-from ..governance.receipts import write_receipt
+from tessrax.core.governance.receipts import write_receipt
 
 
 def _structural_equation(novelty: float, support: float) -> float:

@@ -6,7 +6,7 @@ from typing import Tuple
 
 from fastapi import HTTPException, status
 
-from ..engine.contradiction_engine import ContradictionEngine
+from tessrax_truth_api.engine.contradiction_engine import ContradictionEngine
 
 
 @dataclass

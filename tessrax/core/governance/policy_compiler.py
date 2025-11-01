@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Sequence
 
-from .receipts import write_receipt
+from tessrax.core.governance.receipts import write_receipt
 
 
 @dataclass(frozen=True)

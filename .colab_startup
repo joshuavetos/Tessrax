@@ -1,0 +1,3 @@
+# Tessrax Colab startup configuration
+export TESSRAX_ENV="colab"
+export TESSRAX_LEDGER_PATH="/content/Tessrax-main/ledger/ledger.jsonl"
