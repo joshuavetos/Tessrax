@@ -32,7 +32,9 @@ def test_extra_template_key_raises_keyerror() -> None:
         engine.render("socratic_debugger", task="Add", context="1 and 2", extra="boom")
 
 
-def test_empty_template_raises_value_error(tmp_path_factory: pytest.TempPathFactory) -> None:
+def test_empty_template_raises_value_error(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
     """Empty template files must be rejected with a ``ValueError``."""
 
     templates_dir = tmp_path_factory.mktemp("templates")

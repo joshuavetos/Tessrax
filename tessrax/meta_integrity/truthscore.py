@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import Callable, Iterable, List, Mapping, MutableMapping, Sequence
 
 TruthVerdict = str
 
@@ -46,7 +46,7 @@ class TruthScore:
     ) -> MutableMapping[str, object]:
         """Return aggregate epistemic metrics for ``claims``."""
 
-        prepared: List[ClaimEvaluation] = []
+        prepared: list[ClaimEvaluation] = []
         total_weight = 0.0
         verified_weight = 0.0
         severity_weight = 0.0
@@ -55,7 +55,11 @@ class TruthScore:
             weight = max(0.0, min(certainty, 1.0)) or 0.001
             verdict = self._normalise_verdict(self._verifier(claim))
             severity = self._SEVERITY_WEIGHTS.get(verdict, 0.5)
-            prepared.append(ClaimEvaluation(claim=claim, verdict=verdict, weight=weight, severity=severity))
+            prepared.append(
+                ClaimEvaluation(
+                    claim=claim, verdict=verdict, weight=weight, severity=severity
+                )
+            )
             total_weight += weight
             if verdict == "verified":
                 verified_weight += weight

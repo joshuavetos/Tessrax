@@ -22,7 +22,9 @@ def test_partial_overlap_reports_similarity() -> None:
     result = evaluator.score("abc", "abz")
     assert result.match is False
     assert 0 < result.similarity < 1
-    assert "close" in result.explanation.lower() or "overlap" in result.explanation.lower()
+    assert (
+        "close" in result.explanation.lower() or "overlap" in result.explanation.lower()
+    )
 
 
 def test_dict_conversion_preserves_fields() -> None:

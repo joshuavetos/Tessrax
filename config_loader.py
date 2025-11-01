@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class ConfigValidationError(ValueError):
@@ -29,12 +29,12 @@ class LoggingConfig:
 class TessraxConfig:
     """Top-level configuration container."""
 
-    thresholds: Dict[str, float]
+    thresholds: dict[str, float]
     logging: LoggingConfig
 
 
-def _merge_dict(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-    merged: Dict[str, Any] = {**base}
+def _merge_dict(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged: dict[str, Any] = {**base}
     for key, value in override.items():
         if isinstance(value, dict) and isinstance(base.get(key), dict):
             merged[key] = _merge_dict(base[key], value)
@@ -43,19 +43,23 @@ def _merge_dict(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
     return merged
 
 
-def _validate_thresholds(values: Dict[str, Any]) -> Dict[str, float]:
-    validated: Dict[str, float] = {}
+def _validate_thresholds(values: dict[str, Any]) -> dict[str, float]:
+    validated: dict[str, float] = {}
     for key, value in values.items():
         if not isinstance(value, (int, float)):
-            raise ConfigValidationError(f"Threshold '{key}' must be numeric, received {type(value).__name__}")
+            raise ConfigValidationError(
+                f"Threshold '{key}' must be numeric, received {type(value).__name__}"
+            )
         numeric = float(value)
         if not 0.0 <= numeric <= 1.0:
-            raise ConfigValidationError(f"Threshold '{key}' must be in the range [0.0, 1.0]")
+            raise ConfigValidationError(
+                f"Threshold '{key}' must be in the range [0.0, 1.0]"
+            )
         validated[key] = numeric
     return validated
 
 
-def _validate_logging(values: Dict[str, Any]) -> LoggingConfig:
+def _validate_logging(values: dict[str, Any]) -> LoggingConfig:
     if "ledger_path" not in values:
         raise ConfigValidationError("Logging configuration requires a 'ledger_path'")
     if not isinstance(values["ledger_path"], str):
@@ -63,20 +67,22 @@ def _validate_logging(values: Dict[str, Any]) -> LoggingConfig:
     return LoggingConfig(ledger_path=values["ledger_path"])
 
 
-def validate_config(data: Dict[str, Any]) -> TessraxConfig:
+def validate_config(data: dict[str, Any]) -> TessraxConfig:
     """Validate loaded configuration against the expected schema."""
 
     if "thresholds" not in data or "logging" not in data:
-        raise ConfigValidationError("Configuration must define 'thresholds' and 'logging' sections")
+        raise ConfigValidationError(
+            "Configuration must define 'thresholds' and 'logging' sections"
+        )
     thresholds = _validate_thresholds(dict(data["thresholds"]))
     logging = _validate_logging(dict(data["logging"]))
     return TessraxConfig(thresholds=thresholds, logging=logging)
 
 
-def load_config(path: Optional[str] = None) -> TessraxConfig:
+def load_config(path: str | None = None) -> TessraxConfig:
     """Load configuration from disk or fall back to defaults."""
 
-    data: Dict[str, Any] = dict(_DEFAULT_CONFIG)
+    data: dict[str, Any] = dict(_DEFAULT_CONFIG)
     if path:
         candidate = Path(path)
         if candidate.exists():

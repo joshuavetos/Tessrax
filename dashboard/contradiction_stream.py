@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Dict, List
 
 import requests
 import streamlit as st
@@ -21,7 +20,7 @@ def _session() -> requests.Session:
     return session
 
 
-def _fetch_live(endpoint: str) -> tuple[Dict[str, int], str | None]:
+def _fetch_live(endpoint: str) -> tuple[dict[str, int], str | None]:
     session = _session()
     try:
         response = session.get(endpoint, timeout=3)
@@ -39,7 +38,7 @@ def _fetch_live(endpoint: str) -> tuple[Dict[str, int], str | None]:
     return payload, None
 
 
-def _active_series(history: List[dict]) -> List[int]:
+def _active_series(history: list[dict]) -> list[int]:
     return [int(entry.get("active", 0)) for entry in history]
 
 
@@ -68,7 +67,9 @@ def main() -> None:
         st.session_state[history_key] = history[-200:]
         active = int(payload.get("active", 0))
         placeholder.metric("Active Contradictions", active)
-        st.line_chart({"Contradictions": _active_series(history)}, use_container_width=True)
+        st.line_chart(
+            {"Contradictions": _active_series(history)}, use_container_width=True
+        )
     else:
         placeholder.warning("No data received yet.")
 

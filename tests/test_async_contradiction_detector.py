@@ -14,7 +14,9 @@ from tessrax.metabolism.async_detector import AsyncContradictionDetector
 from tessrax.types import Claim
 
 
-def _make_claim(subject: str, metric: str, value: float, *, claim_id: str, source: str) -> Claim:
+def _make_claim(
+    subject: str, metric: str, value: float, *, claim_id: str, source: str
+) -> Claim:
     return Claim(
         claim_id=claim_id,
         subject=subject,
@@ -118,7 +120,10 @@ def test_historical_contradiction(tmp_path) -> None:
         assert metrics["detected"] >= 1
         receipts = ledger.receipts()
         assert receipts, "Expected a governance receipt"
-        assert any(getattr(receipt.decision, "contradiction", None) is not None for receipt in receipts)
+        assert any(
+            getattr(receipt.decision, "contradiction", None) is not None
+            for receipt in receipts
+        )
 
     asyncio.run(scenario())
 

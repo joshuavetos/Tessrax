@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import List, Mapping, MutableMapping, Sequence
 
-
-_HEDGE_PATTERN = re.compile(r"\b(might|possibly|maybe|could|unclear|unknown)\b", re.IGNORECASE)
+_HEDGE_PATTERN = re.compile(
+    r"\b(might|possibly|maybe|could|unclear|unknown)\b", re.IGNORECASE
+)
 
 
 @dataclass(slots=True)
@@ -55,7 +56,7 @@ class ClaimExtractor:
         *,
         prompt_id: str,
         metadata: Mapping[str, object] | None = None,
-    ) -> List[MutableMapping[str, object]]:
+    ) -> list[MutableMapping[str, object]]:
         """Return structured claims derived from ``response``.
 
         Parameters
@@ -73,7 +74,7 @@ class ClaimExtractor:
             return []
 
         sentences = self._segment(clean_response)
-        claims: List[MutableMapping[str, object]] = []
+        claims: list[MutableMapping[str, object]] = []
         for index, sentence in enumerate(sentences, start=1):
             object_fragment = self._infer_object(sentence)
             certainty = self._estimate_certainty(sentence)
@@ -88,7 +89,7 @@ class ClaimExtractor:
             claims.append(claim.as_dict())
         return claims
 
-    def _segment(self, text: str) -> List[str]:
+    def _segment(self, text: str) -> list[str]:
         """Split text into sentences while preserving semantic cues."""
 
         parts = re.split(r"(?<=[.!?])\s+", text)

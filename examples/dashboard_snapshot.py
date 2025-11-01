@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from pprint import pprint
 
-from tessrax import build_snapshot, ClaimExtractor, ContradictionEngine, GovernanceKernel, Ledger
+from tessrax import (
+    ClaimExtractor,
+    ContradictionEngine,
+    GovernanceKernel,
+    Ledger,
+    build_snapshot,
+)
 
 
 def main() -> None:

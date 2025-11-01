@@ -6,9 +6,9 @@ import argparse
 import asyncio
 import logging
 import os
+from collections.abc import Iterable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, List
 
 from tessrax.contradiction import ContradictionEngine
 from tessrax.ledger import Ledger
@@ -21,7 +21,9 @@ class AsyncContradictionDetector:
 
     def __init__(self, ledger: Ledger, maxsize: int = 1000) -> None:
         self.ledger = ledger
-        ledger_path = getattr(ledger, "path", None) or os.getenv("LEDGER_PATH", "./data/ledger.jsonl")
+        ledger_path = getattr(ledger, "path", None) or os.getenv(
+            "LEDGER_PATH", "./data/ledger.jsonl"
+        )
         self.index = LedgerIndex(ledger_path)
 
         try:
@@ -81,14 +83,18 @@ class AsyncContradictionDetector:
             finally:
                 self.queue.task_done()
 
-    async def detect_async(self, claim: Claim, historical: Iterable[Claim]) -> List[ContradictionRecord]:
+    async def detect_async(
+        self, claim: Claim, historical: Iterable[Claim]
+    ) -> list[ContradictionRecord]:
         """Run contradiction detection in a background executor."""
 
         loop = asyncio.get_running_loop()
         claims = [claim, *historical]
         return await loop.run_in_executor(None, self.engine.detect, claims)
 
-    async def _record_results(self, claim: Claim, contradictions: Iterable[ContradictionRecord]) -> None:
+    async def _record_results(
+        self, claim: Claim, contradictions: Iterable[ContradictionRecord]
+    ) -> None:
         """Append governance decisions and refresh the ledger index."""
 
         decisions = list(contradictions)
@@ -112,7 +118,9 @@ class AsyncContradictionDetector:
         timestamp = claim.timestamp.isoformat()
         return f"{claim.key()}::{claim.claim_id}::{timestamp}::{claim.value}"
 
-    def _to_ledger_record(self, contradiction: ContradictionRecord) -> GovernanceDecision:
+    def _to_ledger_record(
+        self, contradiction: ContradictionRecord
+    ) -> GovernanceDecision:
         rationale = (
             f"Detected asynchronous contradiction between {contradiction.claim_a.claim_id} "
             f"and {contradiction.claim_b.claim_id}: {contradiction.reasoning}"
@@ -145,7 +153,8 @@ class AsyncContradictionDetector:
         final_depth = self.queue.qsize()
         if final_depth > 0:
             logging.warning(
-                "AsyncContradictionDetector shutdown with %s unprocessed claims", final_depth
+                "AsyncContradictionDetector shutdown with %s unprocessed claims",
+                final_depth,
             )
 
         self._running = False
@@ -231,8 +240,12 @@ async def _run_self_test() -> None:
 
 
 def _build_cli() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Tessrax Async Contradiction Detector utilities")
-    parser.add_argument("--self-test", action="store_true", help="Run the async detector self-test")
+    parser = argparse.ArgumentParser(
+        description="Tessrax Async Contradiction Detector utilities"
+    )
+    parser.add_argument(
+        "--self-test", action="store_true", help="Run the async detector self-test"
+    )
     return parser
 
 

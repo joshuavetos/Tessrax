@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, List
-
 
 LEDGER_PATH = "ledger.jsonl"
 
@@ -17,7 +15,7 @@ def _ensure_ledger_exists() -> Path:
     return path
 
 
-def append_entry(entry: Dict) -> None:
+def append_entry(entry: dict) -> None:
     """Append a JSON serialised entry to the ledger file."""
 
     path = _ensure_ledger_exists()
@@ -26,7 +24,7 @@ def append_entry(entry: Dict) -> None:
         handle.write("\n")
 
 
-def load_ledger(limit: int = 50) -> List[Dict]:
+def load_ledger(limit: int = 50) -> list[dict]:
     """Load up to ``limit`` most recent entries from the ledger."""
 
     path = _ensure_ledger_exists()

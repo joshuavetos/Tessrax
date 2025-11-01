@@ -4,10 +4,10 @@ All clients default to dry-run behavior and avoid live network calls unless
 explicitly invoked with ``live=True``. Even in live mode, the clients only
 emit placeholder text to demonstrate where API integrations would occur.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
 
 
 @dataclass
@@ -17,7 +17,7 @@ class PostPayload:
     channel: str
     title: str
     body: str
-    metadata: Dict[str, str]
+    metadata: dict[str, str]
 
 
 class MockClient:

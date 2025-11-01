@@ -1,4 +1,5 @@
 """Utility helpers for the Tessrax Truth API runtime."""
+
 from __future__ import annotations
 
 import base64
@@ -10,11 +11,11 @@ import threading
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
+import jwt
 import yaml
 from dotenv import dotenv_values
-import jwt
 
 _CONFIG_LOCK = threading.Lock()
 _ENV_LOCK = threading.Lock()
@@ -29,7 +30,7 @@ def _env_path() -> Path:
 
 
 @lru_cache(maxsize=1)
-def load_config() -> Dict[str, Any]:
+def load_config() -> dict[str, Any]:
     """Load the YAML configuration for the API."""
 
     with _CONFIG_LOCK:
@@ -38,7 +39,7 @@ def load_config() -> Dict[str, Any]:
 
 
 @lru_cache(maxsize=1)
-def load_env() -> Dict[str, str]:
+def load_env() -> dict[str, str]:
     """Load secret values from the local ``.env`` file."""
 
     with _ENV_LOCK:
@@ -48,7 +49,7 @@ def load_env() -> Dict[str, str]:
         return dict(os.environ)
 
 
-def hmac_signature(payload: Dict[str, Any], secret: Optional[str] = None) -> str:
+def hmac_signature(payload: dict[str, Any], secret: str | None = None) -> str:
     """Create a base64 encoded HMAC signature for the payload."""
 
     env = load_env()
@@ -63,14 +64,16 @@ def hmac_signature(payload: Dict[str, Any], secret: Optional[str] = None) -> str
     return base64.urlsafe_b64encode(digest).decode("utf-8")
 
 
-def verify_signature(payload: Dict[str, Any], signature: str, secret: Optional[str] = None) -> bool:
+def verify_signature(
+    payload: dict[str, Any], signature: str, secret: str | None = None
+) -> bool:
     """Verify a signature for a payload."""
 
     expected = hmac_signature(payload, secret=secret)
     return hmac.compare_digest(expected, signature)
 
 
-def issue_jwt(tier: str, subject: str, *, minutes: Optional[int] = None) -> str:
+def issue_jwt(tier: str, subject: str, *, minutes: int | None = None) -> str:
     """Issue a short lived JWT for the supplied tier."""
 
     config = load_config()
@@ -88,13 +91,15 @@ def issue_jwt(tier: str, subject: str, *, minutes: Optional[int] = None) -> str:
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=expires_delta)).timestamp()),
     }
-    token = jwt.encode(payload, secret, algorithm=config.get("jwt", {}).get("algorithm", "HS256"))
+    token = jwt.encode(
+        payload, secret, algorithm=config.get("jwt", {}).get("algorithm", "HS256")
+    )
     if isinstance(token, bytes):
         token = token.decode("utf-8")
     return token
 
 
-def decode_jwt(token: str) -> Dict[str, Any]:
+def decode_jwt(token: str) -> dict[str, Any]:
     """Decode and verify a JWT returning the payload."""
 
     config = load_config()
@@ -116,7 +121,7 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def receipt_identifier(*, seed: Optional[str] = None) -> str:
+def receipt_identifier(*, seed: str | None = None) -> str:
     """Return a deterministic UUID5 when a seed is provided."""
 
     import uuid
@@ -126,7 +131,7 @@ def receipt_identifier(*, seed: Optional[str] = None) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, seed))
 
 
-def merkle_hash(*, payload: Dict[str, Any], prev_hash: Optional[str]) -> str:
+def merkle_hash(*, payload: dict[str, Any], prev_hash: str | None) -> str:
     """Compute a deterministic hash for ledger entries."""
 
     hasher = hashlib.sha256()
@@ -136,7 +141,7 @@ def merkle_hash(*, payload: Dict[str, Any], prev_hash: Optional[str]) -> str:
     return hasher.hexdigest()
 
 
-def base_metrics_snapshot(calibration: Dict[str, Any]) -> Dict[str, float]:
+def base_metrics_snapshot(calibration: dict[str, Any]) -> dict[str, float]:
     """Return governance metrics from calibration config."""
 
     return {
@@ -146,7 +151,7 @@ def base_metrics_snapshot(calibration: Dict[str, Any]) -> Dict[str, float]:
     }
 
 
-def encode_metrics(metrics: Dict[str, float]) -> str:
+def encode_metrics(metrics: dict[str, float]) -> str:
     """Encode metrics into a Prometheus style exposition format."""
 
     lines = []

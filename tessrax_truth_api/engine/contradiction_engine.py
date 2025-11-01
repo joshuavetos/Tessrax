@@ -1,8 +1,8 @@
 """Embedding inspired contradiction scoring utilities."""
+
 from __future__ import annotations
 
 from difflib import SequenceMatcher
-from typing import Tuple
 
 
 class ContradictionEngine:
@@ -36,7 +36,7 @@ class ContradictionEngine:
             distance = min(1.0, distance + self.contradiction_bias)
         return round(distance, 4)
 
-    def verdict(self, score: float, thresholds: Tuple[float, float]) -> str:
+    def verdict(self, score: float, thresholds: tuple[float, float]) -> str:
         """Return a categorical verdict based on thresholds."""
 
         contradiction_threshold, unknown_threshold = thresholds

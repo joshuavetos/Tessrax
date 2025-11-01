@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from typing import Dict
 
 from ai_skills.prompting.evaluator import Evaluator
 from ai_skills.prompting.template_engine import TemplateEngine
@@ -23,9 +22,15 @@ def build_parser() -> argparse.ArgumentParser:
         "render",
         help="Render a named template with the supplied context values.",
     )
-    render_parser.add_argument("--template", required=True, help="Template name to render.")
-    render_parser.add_argument("--task", required=True, help="Primary task description.")
-    render_parser.add_argument("--context", required=True, help="Supplementary context text.")
+    render_parser.add_argument(
+        "--template", required=True, help="Template name to render."
+    )
+    render_parser.add_argument(
+        "--task", required=True, help="Primary task description."
+    )
+    render_parser.add_argument(
+        "--context", required=True, help="Supplementary context text."
+    )
     render_parser.add_argument(
         "--var",
         action="append",
@@ -39,15 +44,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Compare a model guess against the truth reference.",
     )
     score_parser.add_argument("--guess", required=True, help="Model guess to evaluate.")
-    score_parser.add_argument("--truth", required=True, help="Ground-truth reference text.")
+    score_parser.add_argument(
+        "--truth", required=True, help="Ground-truth reference text."
+    )
 
     return parser
 
 
-def _parse_vars(pairs: list[str] | None) -> Dict[str, str]:
+def _parse_vars(pairs: list[str] | None) -> dict[str, str]:
     """Convert KEY=VALUE pairs into a dictionary with validation."""
 
-    parsed: Dict[str, str] = {}
+    parsed: dict[str, str] = {}
     if not pairs:
         return parsed
     for pair in pairs:
@@ -71,7 +78,7 @@ def render_command(args: argparse.Namespace) -> str:
     return engine.render(args.template, **values)
 
 
-def score_command(args: argparse.Namespace) -> Dict[str, str | float | bool]:
+def score_command(args: argparse.Namespace) -> dict[str, str | float | bool]:
     """Execute the ``score`` sub-command and return a serialisable result dictionary."""
 
     evaluator = Evaluator()

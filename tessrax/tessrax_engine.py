@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 from config_loader import load_config
 
 _config = load_config()
 
 
-def _normalise_claim_text(claim: Dict[str, object]) -> str:
+def _normalise_claim_text(claim: dict[str, object]) -> str:
     text = ""
     if isinstance(claim, dict):
         for key in ("claim", "content", "text"):
@@ -20,7 +18,7 @@ def _normalise_claim_text(claim: Dict[str, object]) -> str:
     return text
 
 
-def calculate_stability(claims: List[dict]) -> float:
+def calculate_stability(claims: list[dict]) -> float:
     """Calculate a stability score using consensus logic."""
 
     if not claims:
@@ -40,13 +38,17 @@ def calculate_stability(claims: List[dict]) -> float:
     return max(0.0, min(1.0, round(stability, 6)))
 
 
-def route_to_governance_lane(stability_score: float, thresholds: Dict[str, float]) -> str:
+def route_to_governance_lane(
+    stability_score: float, thresholds: dict[str, float]
+) -> str:
     """Route the request to the appropriate governance lane."""
 
     defaults = _config.thresholds
     autonomic = thresholds.get("autonomic", defaults.get("autonomic", 0.8))
     deliberative = thresholds.get("deliberative", defaults.get("deliberative", 0.5))
-    constitutional = thresholds.get("constitutional", defaults.get("constitutional", 0.3))
+    constitutional = thresholds.get(
+        "constitutional", defaults.get("constitutional", 0.3)
+    )
 
     if stability_score >= autonomic:
         return "autonomic"

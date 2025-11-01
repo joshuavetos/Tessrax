@@ -5,9 +5,10 @@ from __future__ import annotations
 import base64
 import json
 import secrets
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, Optional
+from typing import Any
 
 from tessrax.types import GovernanceDecision
 
@@ -33,7 +34,7 @@ class TimestampToken:
         return base64.urlsafe_b64encode(_json_dumps(payload)).decode("ascii")
 
     @classmethod
-    def decode(cls, token: str) -> "TimestampToken":
+    def decode(cls, token: str) -> TimestampToken:
         raw = base64.urlsafe_b64decode(token.encode("ascii"))
         data = json.loads(raw)
         issued_at = datetime.fromisoformat(data["issued_at"])
@@ -87,13 +88,15 @@ class SignatureAuthority:
         secret: str,
         hash_name: str = "sha256",
         *,
-        timestamp_authority: Optional[TimestampAuthority] = None,
+        timestamp_authority: TimestampAuthority | None = None,
     ) -> None:
         self._secret = secret.encode("utf-8")
         self._hash_name = hash_name
         self._timestamp = timestamp_authority or TimestampAuthority(hash_name=hash_name)
 
-    def _payload_bytes(self, payload: Mapping[str, Any], token: TimestampToken) -> bytes:
+    def _payload_bytes(
+        self, payload: Mapping[str, Any], token: TimestampToken
+    ) -> bytes:
         combined = {"payload": payload, "timestamp_token": token.encode()}
         return _json_dumps(combined)
 
@@ -107,7 +110,9 @@ class SignatureAuthority:
         signature = base64.urlsafe_b64encode(digest.digest()).decode("ascii")
         return DecisionSignature(signature=signature, timestamp_token=token.encode())
 
-    def verify(self, decision: GovernanceDecision, signature: DecisionSignature) -> bool:
+    def verify(
+        self, decision: GovernanceDecision, signature: DecisionSignature
+    ) -> bool:
         try:
             token = TimestampToken.decode(signature.timestamp_token)
         except Exception:  # pragma: no cover - defensive decoding guard

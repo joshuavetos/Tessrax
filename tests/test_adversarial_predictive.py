@@ -15,8 +15,12 @@ def test_adversarial_batch_size() -> None:
 
 def test_pattern_extractor() -> None:
     lines = [
-        json.dumps({"contradiction_type": "semantic", "resolution": {"result": "merge"}}),
-        json.dumps({"contradiction_type": "procedural", "resolution": {"result": "fix"}}),
+        json.dumps(
+            {"contradiction_type": "semantic", "resolution": {"result": "merge"}}
+        ),
+        json.dumps(
+            {"contradiction_type": "procedural", "resolution": {"result": "fix"}}
+        ),
     ]
     pat = extract_patterns_from_stream(lines)
     assert pat["semantic"]["merge"] == 1.0

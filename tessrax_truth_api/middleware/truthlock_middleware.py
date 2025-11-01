@@ -1,7 +1,8 @@
 """Truth-Lock middleware enforcing provenance requirements."""
+
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -20,7 +21,10 @@ class TruthLockMiddleware(BaseHTTPMiddleware):
         if any(request.url.path.startswith(path) for path in self._protected):
             auth_header = request.headers.get("Authorization")
             if not auth_header or not auth_header.lower().startswith("bearer "):
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Missing bearer token",
+                )
             token = auth_header.split(" ", 1)[1]
             claims = decode_jwt(token)
             request.state.jwt_claims = claims

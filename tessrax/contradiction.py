@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime
 from itertools import combinations
-from typing import Dict, List, Sequence
 
 from tessrax.physics.context import AgentAlignment, ContextualStiffness
 from tessrax.physics.energy import ContradictionEnergy
@@ -27,21 +27,25 @@ class ContradictionEngine:
         self.stiffness = ContextualStiffness()
         self.alignment = AgentAlignment()
 
-    def detect(self, claims: Sequence[Claim]) -> List[ContradictionRecord]:
-        grouped: Dict[str, List[Claim]] = defaultdict(list)
+    def detect(self, claims: Sequence[Claim]) -> list[ContradictionRecord]:
+        grouped: dict[str, list[Claim]] = defaultdict(list)
         for claim in claims:
             grouped[claim.key()].append(claim)
 
-        contradictions: List[ContradictionRecord] = []
+        contradictions: list[ContradictionRecord] = []
         for key, key_claims in grouped.items():
             if len(key_claims) < 2:
                 continue
-            for claim_a, claim_b in combinations(sorted(key_claims, key=lambda c: c.claim_id), 2):
+            for claim_a, claim_b in combinations(
+                sorted(key_claims, key=lambda c: c.claim_id), 2
+            ):
                 delta = abs(claim_a.value - claim_b.value)
                 baseline = max(abs(claim_a.value), abs(claim_b.value), 1.0)
                 relative_gap = delta / baseline
                 alignment_score = self.alignment.compute(claim_a.source, claim_b.source)
-                self.alignment.update(claim_a.source, claim_b.source, relative_gap <= self.tolerance)
+                self.alignment.update(
+                    claim_a.source, claim_b.source, relative_gap <= self.tolerance
+                )
                 if relative_gap <= self.tolerance:
                     continue
                 severity = self._grade(relative_gap)
@@ -49,14 +53,18 @@ class ContradictionEngine:
                     f"{claim_a.subject} {claim_a.metric} differs from {claim_b.source} by "
                     f"{relative_gap:.1%} ({claim_a.value} vs {claim_b.value})."
                 )
-                temporal_distance = self._temporal_distance_days(claim_a.timestamp, claim_b.timestamp)
+                temporal_distance = self._temporal_distance_days(
+                    claim_a.timestamp, claim_b.timestamp
+                )
                 contextual_stiffness = self.stiffness.compute(
                     claim_a.subject,
                     claim_a.metric,
                     temporal_distance,
                 )
                 base_probability = self._base_probability(severity)
-                kappa = self.energy_model.compute_kappa(contextual_stiffness, alignment_score, base_probability)
+                kappa = self.energy_model.compute_kappa(
+                    contextual_stiffness, alignment_score, base_probability
+                )
                 energy = self.energy_model.contradiction_energy(relative_gap, kappa)
                 contradictions.append(
                     ContradictionRecord(
@@ -73,7 +81,9 @@ class ContradictionEngine:
 
     @staticmethod
     def _grade(relative_gap: float) -> str:
-        for level, threshold in sorted(SeverityThresholds.items(), key=lambda item: item[1]):
+        for level, threshold in sorted(
+            SeverityThresholds.items(), key=lambda item: item[1]
+        ):
             if relative_gap <= threshold:
                 return level
         return "critical"

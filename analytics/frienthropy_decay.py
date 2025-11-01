@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import json
 from calendar import monthrange
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -22,7 +22,9 @@ import pandas as pd
 matplotlib.use("Agg")
 
 
-DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "corporate_frienthropy.csv"
+DATA_PATH = (
+    Path(__file__).resolve().parent.parent / "data" / "corporate_frienthropy.csv"
+)
 OUTPUT_DIR = Path(__file__).resolve().parent / "output"
 REPORT_PATH = OUTPUT_DIR / "corporate_frienthropy_report.json"
 PLOT_PATH = OUTPUT_DIR / "corporate_frienthropy_decay.png"
@@ -117,7 +119,9 @@ def _persist_outputs(df: pd.DataFrame) -> None:
 
 def _plot_decay(df: pd.DataFrame) -> None:
     plt.figure(figsize=(9, 4.5))
-    plt.plot(df["timestamp"], df["trust_decay"], marker="o", linewidth=2, label="Trust Decay")
+    plt.plot(
+        df["timestamp"], df["trust_decay"], marker="o", linewidth=2, label="Trust Decay"
+    )
     plt.plot(
         df["timestamp"],
         1.0 - df["governance_score"],
@@ -126,7 +130,13 @@ def _plot_decay(df: pd.DataFrame) -> None:
         linestyle="--",
         label="Governance Slack",
     )
-    plt.fill_between(df["timestamp"], df["anomaly_rate"], color="#f97316", alpha=0.2, label="Anomaly Rate")
+    plt.fill_between(
+        df["timestamp"],
+        df["anomaly_rate"],
+        color="#f97316",
+        alpha=0.2,
+        label="Anomaly Rate",
+    )
     plt.title("Corporate Frienthropy Decay Curve")
     plt.xlabel("Timestamp")
     plt.ylabel("Proportion of Risk")

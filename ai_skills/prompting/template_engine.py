@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from string import Formatter
-from typing import Dict, Iterable, List
 
 
 @dataclass(frozen=True)
@@ -14,7 +14,7 @@ class TemplateDetails:
 
     name: str
     path: Path
-    placeholders: List[str]
+    placeholders: list[str]
 
 
 class TemplateEngine:
@@ -24,16 +24,18 @@ class TemplateEngine:
         """Initialise the engine with the directory where templates live."""
 
         default_dir = Path(__file__).resolve().parent / "templates"
-        self._templates_dir = Path(templates_dir).resolve() if templates_dir else default_dir
+        self._templates_dir = (
+            Path(templates_dir).resolve() if templates_dir else default_dir
+        )
         if not self._templates_dir.exists():
             raise FileNotFoundError(
                 f"Template directory '{self._templates_dir}' is missing. Create it before use."
             )
 
-    def list_templates(self) -> List[str]:
+    def list_templates(self) -> list[str]:
         """Return the available template names without file extensions."""
 
-        names: List[str] = []
+        names: list[str] = []
         for file in sorted(self._templates_dir.glob("*.txt")):
             names.append(file.stem)
         return names
@@ -44,7 +46,9 @@ class TemplateEngine:
         template_path = self._safe_path_for(name)
         raw_template = template_path.read_text(encoding="utf-8")
         if raw_template.strip() == "":
-            raise ValueError(f"Template '{name}' is empty. Populate it with content before use.")
+            raise ValueError(
+                f"Template '{name}' is empty. Populate it with content before use."
+            )
         placeholders = self._extract_placeholders(raw_template)
         return TemplateDetails(name=name, path=template_path, placeholders=placeholders)
 
@@ -73,7 +77,9 @@ class TemplateEngine:
         template_path = self._safe_path_for(name)
         content = template_path.read_text(encoding="utf-8")
         if content.strip() == "":
-            raise ValueError(f"Template '{name}' is empty. Populate it with content before use.")
+            raise ValueError(
+                f"Template '{name}' is empty. Populate it with content before use."
+            )
         return content
 
     def _safe_path_for(self, name: str) -> Path:
@@ -97,17 +103,17 @@ class TemplateEngine:
         return template_path
 
     @staticmethod
-    def _extract_placeholders(template: str) -> List[str]:
+    def _extract_placeholders(template: str) -> list[str]:
         """List the placeholder names defined in ``template`` in order of appearance."""
 
         formatter = Formatter()
-        placeholders: List[str] = []
+        placeholders: list[str] = []
         for _, field_name, _, _ in formatter.parse(template):
             if field_name and field_name not in placeholders:
                 placeholders.append(field_name)
         return placeholders
 
-    def render_from_mapping(self, name: str, mapping: Dict[str, str]) -> str:
+    def render_from_mapping(self, name: str, mapping: dict[str, str]) -> str:
         """Render a template using a mapping of values, mirroring ``dict`` semantics."""
 
         return self.render(name, **mapping)

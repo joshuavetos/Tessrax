@@ -7,6 +7,7 @@ import pytest
 
 try:  # pragma: no cover - guard optional FastAPI dependency
     from fastapi.testclient import TestClient
+
     from tessrax_truth_api.main import app
     from tessrax_truth_api.utils import load_env
 except ModuleNotFoundError:  # pragma: no cover - skip when FastAPI absent

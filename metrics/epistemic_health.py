@@ -1,15 +1,16 @@
 """Epistemic health metrics utilities."""
+
 from __future__ import annotations
 
 import json
 import pathlib
 import time
-from typing import List, Dict, Any
+from typing import Any
 
 _BASELINE_FILE = pathlib.Path("integrity_baseline.json")
 
 
-def update_baseline(current_integrity: float) -> List[Dict[str, Any]]:
+def update_baseline(current_integrity: float) -> list[dict[str, Any]]:
     base = _BASELINE_FILE
     data = {"timestamp": time.time(), "integrity": current_integrity}
     hist = json.loads(base.read_text()) if base.exists() else []

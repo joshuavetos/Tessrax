@@ -33,7 +33,9 @@ def compare(
                 )
         else:
             if base_meta[key] != cand_meta[key]:
-                discrepancies.append(f"metadata.{key} differs: {base_meta[key]} vs {cand_meta[key]}")
+                discrepancies.append(
+                    f"metadata.{key} differs: {base_meta[key]} vs {cand_meta[key]}"
+                )
 
     base_metrics = baseline.get("metrics", {})
     cand_metrics = candidate.get("metrics", {})
@@ -42,7 +44,9 @@ def compare(
             discrepancies.append(f"metrics.{key} missing between snapshots")
             continue
         if abs(float(base_metrics[key]) - float(cand_metrics[key])) > float_tolerance:
-            discrepancies.append(f"metrics.{key} drifted: {base_metrics[key]} vs {cand_metrics[key]}")
+            discrepancies.append(
+                f"metrics.{key} drifted: {base_metrics[key]} vs {cand_metrics[key]}"
+            )
 
     return not discrepancies, discrepancies
 

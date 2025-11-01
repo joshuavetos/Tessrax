@@ -1,11 +1,12 @@
 """Merkle-backed ledger append implementation."""
+
 from __future__ import annotations
 
 import hashlib
 import json
 import pathlib
 import time
-from typing import Any, Dict
+from typing import Any
 
 _LOG_PATH = pathlib.Path("ledger/logs/merkle.log")
 
@@ -19,7 +20,7 @@ def _serialize(entry: Any) -> str:
         return repr(entry)
 
 
-def append_merkle(entry: Any) -> Dict[str, Any]:
+def append_merkle(entry: Any) -> dict[str, Any]:
     """Append the entry to the merkle log with a digest receipt."""
     _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     serialized = _serialize(entry)

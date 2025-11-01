@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Dict, Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 from tessrax.data.evidence_loader import load_field_evidence
 from tessrax.governance import GovernanceKernel as BaseGovernanceKernel
@@ -25,17 +26,21 @@ class GovernanceKernel(BaseGovernanceKernel):
 
         return [entry.copy() for entry in self._field_evidence]
 
-    def integrate_field_evidence(self, *, refresh: bool = False) -> Dict[str, Any]:
+    def integrate_field_evidence(self, *, refresh: bool = False) -> dict[str, Any]:
         """Load field evidence and compute contradiction/policy alignment indicators."""
 
         if not self._field_evidence or refresh:
             self._field_evidence = load_field_evidence()
-            self._field_evidence_summary = self._summarise_field_evidence(self._field_evidence)
+            self._field_evidence_summary = self._summarise_field_evidence(
+                self._field_evidence
+            )
         return dict(self._field_evidence_summary)
 
-    def _summarise_field_evidence(self, records: Iterable[Mapping[str, Any]]) -> Dict[str, Any]:
-        category_counts: Dict[str, int] = defaultdict(int)
-        alignment_scores: Dict[str, list[float]] = defaultdict(list)
+    def _summarise_field_evidence(
+        self, records: Iterable[Mapping[str, Any]]
+    ) -> dict[str, Any]:
+        category_counts: dict[str, int] = defaultdict(int)
+        alignment_scores: dict[str, list[float]] = defaultdict(list)
         contradiction_cases: list[str] = []
 
         for record in records:

@@ -4,9 +4,11 @@ This setup script enforces Tessrax governance clauses by delegating
 metadata to setuptools while ensuring the package name and interpreter
 constraints remain aligned with installation expectations.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
+
 from setuptools import find_packages, setup
 
 BASE_DIR = Path(__file__).resolve().parent

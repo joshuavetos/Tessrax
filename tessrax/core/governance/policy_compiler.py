@@ -3,10 +3,11 @@
 Complies with AEP-001, RVC-001, and POST-AUDIT-001 while generating
 deterministic validators for Tessrax governance claims.
 """
+
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Dict, List, Sequence
 
 from tessrax.core.governance.receipts import write_receipt
 
@@ -20,10 +21,10 @@ class CompiledLaw:
     confidence: float
 
 
-def compile_iron_laws(laws: Sequence[str]) -> List[CompiledLaw]:
+def compile_iron_laws(laws: Sequence[str]) -> list[CompiledLaw]:
     """Compile plain-text Iron Laws into deterministic representations."""
 
-    compiled: List[CompiledLaw] = []
+    compiled: list[CompiledLaw] = []
     for law in laws:
         body = law.replace("Iron Law:", "").strip()
         keyword_part, remainder = body.split("->")
@@ -31,16 +32,22 @@ def compile_iron_laws(laws: Sequence[str]) -> List[CompiledLaw]:
         status_part, confidence_part = remainder.split("@")
         truth_status = status_part.strip().lower()
         confidence = float(confidence_part.strip())
-        compiled.append(CompiledLaw(keyword=keyword, truth_status=truth_status, confidence=confidence))
+        compiled.append(
+            CompiledLaw(
+                keyword=keyword, truth_status=truth_status, confidence=confidence
+            )
+        )
     return compiled
 
 
-def evaluate_claim(claim: Dict[str, str | float], laws: Sequence[CompiledLaw]) -> List[Dict[str, str | float | bool]]:
+def evaluate_claim(
+    claim: dict[str, str | float], laws: Sequence[CompiledLaw]
+) -> list[dict[str, str | float | bool]]:
     """Evaluate a claim against compiled Iron Laws."""
 
     text = claim.get("text", "").lower()
     claim_confidence = float(claim.get("confidence", 0.0))
-    evaluations: List[Dict[str, str | float | bool]] = []
+    evaluations: list[dict[str, str | float | bool]] = []
     for law in laws:
         keyword_present = law.keyword in text
         verdict_confidence = min(claim_confidence, law.confidence)

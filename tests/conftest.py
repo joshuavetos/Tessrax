@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
-
-import pytest
-
 
 _MISSING_DEPENDENCY_REASONS = {
     "numpy": "Install numpy>=1.24 to exercise physics-dependent analytics tests.",

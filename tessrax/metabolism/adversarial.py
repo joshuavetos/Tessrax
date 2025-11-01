@@ -11,7 +11,6 @@ import json
 import random
 import sys
 import uuid
-from typing import Dict, List
 
 DEFAULT_SEED = 1337
 MAX_BATCH = 10
@@ -22,7 +21,7 @@ class AdversarialAgent:
         self.rng = random.Random(seed)
         self.max_batch = max_batch
 
-    def synthesize_contradiction(self) -> Dict:
+    def synthesize_contradiction(self) -> dict:
         A = self.rng.choice(
             [
                 "All governance is self-consistent",
@@ -52,11 +51,11 @@ class AdversarialAgent:
             "meta": {"synthetic": True},
         }
 
-    def run_batch(self, n: int = 5) -> List[Dict]:
+    def run_batch(self, n: int = 5) -> list[dict]:
         n = min(n, self.max_batch)
         return [self.synthesize_contradiction() for _ in range(n)]
 
-    def generate(self, current_integrity: float) -> List[Dict]:
+    def generate(self, current_integrity: float) -> list[dict]:
         budget = compute_adversarial_budget(current_integrity, self.max_batch)
         return self.run_batch(budget)
 
@@ -75,9 +74,15 @@ def compute_adversarial_budget(
 
 
 def _build_cli() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Generate adversarial contradiction batches")
-    parser.add_argument("--batch", type=int, default=5, help="Number of contradictions to generate")
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed override")
+    parser = argparse.ArgumentParser(
+        description="Generate adversarial contradiction batches"
+    )
+    parser.add_argument(
+        "--batch", type=int, default=5, help="Number of contradictions to generate"
+    )
+    parser.add_argument(
+        "--seed", type=int, default=DEFAULT_SEED, help="Random seed override"
+    )
     parser.add_argument(
         "--max-batch",
         type=int,
@@ -93,7 +98,7 @@ def _build_cli() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: List[str] | None = None) -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = _build_cli()
     args = parser.parse_args(argv)
     agent = AdversarialAgent(seed=args.seed, max_batch=args.max_batch)

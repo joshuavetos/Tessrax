@@ -51,12 +51,16 @@ def scan(root: Path, ignores: set[str]) -> list[str]:
                 token = match.group(0)
                 if token.endswith("TEST") or token.endswith("PLACEHOLDER"):
                     continue
-                problems.append(f"{relative}:{match.start()} potential secret '{token}'")
+                problems.append(
+                    f"{relative}:{match.start()} potential secret '{token}'"
+                )
     return problems
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Lint Tessrax repository for leaked secrets")
+    parser = argparse.ArgumentParser(
+        description="Lint Tessrax repository for leaked secrets"
+    )
     parser.add_argument("path", nargs="?", default=Path("."), type=Path)
     args = parser.parse_args()
 

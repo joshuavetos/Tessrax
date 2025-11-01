@@ -1,12 +1,12 @@
 """Ensure dependency lock files remain synchronized."""
+
 from __future__ import annotations
 
 import argparse
 import pathlib
 import subprocess
 import sys
-from typing import Sequence
-
+from collections.abc import Sequence
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 REQUIREMENTS = ROOT / "requirements.txt"
@@ -50,13 +50,17 @@ def verify() -> bool:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--verify", action="store_true", help="Verify dependency synchronization")
+    parser.add_argument(
+        "--verify", action="store_true", help="Verify dependency synchronization"
+    )
     args = parser.parse_args(argv)
 
     if args.verify:
         return 0 if verify() else 1
 
-    parser.error("No action specified. Use --verify to check dependency synchronization.")
+    parser.error(
+        "No action specified. Use --verify to check dependency synchronization."
+    )
     return 1
 
 

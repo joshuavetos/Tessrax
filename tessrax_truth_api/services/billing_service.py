@@ -1,7 +1,6 @@
 """Tier and usage tracking for the Truth API."""
-from __future__ import annotations
 
-from typing import Dict, Optional
+from __future__ import annotations
 
 from fastapi import HTTPException, status
 
@@ -13,11 +12,11 @@ class BillingService:
 
     def __init__(self) -> None:
         config = load_config()
-        self._tiers: Dict[str, Optional[int]] = {
+        self._tiers: dict[str, int | None] = {
             tier: details.get("limit") if isinstance(details, dict) else None
             for tier, details in config.get("billing", {}).get("tiers", {}).items()
         }
-        self._usage: Dict[str, int] = {}
+        self._usage: dict[str, int] = {}
         self._last_reset = utcnow().date()
 
     def _reset_if_needed(self) -> None:
@@ -32,11 +31,16 @@ class BillingService:
         self._reset_if_needed()
         limit = self._tiers.get(tier)
         if tier not in self._tiers:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unsupported tier")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Unsupported tier"
+            )
         current = self._usage.get(token, 0)
         if limit is not None and current >= limit:
-            raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="Tier usage exceeded")
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="Tier usage exceeded",
+            )
         self._usage[token] = current + 1
 
-    def usage_snapshot(self) -> Dict[str, int]:
+    def usage_snapshot(self) -> dict[str, int]:
         return dict(self._usage)

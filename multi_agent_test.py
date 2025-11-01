@@ -4,17 +4,15 @@ from __future__ import annotations
 
 import json
 import random
+from collections.abc import Iterable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Dict, Iterable, List, Sequence
-
 from difflib import SequenceMatcher
+from pathlib import Path
 
 from config_loader import load_config
 from tessrax.contradiction import ContradictionEngine
 from tessrax.types import Claim, ContradictionRecord
-
 
 LOG_PATH = Path("tests/logs/multi_agent_consistency.log")
 AGENTS: Sequence[str] = ("alpha", "beta", "gamma", "delta", "epsilon")
@@ -29,10 +27,10 @@ def _noise(agent_id: str) -> random.Random:
     return random.Random(seed)
 
 
-def _generate_claims(agent_id: str) -> List[Claim]:
+def _generate_claims(agent_id: str) -> list[Claim]:
     rng = _noise(agent_id)
     timestamp = _base_timestamp()
-    claims: List[Claim] = []
+    claims: list[Claim] = []
     subjects = (
         ("grid", "availability", 0.91, 0.81),
         ("water", "purity", 0.97, 0.86),
@@ -68,8 +66,7 @@ def _generate_claims(agent_id: str) -> List[Claim]:
 
 def _summarise(contradictions: Iterable[ContradictionRecord]) -> str:
     tokens = {
-        f"{item.claim_a.subject}:{item.claim_a.metric}"
-        for item in contradictions
+        f"{item.claim_a.subject}:{item.claim_a.metric}" for item in contradictions
     }
     return " | ".join(sorted(tokens))
 
@@ -80,7 +77,7 @@ def _semantic_overlap(first: str, second: str) -> float:
     return SequenceMatcher(None, first, second).ratio()
 
 
-AgentReport = Dict[str, object]
+AgentReport = dict[str, object]
 
 
 def _evaluate_agent(agent_id: str, tolerance: float) -> AgentReport:
@@ -98,7 +95,7 @@ def _evaluate_agent(agent_id: str, tolerance: float) -> AgentReport:
 def _compute_consistency(summaries: Sequence[str]) -> float:
     if len(summaries) < 2:
         return 1.0
-    overlaps: List[float] = []
+    overlaps: list[float] = []
     for idx in range(len(summaries)):
         for jdx in range(idx + 1, len(summaries)):
             overlaps.append(_semantic_overlap(summaries[idx], summaries[jdx]))
@@ -118,14 +115,17 @@ def run() -> None:
     tolerance = max(0.02, 0.15 * (1.0 - config.thresholds.get("deliberative", 0.5)))
 
     with ThreadPoolExecutor(max_workers=len(AGENTS)) as executor:
-        futures = {executor.submit(_evaluate_agent, agent, tolerance): agent for agent in AGENTS}
-        results: List[AgentReport] = []
+        futures = {
+            executor.submit(_evaluate_agent, agent, tolerance): agent
+            for agent in AGENTS
+        }
+        results: list[AgentReport] = []
         for future in as_completed(futures):
             results.append(future.result())
 
     results.sort(key=lambda item: str(item["agent"]))
 
-    summaries: List[str] = [str(item.get("summary", "")) for item in results]
+    summaries: list[str] = [str(item.get("summary", "")) for item in results]
     consistency = _compute_consistency(summaries)
     passed = consistency >= 0.85
 
@@ -142,7 +142,9 @@ def run() -> None:
     print(f"Semantic overlap score: {consistency:.4f}")
     print(f"Pass threshold: 0.85 → {'PASS' if passed else 'FAIL'}")
     if not passed:
-        raise SystemExit("Consistency check failed; inspect tests/logs/multi_agent_consistency.log")
+        raise SystemExit(
+            "Consistency check failed; inspect tests/logs/multi_agent_consistency.log"
+        )
 
 
 if __name__ == "__main__":

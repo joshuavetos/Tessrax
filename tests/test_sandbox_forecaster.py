@@ -1,4 +1,5 @@
 """Tests for adversarial sandbox and causal forecaster modules."""
+
 from __future__ import annotations
 
 import py_compile
@@ -31,10 +32,12 @@ def _load_module(name: str, path: Path):
 
 
 adversarial_sim = _load_module(
-    "tessrax.core.sandbox.adversarial_sim", Path("tessrax/core/sandbox/adversarial_sim.py")
+    "tessrax.core.sandbox.adversarial_sim",
+    Path("tessrax/core/sandbox/adversarial_sim.py"),
 )
 causal_forecaster = _load_module(
-    "tessrax.core.predictive.causal_forecaster", Path("tessrax/core/predictive/causal_forecaster.py")
+    "tessrax.core.predictive.causal_forecaster",
+    Path("tessrax/core/predictive/causal_forecaster.py"),
 )
 
 

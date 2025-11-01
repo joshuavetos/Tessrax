@@ -4,10 +4,10 @@ Implements deterministic textual embeddings to estimate agreement
 between claims, image captions, and audio transcripts. Satisfies
 AEP-001, RVC-001, and POST-AUDIT-001 by ensuring reproducible scores.
 """
+
 from __future__ import annotations
 
 from collections import Counter
-from typing import Dict
 
 from tessrax.core.governance.receipts import write_receipt
 
@@ -23,7 +23,7 @@ def _similarity(claim_emb: Counter, other_emb: Counter) -> float:
     return round(intersection / union, 6)
 
 
-def verify_alignment(claim: str, caption: str, transcript: str) -> Dict[str, float]:
+def verify_alignment(claim: str, caption: str, transcript: str) -> dict[str, float]:
     """Return deterministic consistency metrics between modalities."""
 
     claim_emb = _embedding(claim)

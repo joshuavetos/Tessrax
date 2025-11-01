@@ -1,10 +1,11 @@
 """Hybrid ledger append strategy."""
+
 from __future__ import annotations
 
 import os
 
-from ledger.merkle import append_merkle
 from ledger.local import append_local
+from ledger.merkle import append_merkle
 
 
 def append(entry):

@@ -6,7 +6,9 @@ from pathlib import Path
 from tools import compare_env_snapshot
 
 
-def _write_snapshot(path: Path, metadata: dict[str, object], metrics: dict[str, float]) -> None:
+def _write_snapshot(
+    path: Path, metadata: dict[str, object], metrics: dict[str, float]
+) -> None:
     payload = {"metadata": metadata, "metrics": metrics}
     path.write_text(json.dumps(payload), encoding="utf-8")
 

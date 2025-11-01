@@ -1,7 +1,7 @@
 """Pydantic data transfer objects for the Truth API."""
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -46,7 +46,7 @@ class HealthResponse(BaseModel):
 class SelfTestResult(BaseModel):
     name: str
     status: Literal["verified", "unknown", "tampered"]
-    receipt_uuid: Optional[str]
+    receipt_uuid: str | None
     details: str
 
 

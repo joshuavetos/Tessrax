@@ -12,11 +12,12 @@ Authorizing Architect: Josh Scott Vetos
 Patch ID: SAFEPOINT_V15_1_PYTHON_SYNC_GUARD
 """
 
-import sys
-import re
-import json
 import datetime
+import json
 import pathlib
+import re
+import sys
+
 import yaml
 
 WORKFLOW_FILE = pathlib.Path(".github/workflows/tests.yml")
@@ -51,7 +52,9 @@ def read_declared_python_version():
         version_candidate = versions if isinstance(versions, str) else versions[0]
         match = re.match(r"(\d+\.\d+)", str(version_candidate))
         if not match:
-            sys.exit(f"Critical: Unable to parse Python version from '{version_candidate}'.")
+            sys.exit(
+                f"Critical: Unable to parse Python version from '{version_candidate}'."
+            )
         return match.group(1)
     except Exception as e:
         sys.exit(f"[PYTHON SYNC GUARD] Error reading workflow file: {e}")
@@ -85,14 +88,18 @@ def main():
     local = get_local_python_version()
 
     if local != declared:
-        print(f"[PYTHON SYNC GUARD] ❌ Python version mismatch detected!")
+        print("[PYTHON SYNC GUARD] ❌ Python version mismatch detected!")
         print(f"  - CI matrix declared version: Python {declared}")
         print(f"  - Local environment version:  Python {local}")
-        print("  Please activate a Python interpreter matching the CI version before proceeding.")
+        print(
+            "  Please activate a Python interpreter matching the CI version before proceeding."
+        )
         log_guard_result("failure", declared, local)
         sys.exit(1)
 
-    print(f"[PYTHON SYNC GUARD] ✅ Local Python {local} matches CI matrix. Safe to proceed.")
+    print(
+        f"[PYTHON SYNC GUARD] ✅ Local Python {local} matches CI matrix. Safe to proceed."
+    )
     log_guard_result("success", declared, local)
 
 

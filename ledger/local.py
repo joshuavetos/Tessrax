@@ -1,10 +1,11 @@
 """Local ledger append implementation."""
+
 from __future__ import annotations
 
 import json
 import pathlib
 import time
-from typing import Any, Dict
+from typing import Any
 
 _LOG_PATH = pathlib.Path("ledger/logs/local.log")
 
@@ -18,7 +19,7 @@ def _serialize(entry: Any) -> str:
         return repr(entry)
 
 
-def append_local(entry: Any) -> Dict[str, Any]:
+def append_local(entry: Any) -> dict[str, Any]:
     """Append the entry to the local log and return a receipt."""
     _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     record = {

@@ -10,11 +10,11 @@ import datetime
 import json
 import sys
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable
 
 
-def extract_patterns_from_stream(lines: Iterable[str]) -> Dict[str, Dict[str, float]]:
+def extract_patterns_from_stream(lines: Iterable[str]) -> dict[str, dict[str, float]]:
     counter: dict[str, Counter[str]] = defaultdict(Counter)
     for line in lines:
         try:
@@ -23,10 +23,12 @@ def extract_patterns_from_stream(lines: Iterable[str]) -> Dict[str, Dict[str, fl
             continue
         ctype = rec.get("contradiction_type") or rec.get("event_type")
         resolution = rec.get("resolution")
-        outcome = resolution.get("result") if isinstance(resolution, dict) else resolution
+        outcome = (
+            resolution.get("result") if isinstance(resolution, dict) else resolution
+        )
         if ctype and outcome:
             counter[ctype][outcome] += 1
-    patterns: Dict[str, Dict[str, float]] = {}
+    patterns: dict[str, dict[str, float]] = {}
     for ctype, ctr in counter.items():
         total = sum(ctr.values())
         patterns[ctype] = {o: round(n / total, 3) for o, n in ctr.items() if total}
@@ -44,8 +46,12 @@ def _load_lines(path: Path | None) -> list[str]:
 
 def _build_cli() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Extract ledger resolution patterns")
-    parser.add_argument("--source", type=Path, help="Path to ledger JSONL source", default=None)
-    parser.add_argument("--emit", action="store_true", help="Emit predictive pattern record")
+    parser.add_argument(
+        "--source", type=Path, help="Path to ledger JSONL source", default=None
+    )
+    parser.add_argument(
+        "--emit", action="store_true", help="Emit predictive pattern record"
+    )
     return parser
 
 

@@ -1,4 +1,5 @@
 """Tests for TEX protocol and policy compiler modules."""
+
 from __future__ import annotations
 
 import py_compile
@@ -30,13 +31,16 @@ def _load_module(name: str, path: Path):
 
 
 policy_compiler = _load_module(
-    "tessrax.core.governance.policy_compiler", Path("tessrax/core/governance/policy_compiler.py")
+    "tessrax.core.governance.policy_compiler",
+    Path("tessrax/core/governance/policy_compiler.py"),
 )
 tex_protocol = _load_module(
-    "tessrax.core.protocols.tex_protocol", Path("tessrax/core/protocols/tex_protocol.py")
+    "tessrax.core.protocols.tex_protocol",
+    Path("tessrax/core/protocols/tex_protocol.py"),
 )
 audit_integration = _load_module(
-    "tessrax.core.ledger.audit_integration", Path("tessrax/core/ledger/audit_integration.py")
+    "tessrax.core.ledger.audit_integration",
+    Path("tessrax/core/ledger/audit_integration.py"),
 )
 
 
@@ -67,7 +71,9 @@ def test_audit_integration_self_test(tmp_path):
     try:
         assert audit_integration._self_test()
         verification = audit_integration.verify_audit_receipt(
-            audit_integration.append_audit_receipt({"title": "T", "auditor": "A"})["receipt_id"]
+            audit_integration.append_audit_receipt({"title": "T", "auditor": "A"})[
+                "receipt_id"
+            ]
         )
         assert verification["legitimacy"] >= 0.8
     finally:

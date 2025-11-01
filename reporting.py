@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import json
 from collections import Counter
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List
 
 from config_loader import load_config
 from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
 
 
-def _load_ledger(path: Path) -> List[dict]:
+def _load_ledger(path: Path) -> list[dict]:
     if not path.exists():
         return []
-    entries: List[dict] = []
+    entries: list[dict] = []
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
@@ -31,7 +31,7 @@ def _load_ledger(path: Path) -> List[dict]:
     return entries
 
 
-def summarise_ledger(entries: Iterable[dict]) -> Dict[str, object]:
+def summarise_ledger(entries: Iterable[dict]) -> dict[str, object]:
     config = load_config()
     lane_counts: Counter[str] = Counter()
     for entry in entries:

@@ -3,29 +3,30 @@
 Conforms to AEP-001, RVC-001, and POST-AUDIT-001 by delivering a
 self-verifying summarisation pipeline for resolved contradictions.
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from hashlib import sha256
-from typing import Dict, List, Sequence
 
 from tessrax.core.governance.receipts import write_receipt
 
 
-def compress_receipts(receipts: Sequence[Dict[str, str]]) -> Dict[str, object]:
+def compress_receipts(receipts: Sequence[dict[str, str]]) -> dict[str, object]:
     """Compress resolved contradiction receipts into summary nodes."""
 
-    grouped: Dict[str, List[Dict[str, str]]] = defaultdict(list)
+    grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
     for receipt in receipts:
         topic = receipt.get("topic") or receipt.get("id", "generic").split(":")[0]
         grouped[topic].append(receipt)
-    summaries: List[Dict[str, str]] = []
-    child_hashes: List[str] = []
+    summaries: list[dict[str, str]] = []
+    child_hashes: list[str] = []
     for topic in sorted(grouped):
         statements = " | ".join(
             sorted(entry.get("resolution", "resolved") for entry in grouped[topic])
         )
-        summary_hash = sha256(f"{topic}|{statements}".encode("utf-8")).hexdigest()
+        summary_hash = sha256(f"{topic}|{statements}".encode()).hexdigest()
         summaries.append({"topic": topic, "summary": statements, "hash": summary_hash})
         child_hashes.append(summary_hash)
     merkle_root = _compute_merkle_root(child_hashes)
@@ -50,11 +51,11 @@ def _compute_merkle_root(child_hashes: Sequence[str]) -> str:
         return sha256(b"empty").hexdigest()
     level = list(child_hashes)
     while len(level) > 1:
-        next_level: List[str] = []
+        next_level: list[str] = []
         for index in range(0, len(level), 2):
             left = level[index]
             right = level[index + 1] if index + 1 < len(level) else left
-            next_level.append(sha256(f"{left}{right}".encode("utf-8")).hexdigest())
+            next_level.append(sha256(f"{left}{right}".encode()).hexdigest())
         level = next_level
     return level[0]
 
@@ -64,7 +65,11 @@ def _self_test() -> bool:
 
     receipts = [
         {"id": "energy:001", "resolution": "Adjusted solar reading", "topic": "energy"},
-        {"id": "energy:002", "resolution": "Verified kilowatt output", "topic": "energy"},
+        {
+            "id": "energy:002",
+            "resolution": "Verified kilowatt output",
+            "topic": "energy",
+        },
         {"id": "policy:010", "resolution": "Aligned with oversight"},
         {"id": "policy:011", "resolution": "Logged cross-check"},
     ]

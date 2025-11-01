@@ -35,7 +35,9 @@ def test_governance_kernel_attaches_signature() -> None:
     assert decision.signature is not None
     assert decision.timestamp_token is not None
 
-    signature = DecisionSignature(signature=decision.signature, timestamp_token=decision.timestamp_token)
+    signature = DecisionSignature(
+        signature=decision.signature, timestamp_token=decision.timestamp_token
+    )
     assert authority.verify(decision, signature)
 
 
@@ -51,7 +53,9 @@ def test_signature_verification_detects_tampering() -> None:
     )
 
     decision = kernel.process(record)
-    signature = DecisionSignature(signature=decision.signature, timestamp_token=decision.timestamp_token)
+    signature = DecisionSignature(
+        signature=decision.signature, timestamp_token=decision.timestamp_token
+    )
 
     # Tamper with the decision payload and ensure verification fails.
     decision.rationale = "Tampered rationale"

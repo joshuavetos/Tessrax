@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Optional, Tuple
 
 from config_loader import load_config
 from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
 
 
-def verify_chain(path: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+def verify_chain(path: str | None = None) -> tuple[bool, str | None]:
     config = load_config()
     ledger_path = Path(path) if path else Path(config.logging.ledger_path)
     if not ledger_path.exists():
@@ -32,13 +31,21 @@ def verify_chain(path: Optional[str] = None) -> Tuple[bool, Optional[str]]:
                     continue
                 claims = record.get("claims", [])
                 computed_stability = calculate_stability(claims)
-                expected_lane = route_to_governance_lane(computed_stability, config.thresholds)
+                expected_lane = route_to_governance_lane(
+                    computed_stability, config.thresholds
+                )
 
                 stored_stability = record.get("stability_score")
                 stored_lane = record.get("governance_lane")
 
-                if stored_stability is not None and abs(stored_stability - computed_stability) > 1e-6:
-                    return False, f"Stability mismatch at line {index} (entry {offset + 1})"
+                if (
+                    stored_stability is not None
+                    and abs(stored_stability - computed_stability) > 1e-6
+                ):
+                    return (
+                        False,
+                        f"Stability mismatch at line {index} (entry {offset + 1})",
+                    )
                 if stored_lane is not None and stored_lane != expected_lane:
                     return False, f"Lane mismatch at line {index} (entry {offset + 1})"
     return True, None
