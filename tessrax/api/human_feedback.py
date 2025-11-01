@@ -7,6 +7,7 @@ Rule.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
@@ -37,10 +38,9 @@ def _log_feedback(payload: Dict[str, Any]) -> Dict[str, Any]:
         "rationale": payload.get("rationale", ""),
         "signature": payload.get("signature", "stub-signature"),
     }
+    serialized = json.dumps(entry, sort_keys=True, ensure_ascii=False)
     with DATA_PATH.open("a", encoding="utf-8") as handle:
-        handle.write(
-            "{" + ",".join(f'"{key}":"{entry[key]}"' for key in sorted(entry)) + "}\n"
-        )
+        handle.write(serialized + "\n")
     return entry
 
 
@@ -53,10 +53,12 @@ def _load_history() -> List[Dict[str, Any]]:
     for line in DATA_PATH.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
-        record: Dict[str, Any] = {}
-        for fragment in line.strip("{} ").split(","):
-            key, value = fragment.split(":", 1)
-            record[key.strip('"')] = value.strip('"')
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:  # pragma: no cover - defensive guard
+            raise ValueError("Corrupted feedback ledger entry") from exc
+        if not isinstance(record, dict):
+            raise ValueError("Ledger entry must be a JSON object")
         history.append(record)
     return history
 
