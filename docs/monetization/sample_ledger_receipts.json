@@ -1,0 +1,279 @@
+{
+  "description": "Sample ledger receipts for all monetization transaction types with Merkle anchoring",
+  "governance_clauses": ["AEP-001", "RVC-001", "EAC-001", "POST-AUDIT-001", "DLK-001"],
+  "receipts": [
+    {
+      "receipt_id": "rcpt_a1b2c3d4e5f6g7h8",
+      "module": "tessrax.billing.subscription_created",
+      "event_type": "subscription.created",
+      "subscription_id": "f3a2b1c0d9e8f7a6",
+      "customer_id": "sha256:d4e5f6g7h8i9j0k1",
+      "tier": "professional",
+      "amount": 249.00,
+      "status": "success",
+      "metrics": {
+        "quota_limit": 100000,
+        "usage_count": 0,
+        "tier": "professional",
+        "subscription_status": "trialing"
+      },
+      "integrity_score": 0.97,
+      "merkle_root": "5f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f",
+      "merkle_proof": [
+        "L:a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2",
+        "R:e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3"
+      ],
+      "governance_lane": "general_lane",
+      "compliance_metadata": {
+        "pci_dss_exemption": "no_card_data_stored",
+        "gdpr_processing_basis": "contract_performance",
+        "data_retention_days": 2555,
+        "privacy_mode": "pseudonymized",
+        "trial_days": 14,
+        "features": [
+          "contradiction_detection",
+          "advanced_analytics",
+          "api_access",
+          "90_day_retention",
+          "priority_support"
+        ]
+      },
+      "timestamp": "2025-11-01T10:15:30.123456Z",
+      "signature": "d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8",
+      "auditor": "Tessrax Governance Kernel v16",
+      "clauses": ["AEP-001", "RVC-001", "EAC-001", "POST-AUDIT-001", "DLK-001"]
+    },
+    {
+      "receipt_id": "rcpt_b2c3d4e5f6g7h8i9",
+      "module": "tessrax.billing.payment_succeeded",
+      "event_type": "payment.succeeded",
+      "subscription_id": "f3a2b1c0d9e8f7a6",
+      "customer_id": "sha256:d4e5f6g7h8i9j0k1",
+      "tier": "professional",
+      "amount": 249.00,
+      "status": "success",
+      "metrics": {
+        "quota_limit": 100000,
+        "usage_count": 0,
+        "tier": "professional",
+        "subscription_status": "active",
+        "amount_usd": 249.00
+      },
+      "integrity_score": 0.96,
+      "merkle_root": "7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6",
+      "merkle_proof": [
+        "L:c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0",
+        "R:f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1"
+      ],
+      "governance_lane": "general_lane",
+      "compliance_metadata": {
+        "pci_dss_exemption": "no_card_data_stored",
+        "gdpr_processing_basis": "contract_performance",
+        "data_retention_days": 2555,
+        "privacy_mode": "pseudonymized",
+        "payment_method": "stripe",
+        "retry_attempt": 0
+      },
+      "timestamp": "2025-11-15T14:30:45.789012Z",
+      "signature": "e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7",
+      "auditor": "Tessrax Governance Kernel v16",
+      "clauses": ["AEP-001", "RVC-001", "EAC-001", "POST-AUDIT-001", "DLK-001"]
+    },
+    {
+      "receipt_id": "rcpt_c3d4e5f6g7h8i9j0",
+      "module": "tessrax.billing.subscription_upgraded",
+      "event_type": "subscription.upgraded",
+      "subscription_id": "f3a2b1c0d9e8f7a6",
+      "customer_id": "sha256:d4e5f6g7h8i9j0k1",
+      "tier": "enterprise",
+      "amount": 2499.00,
+      "status": "success",
+      "metrics": {
+        "quota_limit": null,
+        "usage_count": 0,
+        "tier": "enterprise",
+        "subscription_status": "active"
+      },
+      "integrity_score": 0.98,
+      "merkle_root": "9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8",
+      "merkle_proof": [
+        "L:d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9",
+        "R:a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0"
+      ],
+      "governance_lane": "general_lane",
+      "compliance_metadata": {
+        "pci_dss_exemption": "no_card_data_stored",
+        "gdpr_processing_basis": "contract_performance",
+        "data_retention_days": 2555,
+        "privacy_mode": "pseudonymized",
+        "old_tier": "professional",
+        "new_tier": "enterprise",
+        "prorated": true
+      },
+      "timestamp": "2025-11-20T09:45:12.345678Z",
+      "signature": "f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6",
+      "auditor": "Tessrax Governance Kernel v16",
+      "clauses": ["AEP-001", "RVC-001", "EAC-001", "POST-AUDIT-001", "DLK-001"]
+    },
+    {
+      "receipt_id": "rcpt_d4e5f6g7h8i9j0k1",
+      "module": "tessrax.billing.payment_failed",
+      "event_type": "payment.failed",
+      "subscription_id": "a0b9c8d7e6f5a4b3",
+      "customer_id": "sha256:e5f6g7h8i9j0k1l2",
+      "tier": "starter",
+      "amount": 49.00,
+      "status": "failed",
+      "metrics": {
+        "quota_limit": 10000,
+        "usage_count": 8543,
+        "tier": "starter",
+        "subscription_status": "past_due",
+        "amount_usd": 49.00
+      },
+      "integrity_score": 0.94,
+      "merkle_root": "b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7",
+      "merkle_proof": [
+        "L:e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8",
+        "R:b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9"
+      ],
+      "governance_lane": "review_lane",
+      "compliance_metadata": {
+        "pci_dss_exemption": "no_card_data_stored",
+        "gdpr_processing_basis": "contract_performance",
+        "data_retention_days": 2555,
+        "privacy_mode": "pseudonymized",
+        "payment_method": "stripe",
+        "retry_attempt": 1,
+        "failure_reason": "insufficient_funds"
+      },
+      "timestamp": "2025-11-25T16:20:33.567890Z",
+      "signature": "a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5",
+      "auditor": "Tessrax Governance Kernel v16",
+      "clauses": ["AEP-001", "RVC-001", "EAC-001", "POST-AUDIT-001", "DLK-001"]
+    },
+    {
+      "receipt_id": "rcpt_e5f6g7h8i9j0k1l2",
+      "module": "tessrax.billing.subscription_canceled",
+      "event_type": "subscription.canceled",
+      "subscription_id": "b1c0d9e8f7a6b5c4",
+      "customer_id": "sha256:f6g7h8i9j0k1l2m3",
+      "tier": "professional",
+      "amount": null,
+      "status": "success",
+      "metrics": {
+        "quota_limit": 100000,
+        "usage_count": 67234,
+        "tier": "professional",
+        "subscription_status": "canceled"
+      },
+      "integrity_score": 0.95,
+      "merkle_root": "d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6",
+      "merkle_proof": [
+        "L:f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7",
+        "R:c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8"
+      ],
+      "governance_lane": "general_lane",
+      "compliance_metadata": {
+        "pci_dss_exemption": "no_card_data_stored",
+        "gdpr_processing_basis": "contract_performance",
+        "data_retention_days": 2555,
+        "privacy_mode": "pseudonymized",
+        "cancellation_reason": "switching_to_competitor",
+        "refund_eligible": false,
+        "effective_date": "2025-12-01T00:00:00.000000Z"
+      },
+      "timestamp": "2025-11-28T11:10:22.901234Z",
+      "signature": "b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4",
+      "auditor": "Tessrax Governance Kernel v16",
+      "clauses": ["AEP-001", "RVC-001", "EAC-001", "POST-AUDIT-001", "DLK-001"]
+    },
+    {
+      "receipt_id": "rcpt_f6g7h8i9j0k1l2m3",
+      "module": "tessrax.billing.refund_issued",
+      "event_type": "refund.issued",
+      "subscription_id": "c2d1e0f9a8b7c6d5",
+      "customer_id": "sha256:g7h8i9j0k1l2m3n4",
+      "tier": "enterprise",
+      "amount": 2499.00,
+      "status": "success",
+      "metrics": {
+        "quota_limit": null,
+        "usage_count": 1250,
+        "tier": "enterprise",
+        "subscription_status": "canceled",
+        "amount_usd": 2499.00
+      },
+      "integrity_score": 0.96,
+      "merkle_root": "e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5",
+      "merkle_proof": [
+        "L:a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6",
+        "R:d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7"
+      ],
+      "governance_lane": "high_priority_lane",
+      "compliance_metadata": {
+        "pci_dss_exemption": "no_card_data_stored",
+        "gdpr_processing_basis": "contract_performance",
+        "data_retention_days": 2555,
+        "privacy_mode": "pseudonymized",
+        "refund_reason": "service_not_as_described",
+        "refund_amount_usd": 2499.00,
+        "dispute_id": "disp_a1b2c3d4",
+        "fraud_check_status": "passed"
+      },
+      "timestamp": "2025-11-30T13:55:08.234567Z",
+      "signature": "c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3",
+      "auditor": "Tessrax Governance Kernel v16",
+      "clauses": ["AEP-001", "RVC-001", "EAC-001", "POST-AUDIT-001", "DLK-001"]
+    },
+    {
+      "receipt_id": "rcpt_g7h8i9j0k1l2m3n4",
+      "module": "tessrax.billing.subscription_renewed",
+      "event_type": "subscription.renewed",
+      "subscription_id": "f3a2b1c0d9e8f7a6",
+      "customer_id": "sha256:d4e5f6g7h8i9j0k1",
+      "tier": "enterprise",
+      "amount": 2499.00,
+      "status": "success",
+      "metrics": {
+        "quota_limit": null,
+        "usage_count": 0,
+        "tier": "enterprise",
+        "subscription_status": "active",
+        "amount_usd": 2499.00
+      },
+      "integrity_score": 0.97,
+      "merkle_root": "f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4",
+      "merkle_proof": [
+        "L:b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5",
+        "R:e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6"
+      ],
+      "governance_lane": "general_lane",
+      "compliance_metadata": {
+        "pci_dss_exemption": "no_card_data_stored",
+        "gdpr_processing_basis": "contract_performance",
+        "data_retention_days": 2555,
+        "privacy_mode": "pseudonymized",
+        "payment_method": "stripe",
+        "retry_attempt": 0,
+        "renewal_cycle": 12
+      },
+      "timestamp": "2025-12-01T00:00:01.000000Z",
+      "signature": "d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2",
+      "auditor": "Tessrax Governance Kernel v16",
+      "clauses": ["AEP-001", "RVC-001", "EAC-001", "POST-AUDIT-001", "DLK-001"]
+    }
+  ],
+  "verification_notes": {
+    "merkle_proof_structure": "Array of strings in format 'L:hash' or 'R:hash' representing left/right siblings in Merkle tree",
+    "integrity_score_range": "All receipts must have integrity_score >= 0.94 per governance requirements",
+    "governance_lanes": {
+      "general_lane": "Normal billing operations (create, upgrade, renew)",
+      "review_lane": "Payment failures requiring manual review",
+      "high_priority_lane": "Refunds and disputes requiring immediate attention"
+    },
+    "compliance": "All receipts include PCI-DSS exemption, GDPR processing basis, and data retention policy",
+    "signature_algorithm": "HMAC-SHA256 using canonical JSON (sorted keys)",
+    "timestamp_format": "ISO 8601 with timezone (UTC)"
+  }
+}

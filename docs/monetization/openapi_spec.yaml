@@ -1,0 +1,557 @@
+openapi: 3.1.0
+info:
+  title: Tessrax Monetization API
+  version: 1.0.0
+  description: |
+    Production-grade subscription and billing API for Tessrax Truth Detection Platform.
+
+    All transactions are anchored to Merkle ledger with governance receipts (integrity ≥ 0.94).
+    Supports tiered subscriptions, usage metering, entitlement enforcement, and Stripe webhooks.
+
+    **Governance Clauses:** AEP-001, RVC-001, EAC-001, POST-AUDIT-001, DLK-001
+  contact:
+    name: Tessrax Platform Team
+    email: support@tessrax.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.tessrax.com/v1
+    description: Production
+  - url: https://staging-api.tessrax.com/v1
+    description: Staging
+  - url: http://localhost:8000
+    description: Local Development
+
+tags:
+  - name: subscription
+    description: Subscription lifecycle operations
+  - name: billing
+    description: Billing and usage tracking
+  - name: webhooks
+    description: Stripe webhook handlers
+  - name: public
+    description: Public pricing information
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from /onboard or /login endpoint
+
+  schemas:
+    SubscriptionTier:
+      type: string
+      enum: [starter, professional, enterprise]
+      description: Billing tier with feature entitlements
+
+    SubscriptionStatus:
+      type: string
+      enum: [active, trialing, past_due, canceled, unpaid]
+      description: Current subscription state
+
+    SubscribeRequest:
+      type: object
+      required:
+        - customer_id
+        - tier
+      properties:
+        customer_id:
+          type: string
+          description: Unique customer identifier (hashed for privacy)
+          example: "sha256:a1b2c3d4e5f6..."
+        tier:
+          $ref: '#/components/schemas/SubscriptionTier'
+        trial_days:
+          type: integer
+          minimum: 0
+          maximum: 30
+          default: 0
+          description: Trial period in days
+        stripe_checkout_session_id:
+          type: string
+          nullable: true
+          description: Stripe checkout session ID (for payment verification)
+
+    SubscribeResponse:
+      type: object
+      properties:
+        subscription_id:
+          type: string
+          description: Tessrax subscription ID
+          example: "f3a2b1c0d9e8f7a6"
+        customer_id:
+          type: string
+          example: "sha256:a1b2c3d4e5f6..."
+        tier:
+          $ref: '#/components/schemas/SubscriptionTier'
+        status:
+          $ref: '#/components/schemas/SubscriptionStatus'
+        quota_limit:
+          type: integer
+          nullable: true
+          description: Monthly API call limit (null = unlimited)
+          example: 100000
+        current_period_end:
+          type: string
+          format: date-time
+          description: End of current billing period
+        features:
+          type: array
+          items:
+            type: string
+          description: Enabled features for tier
+          example: ["contradiction_detection", "advanced_analytics", "api_access"]
+        receipt_id:
+          type: string
+          description: Governance receipt ID (Merkle-anchored)
+          example: "rcpt_a1b2c3d4e5f6g7h8i9j0"
+        integrity_score:
+          type: number
+          minimum: 0.94
+          maximum: 0.99
+          description: Governance integrity score
+          example: 0.97
+
+    UpgradeRequest:
+      type: object
+      required:
+        - subscription_id
+        - new_tier
+      properties:
+        subscription_id:
+          type: string
+          example: "f3a2b1c0d9e8f7a6"
+        new_tier:
+          $ref: '#/components/schemas/SubscriptionTier'
+
+    ManageSubscriptionRequest:
+      type: object
+      required:
+        - subscription_id
+        - action
+      properties:
+        subscription_id:
+          type: string
+        action:
+          type: string
+          enum: [cancel, reactivate]
+        reason:
+          type: string
+          nullable: true
+          description: Cancellation reason
+          example: "switching_to_competitor"
+
+    UsageResponse:
+      type: object
+      properties:
+        subscription_id:
+          type: string
+        tier:
+          $ref: '#/components/schemas/SubscriptionTier'
+        usage_count:
+          type: integer
+          description: API calls used in current period
+          example: 45320
+        quota_limit:
+          type: integer
+          nullable: true
+          description: Monthly quota limit
+          example: 100000
+        quota_remaining:
+          type: integer
+          nullable: true
+          description: Remaining quota this period
+          example: 54680
+        current_period_start:
+          type: string
+          format: date-time
+        current_period_end:
+          type: string
+          format: date-time
+        overage_charges:
+          type: number
+          format: float
+          description: Overage charges in USD
+          default: 0.0
+
+    BillingHistoryResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingTransaction'
+        total_count:
+          type: integer
+        period_start:
+          type: string
+          format: date-time
+        period_end:
+          type: string
+          format: date-time
+
+    BillingTransaction:
+      type: object
+      properties:
+        receipt_id:
+          type: string
+        event_type:
+          type: string
+          enum:
+            - subscription.created
+            - subscription.upgraded
+            - subscription.downgraded
+            - subscription.renewed
+            - subscription.canceled
+            - payment.succeeded
+            - payment.failed
+            - refund.issued
+        subscription_id:
+          type: string
+        amount:
+          type: number
+          format: float
+          nullable: true
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        merkle_root:
+          type: string
+          nullable: true
+          description: Merkle root hash (set after ledger anchoring)
+        merkle_proof:
+          type: array
+          items:
+            type: string
+          description: Merkle proof chain
+        integrity_score:
+          type: number
+          minimum: 0.94
+        governance_lane:
+          type: string
+          enum: [general_lane, review_lane, high_priority_lane]
+        compliance_metadata:
+          type: object
+          additionalProperties: true
+
+    EntitlementCheckResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+          description: Whether access is granted
+        tier:
+          type: string
+        reason:
+          type: string
+          nullable: true
+          description: Denial reason if not allowed
+          example: "quota_exceeded"
+        features:
+          type: array
+          items:
+            type: string
+        quota_remaining:
+          type: integer
+          nullable: true
+
+    PricingResponse:
+      type: object
+      properties:
+        tiers:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/TierPricing'
+        currency:
+          type: string
+          example: "USD"
+        billing_period:
+          type: string
+          example: "monthly"
+
+    TierPricing:
+      type: object
+      properties:
+        price_monthly_usd:
+          type: number
+          format: float
+          example: 249.00
+        quota_limit:
+          type: integer
+          nullable: true
+          example: 100000
+        features:
+          type: array
+          items:
+            type: string
+        recommended:
+          type: boolean
+          default: false
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        status_code:
+          type: integer
+
+paths:
+  /billing/subscribe:
+    post:
+      summary: Create subscription
+      description: |
+        Create new subscription with optional trial period.
+        Emits governance receipt with integrity ≥ 0.94.
+        Links to Stripe checkout session for payment.
+      operationId: subscribe
+      tags:
+        - subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscribeRequest'
+      responses:
+        '201':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscribeResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+
+  /billing/upgrade:
+    post:
+      summary: Upgrade subscription
+      description: |
+        Upgrade to higher tier with prorated billing.
+        Resets quota and grants new feature entitlements.
+      operationId: upgradeSubscription
+      tags:
+        - subscription
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpgradeRequest'
+      responses:
+        '200':
+          description: Subscription upgraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscribeResponse'
+        '404':
+          description: Subscription not found
+        '400':
+          description: Invalid upgrade request
+
+  /billing/manage:
+    post:
+      summary: Manage subscription
+      description: |
+        Cancel or reactivate subscription.
+        Cancellation effective at period end (grace period).
+      operationId: manageSubscription
+      tags:
+        - subscription
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManageSubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  action:
+                    type: string
+                  subscription_id:
+                    type: string
+                  effective_date:
+                    type: string
+                    format: date-time
+                  receipt_id:
+                    type: string
+        '404':
+          description: Subscription not found
+
+  /billing/usage/{subscription_id}:
+    get:
+      summary: Get usage metrics
+      description: |
+        Returns current usage and quota for billing period.
+        Real-time data for dashboard rendering.
+      operationId: getUsage
+      tags:
+        - billing
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subscription_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Usage metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageResponse'
+        '404':
+          description: Subscription not found
+
+  /billing/history/{customer_id}:
+    get:
+      summary: Get billing history
+      description: |
+        Returns ledger-anchored billing transactions.
+        Includes Merkle proofs for audit verification.
+      operationId: getBillingHistory
+      tags:
+        - billing
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: Billing history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingHistoryResponse'
+
+  /billing/entitlement/{subscription_id}:
+    get:
+      summary: Check entitlement
+      description: |
+        Verify subscription status and feature access.
+        Used by middleware for RBAC enforcement.
+      operationId: checkEntitlement
+      tags:
+        - billing
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subscription_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: feature
+          in: query
+          schema:
+            type: string
+            default: "contradiction_detection"
+      responses:
+        '200':
+          description: Entitlement check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntitlementCheckResponse'
+
+  /billing/webhooks/stripe:
+    post:
+      summary: Stripe webhook handler
+      description: |
+        Processes Stripe webhook events with signature verification.
+        Handles: checkout.session.completed, invoice.payment_succeeded,
+        invoice.payment_failed, customer.subscription.updated,
+        customer.subscription.deleted.
+
+        Enforces idempotency to prevent duplicate processing.
+      operationId: stripeWebhook
+      tags:
+        - webhooks
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Stripe webhook signature for verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Stripe webhook event
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  event_id:
+                    type: string
+                  processed_at:
+                    type: string
+                    format: date-time
+        '401':
+          description: Invalid signature
+        '500':
+          description: Processing error
+
+  /billing/pricing:
+    get:
+      summary: Get pricing tiers
+      description: |
+        Public endpoint returning tier pricing and features.
+        Used for pricing page rendering.
+      operationId: getPricing
+      tags:
+        - public
+      responses:
+        '200':
+          description: Pricing information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricingResponse'
+
+security:
+  - BearerAuth: []
