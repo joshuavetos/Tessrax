@@ -1,8 +1,9 @@
 """Streamlit dashboard for the Tessrax Truth API."""
+
 from __future__ import annotations
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 import httpx
 import pandas as pd
@@ -18,20 +19,25 @@ FALLBACK_METRICS = {
 
 FALLBACK_SELF_TEST = {
     "results": [
-        {"name": "offline", "status": "unknown", "receipt_uuid": None, "details": "API offline"}
+        {
+            "name": "offline",
+            "status": "unknown",
+            "receipt_uuid": None,
+            "details": "API offline",
+        }
     ],
     "ledger_path": "offline",
 }
 
 
-def fetch_metrics() -> Dict[str, Any]:
+def fetch_metrics() -> dict[str, Any]:
     try:
         response = httpx.get(f"{API_BASE}/metrics", timeout=5.0)
         response.raise_for_status()
     except httpx.HTTPError as exc:
         st.warning(f"Truth API metrics unavailable: {exc}")
         return dict(FALLBACK_METRICS)
-    metrics_data: Dict[str, float] = {}
+    metrics_data: dict[str, float] = {}
     for line in response.text.splitlines():
         if line.startswith("#") or not line.strip():
             continue
@@ -43,7 +49,7 @@ def fetch_metrics() -> Dict[str, Any]:
     return metrics_data or dict(FALLBACK_METRICS)
 
 
-def fetch_self_test() -> Dict[str, Any]:
+def fetch_self_test() -> dict[str, Any]:
     try:
         response = httpx.get(f"{API_BASE}/self_test", timeout=5.0)
         response.raise_for_status()
@@ -52,7 +58,9 @@ def fetch_self_test() -> Dict[str, Any]:
         return dict(FALLBACK_SELF_TEST)
     payload = response.json()
     if "results" not in payload or not isinstance(payload["results"], list):
-        st.warning("Truth API self-test returned unexpected payload; using fallback data.")
+        st.warning(
+            "Truth API self-test returned unexpected payload; using fallback data."
+        )
         return dict(FALLBACK_SELF_TEST)
     return payload
 

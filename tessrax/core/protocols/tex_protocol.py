@@ -3,14 +3,15 @@
 This module fulfils AEP-001, RVC-001, and POST-AUDIT-001 by providing
 deterministic schema validation with stub signing operations.
 """
+
 from __future__ import annotations
 
 from hashlib import sha256
-from typing import Any, Dict
+from typing import Any
 
 from tessrax.core.governance.receipts import write_receipt
 
-PROTOCOL_SCHEMA: Dict[str, Any] = {
+PROTOCOL_SCHEMA: dict[str, Any] = {
     "type": "object",
     "required": ["claim", "evidence", "confidence", "truth_status", "next_step"],
     "properties": {
@@ -23,24 +24,28 @@ PROTOCOL_SCHEMA: Dict[str, Any] = {
 }
 
 
-def sign_message(message: Dict[str, Any]) -> str:
+def sign_message(message: dict[str, Any]) -> str:
     """Produce deterministic signature stub for protocol messages."""
 
-    serialized = "|".join(f"{key}:{message[key]}" for key in sorted(PROTOCOL_SCHEMA["required"]))
+    serialized = "|".join(
+        f"{key}:{message[key]}" for key in sorted(PROTOCOL_SCHEMA["required"])
+    )
     return sha256(serialized.encode("utf-8")).hexdigest()
 
 
-def verify_signature(message: Dict[str, Any], signature: str) -> bool:
+def verify_signature(message: dict[str, Any], signature: str) -> bool:
     """Verify stub signature by recomputing deterministic digest."""
 
     expected = sign_message(message)
     is_valid = expected == signature
     metrics = {"valid": 1 if is_valid else 0}
-    write_receipt("tessrax.core.protocols.tex_protocol.verify", "verified", metrics, 0.95)
+    write_receipt(
+        "tessrax.core.protocols.tex_protocol.verify", "verified", metrics, 0.95
+    )
     return is_valid
 
 
-def validate_message(message: Dict[str, Any]) -> bool:
+def validate_message(message: dict[str, Any]) -> bool:
     """Validate message against schema ranges and required fields."""
 
     for field in PROTOCOL_SCHEMA["required"]:

@@ -1,8 +1,8 @@
 """Cache utilities for the Truth API."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
 
 from tessrax_truth_api.utils import load_config
 
@@ -21,7 +21,7 @@ class CacheService:
         config = load_config()
         redis_config = config.get("redis", {})
         self._enabled = bool(redis_config.get("enabled", False))
-        self._cache: Dict[Tuple[str, str], CachedEntry] = {}
+        self._cache: dict[tuple[str, str], CachedEntry] = {}
         self._client = None
         if self._enabled:
             try:
@@ -31,7 +31,7 @@ class CacheService:
             except Exception:  # pragma: no cover - optional dependency
                 self._enabled = False
 
-    def get(self, claim_a: str, claim_b: str) -> Optional[CachedEntry]:
+    def get(self, claim_a: str, claim_b: str) -> CachedEntry | None:
         key = (claim_a.strip().lower(), claim_b.strip().lower())
         if self._enabled and self._client is not None:
             payload = self._client.get(str(key))

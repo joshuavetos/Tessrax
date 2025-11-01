@@ -13,9 +13,9 @@ import hashlib
 import json
 import os
 import time
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Sequence
 
 from tessrax.core import PROJECT_ROOT
 
@@ -44,7 +44,7 @@ def _resolve_ledger_path() -> Path:
 class MerkleLayer:
     """Simple container for layer values to aid deterministic auditing."""
 
-    values: List[str]
+    values: list[str]
 
     def __iter__(self) -> Iterable[str]:
         return iter(self.values)
@@ -54,7 +54,11 @@ class MerkleEngine:
     """Governed Merkle tree ledger manager (AEP-001, RVC-001, EAC-001)."""
 
     def __init__(self, ledger_path: str | Path | None = None) -> None:
-        resolved = Path(ledger_path).expanduser().resolve() if ledger_path else _resolve_ledger_path()
+        resolved = (
+            Path(ledger_path).expanduser().resolve()
+            if ledger_path
+            else _resolve_ledger_path()
+        )
         if resolved.exists() and resolved.is_dir():
             raise IsADirectoryError(f"Ledger path {resolved} must be a file.")
         self.ledger_path = resolved
@@ -95,16 +99,18 @@ class MerkleEngine:
         return digest.hexdigest()
 
     @classmethod
-    def _build_layers(cls, leaves: Sequence[str]) -> List[MerkleLayer]:
+    def _build_layers(cls, leaves: Sequence[str]) -> list[MerkleLayer]:
         if not leaves:
             raise ValueError("Cannot build Merkle tree without leaves.")
         current = list(leaves)
-        layers: List[MerkleLayer] = [MerkleLayer(list(current))]
+        layers: list[MerkleLayer] = [MerkleLayer(list(current))]
         while len(current) > 1:
-            next_level: List[str] = []
+            next_level: list[str] = []
             for index in range(0, len(current), 2):
                 left = current[index]
-                right = current[index + 1] if index + 1 < len(current) else current[index]
+                right = (
+                    current[index + 1] if index + 1 < len(current) else current[index]
+                )
                 next_level.append(cls._pair_hash(left, right))
             current = next_level
             layers.append(MerkleLayer(list(current)))
@@ -112,7 +118,9 @@ class MerkleEngine:
 
     @staticmethod
     def _audit_receipt(receipt_id: str, merkle_root: str, tree_size: int) -> dict:
-        execution_hash = hashlib.sha256(f"{receipt_id}:{merkle_root}:{tree_size}".encode("utf-8")).hexdigest()
+        execution_hash = hashlib.sha256(
+            f"{receipt_id}:{merkle_root}:{tree_size}".encode()
+        ).hexdigest()
         return {
             "auditor": _GOVERNANCE_AUDITOR,
             "clauses": _CLAUSES,
@@ -128,7 +136,9 @@ class MerkleEngine:
         }
 
     @classmethod
-    def verify_merkle_proof(cls, leaf_hash: str, proof: Sequence[str], merkle_root: str) -> bool:
+    def verify_merkle_proof(
+        cls, leaf_hash: str, proof: Sequence[str], merkle_root: str
+    ) -> bool:
         computed = leaf_hash
         for sibling in proof:
             direction, hash_value = sibling.split(":", 1)
@@ -147,10 +157,10 @@ class MerkleEngine:
             for receipt in receipts:
                 handle.write(json.dumps(receipt, sort_keys=True) + "\n")
 
-    def load_receipts(self) -> List[dict]:
+    def load_receipts(self) -> list[dict]:
         if not self.ledger_path.exists():
             raise FileNotFoundError(f"Ledger file not found: {self.ledger_path}")
-        receipts: List[dict] = []
+        receipts: list[dict] = []
         with self.ledger_path.open("r", encoding="utf-8") as handle:
             for line_number, raw in enumerate(handle, start=1):
                 raw = raw.strip()
@@ -167,9 +177,11 @@ class MerkleEngine:
         return receipts
 
     # ------------------------------ core operations ------------------------------
-    def _annotate(self, receipts: Sequence[dict], layers: Sequence[MerkleLayer]) -> List[dict]:
+    def _annotate(
+        self, receipts: Sequence[dict], layers: Sequence[MerkleLayer]
+    ) -> list[dict]:
         root = layers[-1].values[0]
-        annotated: List[dict] = []
+        annotated: list[dict] = []
         tree_size = len(layers[0].values)
         for index, receipt in enumerate(receipts):
             clone = self._clone_receipt(receipt)
@@ -187,8 +199,8 @@ class MerkleEngine:
             annotated.append(clone)
         return annotated
 
-    def _proof_for_index(self, layers: Sequence[MerkleLayer], index: int) -> List[str]:
-        proof: List[str] = []
+    def _proof_for_index(self, layers: Sequence[MerkleLayer], index: int) -> list[str]:
+        proof: list[str] = []
         cursor = index
         for layer in layers[:-1]:
             sibling_index = cursor ^ 1
@@ -215,7 +227,7 @@ class MerkleEngine:
         receipts = self.load_receipts()
         return self.build_and_store(receipts)
 
-    def proof_for_id(self, receipt_id: str) -> List[str]:
+    def proof_for_id(self, receipt_id: str) -> list[str]:
         receipts = self.load_receipts()
         if any("merkle_proof" not in receipt for receipt in receipts):
             self.build_and_store(receipts)
@@ -228,7 +240,9 @@ class MerkleEngine:
                 return proof
         raise KeyError(f"Receipt {receipt_id} not found in ledger {self.ledger_path}.")
 
-    def record_anchor(self, merkle_root: str, anchor_reference: str, provider: str) -> None:
+    def record_anchor(
+        self, merkle_root: str, anchor_reference: str, provider: str
+    ) -> None:
         receipts = self.load_receipts()
         matched = False
         timestamp = time.time()
@@ -240,7 +254,12 @@ class MerkleEngine:
                     "status": "anchored",
                     "timestamp": timestamp,
                 }
-                audit = receipt.setdefault("audit_receipt", self._audit_receipt(receipt["receipt_id"], merkle_root, receipt.get("tree_size", 0)))
+                audit = receipt.setdefault(
+                    "audit_receipt",
+                    self._audit_receipt(
+                        receipt["receipt_id"], merkle_root, receipt.get("tree_size", 0)
+                    ),
+                )
                 audit["anchor_reference"] = anchor_reference
                 audit["status"] = "DLK-VERIFIED"
                 matched = True
@@ -250,6 +269,7 @@ class MerkleEngine:
 
 
 # ------------------------------ module API ------------------------------
+
 
 def build_merkle_tree(receipts: list[dict]) -> str:
     """Compute and persist the Merkle root for provided receipts.
@@ -262,7 +282,7 @@ def build_merkle_tree(receipts: list[dict]) -> str:
     return engine.build_and_store(receipts)
 
 
-def generate_merkle_proof(receipt_id: str) -> List[str]:
+def generate_merkle_proof(receipt_id: str) -> list[str]:
     """Return the Merkle proof for a governed receipt (AEP-001, RVC-001)."""
 
     engine = MerkleEngine()

@@ -4,28 +4,26 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean
-from typing import List, Optional, Sequence
-
-from tessrax.governance import route_to_governance_lane
 
 from tessrax.audit import AuditKernel
+from tessrax.governance import route_to_governance_lane
 from tessrax.ledger import Ledger
-from tessrax.schema import ClarityStatement
-from tessrax.types import Claim, ContradictionRecord
-
 from tessrax.physics.dynamics import SystemDynamics
 from tessrax.physics.phases import GovernancePhase, PhaseTransition
+from tessrax.schema import ClarityStatement
+from tessrax.types import Claim, ContradictionRecord
 
 
 class DriftTracker:
     """Tracks and stabilises epistemic drift across reconciliation cycles."""
 
     def __init__(self) -> None:
-        self.history: List[tuple[str, float]] = []
+        self.history: list[tuple[str, float]] = []
 
     def update(self, integrity_score: float, severity: float = 1.0) -> None:
         timestamp = datetime.now(timezone.utc).isoformat()
@@ -76,16 +74,24 @@ class ReconciliationEngine:
     def __init__(
         self,
         audit_kernel: AuditKernel,
-        ledger: Optional[Ledger] = None,
+        ledger: Ledger | None = None,
         *,
-        audit_log_path: Optional[Path] = None,
-        diagnostics_path: Optional[Path] = None,
-        engine_seed: Optional[int] = None,
+        audit_log_path: Path | None = None,
+        diagnostics_path: Path | None = None,
+        engine_seed: int | None = None,
     ) -> None:
         self.audit_kernel = audit_kernel
         self.ledger = ledger or Ledger()
-        self._audit_log_path = Path(audit_log_path) if audit_log_path else Path("logs/metabolism_audit.jsonl")
-        self._diagnostics_path = Path(diagnostics_path) if diagnostics_path else Path("logs/metabolism_diagnostics.jsonl")
+        self._audit_log_path = (
+            Path(audit_log_path)
+            if audit_log_path
+            else Path("logs/metabolism_audit.jsonl")
+        )
+        self._diagnostics_path = (
+            Path(diagnostics_path)
+            if diagnostics_path
+            else Path("logs/metabolism_diagnostics.jsonl")
+        )
         self._engine_seed = engine_seed if engine_seed is not None else 0
         self._drift_tracker = DriftTracker()
         self._clarity_baseline = 0.5
@@ -113,17 +119,21 @@ class ReconciliationEngine:
         bounded_delta = max(min(trust_delta, 0.15), -0.15)
         return max(0.0, min(1.0, candidate + bounded_delta))
 
-    def reconcile(self, contradictions: Sequence[ContradictionRecord]) -> List[ClarityStatement]:
+    def reconcile(
+        self, contradictions: Sequence[ContradictionRecord]
+    ) -> list[ClarityStatement]:
         """Reconcile a batch of contradictions into clarity statements."""
 
-        statements: List[ClarityStatement] = []
+        statements: list[ClarityStatement] = []
         for record in contradictions:
             insight = self.audit_kernel.assess(record)
             severity_weight = self._severity_weight(record.severity)
             self._drift_tracker.update(insight.confidence, severity_weight)
             current_drift = self._drift_tracker.drift()
             energy_value = getattr(record, "energy", 0.0)
-            phase = self.phase_transition.compute_phase(self._clarity_baseline, current_drift)
+            phase = self.phase_transition.compute_phase(
+                self._clarity_baseline, current_drift
+            )
             self._current_phase = phase
             measurement_confidence = getattr(record, "confidence", 0.5)
             new_candidate_value = insight.confidence * max(0.1, 1.0 - current_drift)
@@ -139,11 +149,17 @@ class ReconciliationEngine:
                 energy_value,
                 current_drift,
             )[0]
-            self._clarity_baseline = self._apply_trust_adjustment(updated_clarity, trust_adjustment)
+            self._clarity_baseline = self._apply_trust_adjustment(
+                updated_clarity, trust_adjustment
+            )
             # Compute clarity fuel from contradiction energy
             efficiency = 0.8
-            clarity_fuel = efficiency * (energy_value if energy_value else self._clarity_baseline * 10.0)
-            projected_energy = self.dynamics.energy_evolution(energy_value, 0.0, lambda _t: energy_value)
+            clarity_fuel = efficiency * (
+                energy_value if energy_value else self._clarity_baseline * 10.0
+            )
+            projected_energy = self.dynamics.energy_evolution(
+                energy_value, 0.0, lambda _t: energy_value
+            )
             statement = ClarityStatement(
                 subject=record.claim_a.subject,
                 metric=record.claim_a.metric,
@@ -156,7 +172,9 @@ class ReconciliationEngine:
             )
             statements.append(statement)
             self.ledger.append(_ClarityDecision(statement))
-            self._log_drift_metadata(record, statement, current_drift, phase, projected_energy)
+            self._log_drift_metadata(
+                record, statement, current_drift, phase, projected_energy
+            )
             self._emit_audit_record(record, statement, phase, projected_energy)
         if statements:
             self._emit_diagnostics(statements, len(contradictions))
@@ -215,7 +233,9 @@ class ReconciliationEngine:
         }
         self._write_jsonl(self._audit_log_path, payload)
 
-    def _emit_diagnostics(self, statements: List[ClarityStatement], total_inputs: int) -> None:
+    def _emit_diagnostics(
+        self, statements: list[ClarityStatement], total_inputs: int
+    ) -> None:
         diagnostics = {
             "event_type": "METABOLISM_DIAGNOSTICS",
             "date": datetime.now(timezone.utc).date().isoformat(),
@@ -269,7 +289,7 @@ def _record_from_payload(payload: dict) -> ContradictionRecord:
     )
 
 
-def load_contradictions(path: Path) -> List[ContradictionRecord]:
+def load_contradictions(path: Path) -> list[ContradictionRecord]:
     """Load contradiction records from a JSON file."""
 
     with path.open(encoding="utf-8") as handle:
@@ -280,7 +300,9 @@ def load_contradictions(path: Path) -> List[ContradictionRecord]:
 
 
 def build_cli() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Reconcile contradictions into clarity statements")
+    parser = argparse.ArgumentParser(
+        description="Reconcile contradictions into clarity statements"
+    )
     parser.add_argument(
         "input",
         type=Path,
@@ -299,7 +321,7 @@ def _emit_ledger(ledger: Ledger, path: Path) -> None:
     ledger.export(path)
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     parser = build_cli()
     args = parser.parse_args(argv)
 

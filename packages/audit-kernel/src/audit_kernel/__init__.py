@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any
 
 __all__ = ["AuditKernel", "AuditInsight", "audit_confidence", "__version__"]
 
@@ -39,7 +40,9 @@ class AuditKernel:
         if isinstance(record, Mapping):
             candidate: Mapping[str, Any] = record
         else:
-            candidate = getattr(record, "metrics", {}) if hasattr(record, "metrics") else {}
+            candidate = (
+                getattr(record, "metrics", {}) if hasattr(record, "metrics") else {}
+            )
             if not isinstance(candidate, Mapping):
                 candidate = {
                     key: getattr(record, key)
@@ -62,7 +65,9 @@ class AuditKernel:
         metrics: Mapping[str, float],
         confidence: float,
     ) -> str:
-        metric_clause = ", ".join(f"{name}={value:.2f}" for name, value in sorted(metrics.items()))
+        metric_clause = ", ".join(
+            f"{name}={value:.2f}" for name, value in sorted(metrics.items())
+        )
         if not metric_clause:
             metric_clause = "no metrics provided"
         return f"Audit assessment for {record!r}: {metric_clause} → confidence {confidence:.3f}"

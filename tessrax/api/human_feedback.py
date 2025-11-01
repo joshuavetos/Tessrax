@@ -5,13 +5,15 @@ cold-start endpoints with deterministic storage in JSONL format. Each
 request results in auditable receipts supporting the Receipts-First
 Rule.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
+
 from tessrax.core.governance.receipts import write_receipt
 
 APP = FastAPI(title="Tessrax Human Feedback", version="1.0.0")
@@ -25,7 +27,7 @@ def _timestamp() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _log_feedback(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _log_feedback(payload: dict[str, Any]) -> dict[str, Any]:
     """Append feedback payload to the JSONL ledger."""
 
     entry = {
@@ -42,16 +44,16 @@ def _log_feedback(payload: Dict[str, Any]) -> Dict[str, Any]:
     return entry
 
 
-def _load_history() -> List[Dict[str, Any]]:
+def _load_history() -> list[dict[str, Any]]:
     """Load historical feedback entries deterministically."""
 
-    history: List[Dict[str, Any]] = []
+    history: list[dict[str, Any]] = []
     if not DATA_PATH.exists():
         return history
     for line in DATA_PATH.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
-        record: Dict[str, Any] = {}
+        record: dict[str, Any] = {}
         for fragment in line.strip("{} ").split(","):
             key, value = fragment.split(":", 1)
             record[key.strip('"')] = value.strip('"')
@@ -60,7 +62,7 @@ def _load_history() -> List[Dict[str, Any]]:
 
 
 @APP.post("/feedback")
-def submit_feedback(payload: Dict[str, Any]) -> Dict[str, Any]:
+def submit_feedback(payload: dict[str, Any]) -> dict[str, Any]:
     """Record human feedback with runtime validation."""
 
     for field in ("rule_id", "verdict"):
@@ -73,7 +75,7 @@ def submit_feedback(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @APP.get("/history")
-def get_history() -> Dict[str, Any]:
+def get_history() -> dict[str, Any]:
     """Return deterministic history payload."""
 
     history = _load_history()
@@ -93,7 +95,7 @@ def _self_test() -> bool:
     write_receipt(
         "tessrax.api.human_feedback.self_test",
         "verified",
-        {"history_size": len(history_body["history"] )},
+        {"history_size": len(history_body["history"])},
         0.96,
     )
     return True

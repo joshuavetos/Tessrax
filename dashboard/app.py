@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import os
 from collections import Counter
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, List
 
 import pandas as pd
 import plotly.express as px
@@ -20,16 +20,18 @@ from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
 
 config = load_config()
 default_ledger = Path(config.logging.ledger_path)
-DEFAULT_EPI_ENDPOINT = os.getenv("TESSRAX_GOVERNANCE_API", "http://localhost:8000/epistemic_metrics")
+DEFAULT_EPI_ENDPOINT = os.getenv(
+    "TESSRAX_GOVERNANCE_API", "http://localhost:8000/epistemic_metrics"
+)
 POLL_INTERVAL_SECONDS = 30
 HISTORY_STATE_KEY = "epistemic_metrics_history"
 
 
 @st.cache_data(show_spinner=False)
-def _load_ledger(path: Path) -> List[dict]:
+def _load_ledger(path: Path) -> list[dict]:
     if not path.exists():
         return []
-    records: List[dict] = []
+    records: list[dict] = []
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
@@ -42,13 +44,15 @@ def _load_ledger(path: Path) -> List[dict]:
     return records
 
 
-def _enrich_records(records: Iterable[dict]) -> List[dict]:
-    enriched: List[dict] = []
+def _enrich_records(records: Iterable[dict]) -> list[dict]:
+    enriched: list[dict] = []
     for record in records:
         claims = record.get("claims", [])
         stability = calculate_stability(claims)
         lane = route_to_governance_lane(stability, config.thresholds)
-        enriched.append({**record, "stability_score": stability, "governance_lane": lane})
+        enriched.append(
+            {**record, "stability_score": stability, "governance_lane": lane}
+        )
     return enriched
 
 
@@ -82,7 +86,9 @@ def _summarise(records: Iterable[dict]) -> dict:
     return {"total": sum(lanes.values()), "lanes": dict(lanes)}
 
 
-def render_integrity_gradient(clarity_records: List[dict], alert_threshold: float = 0.05) -> None:
+def render_integrity_gradient(
+    clarity_records: list[dict], alert_threshold: float = 0.05
+) -> None:
     """Visualise reconciliation integrity with drift overlays and alerts."""
 
     if not clarity_records:
@@ -90,7 +96,9 @@ def render_integrity_gradient(clarity_records: List[dict], alert_threshold: floa
         return
     frame = pd.DataFrame(clarity_records)
     if {"timestamp", "integrity_score", "domain"} - set(frame.columns):
-        st.warning("Integrity gradient requires timestamp, domain, and integrity_score fields.")
+        st.warning(
+            "Integrity gradient requires timestamp, domain, and integrity_score fields."
+        )
         return
     frame = frame.sort_values("timestamp")
     frame["rolling_mean"] = frame.groupby("domain")["integrity_score"].transform(
@@ -115,7 +123,10 @@ def render_integrity_gradient(clarity_records: List[dict], alert_threshold: floa
 
     recent_window = frame.tail(5)
     if not recent_window.empty:
-        drift = abs(recent_window["integrity_score"].mean() - recent_window["rolling_mean"].iloc[-1])
+        drift = abs(
+            recent_window["integrity_score"].mean()
+            - recent_window["rolling_mean"].iloc[-1]
+        )
         if drift > alert_threshold:
             st.warning(f"⚠️ Epistemic drift anomaly detected ({drift:.3f})")
 
@@ -149,7 +160,10 @@ def main() -> None:
 
     st.divider()
     st.subheader("Epistemic Metrics")
-    html(f"<script>setTimeout(() => window.location.reload(), {POLL_INTERVAL_SECONDS * 1000});</script>", height=0)
+    html(
+        f"<script>setTimeout(() => window.location.reload(), {POLL_INTERVAL_SECONDS * 1000});</script>",
+        height=0,
+    )
     st.caption(
         f"Polling {DEFAULT_EPI_ENDPOINT} every {POLL_INTERVAL_SECONDS} seconds for epistemic integrity telemetry."
     )
@@ -174,7 +188,9 @@ def main() -> None:
 
         col1, col2 = st.columns(2)
         gauge_value = max(0.0, min(integrity, 1.0))
-        col1.metric("Epistemic Integrity Score", f"{integrity:.2%}", delta="Target ≥ 85%")
+        col1.metric(
+            "Epistemic Integrity Score", f"{integrity:.2%}", delta="Target ≥ 85%"
+        )
         col1.progress(int(gauge_value * 100))
         col2.metric("Adversarial Resilience", f"{resilience:.2%}", delta="Target ≥ 90%")
         col2.bar_chart({"Resilience": [resilience]}, use_container_width=True)

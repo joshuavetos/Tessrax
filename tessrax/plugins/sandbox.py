@@ -17,17 +17,16 @@ try:  # pragma: no cover - imported at module load
 except ModuleNotFoundError:  # pragma: no cover - Windows fallback
     resource = None  # type: ignore[assignment]
 
-from RestrictedPython import compile_restricted
-from RestrictedPython import safe_builtins
-from RestrictedPython import utility_builtins
-from RestrictedPython.Eval import default_guarded_getattr
-from RestrictedPython.Eval import default_guarded_getitem
+from RestrictedPython import compile_restricted, safe_builtins, utility_builtins
+from RestrictedPython.Eval import default_guarded_getattr, default_guarded_getitem
 from RestrictedPython.Guards import guarded_setattr
 
 MEMORY_LIMIT_BYTES = 100 * 1024 * 1024
 CPU_LIMIT_SECONDS = 30
 
-_ALLOWED_MODULES = MappingProxyType({"math": __import__("math"), "statistics": __import__("statistics")})
+_ALLOWED_MODULES = MappingProxyType(
+    {"math": __import__("math"), "statistics": __import__("statistics")}
+)
 
 
 @contextmanager
@@ -43,8 +42,12 @@ def _resource_limits(memory_bytes: int, cpu_seconds: int):
     try:
         as_soft, as_hard = old_limits[resource.RLIMIT_AS]
         cpu_soft, cpu_hard = old_limits[resource.RLIMIT_CPU]
-        new_as_soft = min(memory_bytes, as_hard if as_hard != resource.RLIM_INFINITY else memory_bytes)
-        new_cpu_soft = min(cpu_seconds, cpu_hard if cpu_hard != resource.RLIM_INFINITY else cpu_seconds)
+        new_as_soft = min(
+            memory_bytes, as_hard if as_hard != resource.RLIM_INFINITY else memory_bytes
+        )
+        new_cpu_soft = min(
+            cpu_seconds, cpu_hard if cpu_hard != resource.RLIM_INFINITY else cpu_seconds
+        )
         resource.setrlimit(resource.RLIMIT_AS, (new_as_soft, as_hard))
         resource.setrlimit(resource.RLIMIT_CPU, (new_cpu_soft, cpu_hard))
         yield
@@ -53,7 +56,13 @@ def _resource_limits(memory_bytes: int, cpu_seconds: int):
             resource.setrlimit(key, value)
 
 
-def _restricted_import(name: str, globals: dict[str, Any] | None = None, locals: dict[str, Any] | None = None, fromlist: tuple[str, ...] = (), level: int = 0):  # noqa: D401 - compatibility shim
+def _restricted_import(
+    name: str,
+    globals: dict[str, Any] | None = None,
+    locals: dict[str, Any] | None = None,
+    fromlist: tuple[str, ...] = (),
+    level: int = 0,
+):  # noqa: D401 - compatibility shim
     if name in _ALLOWED_MODULES:
         return _ALLOWED_MODULES[name]
     raise ImportError(f"Module '{name}' is not permitted in the Tessrax sandbox")
@@ -87,10 +96,14 @@ def _sandbox_open(tmp_root: Path):
         candidate = candidate.resolve(strict=False)
         try:
             is_within = candidate.is_relative_to(tmp_root)
-        except AttributeError:  # Python <3.9 fallback (not expected under pyproject pin)
+        except (
+            AttributeError
+        ):  # Python <3.9 fallback (not expected under pyproject pin)
             is_within = str(candidate).startswith(str(tmp_root))
         if not is_within:
-            raise PermissionError("Plugins may only write within /tmp/plugin_* directories")
+            raise PermissionError(
+                "Plugins may only write within /tmp/plugin_* directories"
+            )
         os.makedirs(candidate.parent, exist_ok=True)
         return builtins.open(candidate, mode, *args, **kwargs)
 
@@ -116,7 +129,7 @@ def _run_in_child(code: str, payload: dict[str, Any], conn) -> None:
         conn.send(("error", (exc, traceback.format_exc())))
     finally:
         conn.close()
-        if 'tmp_root' in locals():
+        if "tmp_root" in locals():
             shutil.rmtree(tmp_root, ignore_errors=True)
 
 

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import json
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
-
-from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -43,11 +42,13 @@ app = FastAPI(title="Tessrax-Core API", version="1.0.0", lifespan=lifespan)
 class AgentClaim(BaseModel):
     agent: str = Field(..., description="Agent identifier")
     claim: str = Field(..., description="Agent claim text")
-    context: Dict[str, Any] | None = Field(default=None, description="Optional claim metadata")
+    context: dict[str, Any] | None = Field(
+        default=None, description="Optional claim metadata"
+    )
 
 
 class ClaimsSubmission(BaseModel):
-    claims: List[AgentClaim] = Field(..., description="Claims to analyse")
+    claims: list[AgentClaim] = Field(..., description="Claims to analyse")
 
 
 class AnalysisResult(BaseModel):
@@ -82,7 +83,7 @@ async def get_ledger() -> JSONResponse:
     if not ledger_path.exists():
         return JSONResponse(content=[], status_code=200)
 
-    records: List[Dict[str, Any]] = []
+    records: list[dict[str, Any]] = []
     with ledger_path.open("r", encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
@@ -90,13 +91,17 @@ async def get_ledger() -> JSONResponse:
                 continue
             try:
                 records.append(json.loads(line))
-            except json.JSONDecodeError as exc:  # pragma: no cover - protect against corruption
-                raise HTTPException(status_code=500, detail=f"Invalid ledger entry: {exc}")
+            except (
+                json.JSONDecodeError
+            ) as exc:  # pragma: no cover - protect against corruption
+                raise HTTPException(
+                    status_code=500, detail=f"Invalid ledger entry: {exc}"
+                )
     return JSONResponse(content=records)
 
 
 @app.get("/healthz")
-async def health() -> Dict[str, str]:
+async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
@@ -110,7 +115,7 @@ class StructuredClaim(BaseModel):
     unit: str
     timestamp: datetime
     source: str
-    context: Dict[str, str] = Field(default_factory=dict)
+    context: dict[str, str] = Field(default_factory=dict)
 
     def to_claim(self) -> Claim:
         return Claim(
@@ -126,7 +131,7 @@ class StructuredClaim(BaseModel):
 
 
 @app.post("/claims")
-async def submit_structured_claims(claims: List[StructuredClaim]) -> Dict[str, object]:
+async def submit_structured_claims(claims: list[StructuredClaim]) -> dict[str, object]:
     if not claims:
         raise HTTPException(status_code=400, detail="At least one claim is required")
 
@@ -136,10 +141,10 @@ async def submit_structured_claims(claims: List[StructuredClaim]) -> Dict[str, o
 
 
 @app.get("/contradictions/live")
-async def get_live_contradictions() -> Dict[str, int]:
+async def get_live_contradictions() -> dict[str, int]:
     return {"active": len(detector.seen)}
 
 
 @app.get("/metrics")
-async def metrics() -> Dict[str, int]:
+async def metrics() -> dict[str, int]:
     return detector.metrics()

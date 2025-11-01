@@ -67,7 +67,11 @@ def test_verify_detects_tampering(tmp_path: Path) -> None:
     ledger.export(path)
 
     lines = path.read_text().splitlines()
-    corrupt = lines[0].replace("ESCALATE", "RESET") if "ESCALATE" in lines[0] else lines[0].replace("12.0", "24.0")
+    corrupt = (
+        lines[0].replace("ESCALATE", "RESET")
+        if "ESCALATE" in lines[0]
+        else lines[0].replace("12.0", "24.0")
+    )
     path.write_text("\n".join([corrupt]))
 
     with pytest.raises(ValueError):

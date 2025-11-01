@@ -46,7 +46,9 @@ def main() -> None:
     for contradiction in contradictions:
         decision = kernel.process(contradiction)
         receipt = ledger.append(decision)
-        print(f"Recorded {receipt.hash[:8]} for action {decision.action} at severity {contradiction.severity}")
+        print(
+            f"Recorded {receipt.hash[:8]} for action {decision.action} at severity {contradiction.severity}"
+        )
 
     export_path = Path("artifacts/ledger_demo.jsonl")
     ledger.export(export_path)

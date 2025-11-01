@@ -6,7 +6,9 @@ from __future__ import annotations
 class SystemDynamics:
     """Evaluate simple energy and trust evolution equations."""
 
-    def __init__(self, gamma: float = 0.1, alpha: float = 0.5, beta: float = 0.3) -> None:
+    def __init__(
+        self, gamma: float = 0.1, alpha: float = 0.5, beta: float = 0.3
+    ) -> None:
         self.gamma = gamma
         self.alpha = alpha
         self.beta = beta

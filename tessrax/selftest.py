@@ -5,10 +5,10 @@ from __future__ import annotations
 import importlib
 import inspect
 import sys
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
-from typing import Iterable, List, Sequence
 
 _BASE_PACKAGES: tuple[str, ...] = ("tessrax", "tessrax.core")
 
@@ -22,7 +22,7 @@ class SelfTestResult:
     message: str
 
 
-def _resolve_package_paths(package: ModuleType) -> List[Path]:
+def _resolve_package_paths(package: ModuleType) -> list[Path]:
     if not hasattr(package, "__path__"):
         return []
     return [Path(path) for path in package.__path__]
@@ -45,7 +45,9 @@ def _discover_modules(packages: Sequence[str]) -> Iterable[str]:
             yield f"!failed_import:{base_name}:{exc}"
             continue
         module_file = getattr(base_module, "__file__", None)
-        if module_file and "_self_test" in Path(module_file).read_text(encoding="utf-8"):
+        if module_file and "_self_test" in Path(module_file).read_text(
+            encoding="utf-8"
+        ):
             seen.add(base_name)
             yield base_name
         for package_path in _resolve_package_paths(base_module):
@@ -66,33 +68,47 @@ def _discover_modules(packages: Sequence[str]) -> Iterable[str]:
 
 def _execute_self_test(module_name: str) -> SelfTestResult:
     if module_name.startswith("!failed_import:"):
-        return SelfTestResult(module=module_name, succeeded=False, message="import failure")
+        return SelfTestResult(
+            module=module_name, succeeded=False, message="import failure"
+        )
     try:
         module = importlib.import_module(module_name)
     except Exception as exc:
-        return SelfTestResult(module=module_name, succeeded=False, message=f"import error: {exc}")
+        return SelfTestResult(
+            module=module_name, succeeded=False, message=f"import error: {exc}"
+        )
     candidate = getattr(module, "_self_test", None)
     if candidate is None:
-        return SelfTestResult(module=module_name, succeeded=True, message="no self-test")
+        return SelfTestResult(
+            module=module_name, succeeded=True, message="no self-test"
+        )
     if not callable(candidate):
-        return SelfTestResult(module=module_name, succeeded=False, message="_self_test not callable")
+        return SelfTestResult(
+            module=module_name, succeeded=False, message="_self_test not callable"
+        )
     signature = inspect.signature(candidate)
     if signature.parameters:
-        return SelfTestResult(module=module_name, succeeded=False, message="_self_test has parameters")
+        return SelfTestResult(
+            module=module_name, succeeded=False, message="_self_test has parameters"
+        )
     try:
         outcome = candidate()
     except Exception as exc:  # pragma: no cover - failure path is summarised
-        return SelfTestResult(module=module_name, succeeded=False, message=f"raised {exc}")
+        return SelfTestResult(
+            module=module_name, succeeded=False, message=f"raised {exc}"
+        )
     if outcome is not True:
-        return SelfTestResult(module=module_name, succeeded=False, message=f"returned {outcome!r}")
+        return SelfTestResult(
+            module=module_name, succeeded=False, message=f"returned {outcome!r}"
+        )
     return SelfTestResult(module=module_name, succeeded=True, message="passed")
 
 
-def run_self_tests(packages: Sequence[str] | None = None) -> List[SelfTestResult]:
+def run_self_tests(packages: Sequence[str] | None = None) -> list[SelfTestResult]:
     """Run `_self_test` hooks for all modules beneath the supplied packages."""
 
     targets = packages or _BASE_PACKAGES
-    results: List[SelfTestResult] = []
+    results: list[SelfTestResult] = []
     for module_name in _discover_modules(targets):
         results.append(_execute_self_test(module_name))
     return results

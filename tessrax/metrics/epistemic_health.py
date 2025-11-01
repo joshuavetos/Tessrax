@@ -11,10 +11,9 @@ from __future__ import annotations
 import math
 import statistics
 from collections import Counter
-from typing import List, Tuple
 
 
-def compute_integrity(outcomes: List[float], sigma_max: float | None = None) -> float:
+def compute_integrity(outcomes: list[float], sigma_max: float | None = None) -> float:
     """Return the bounded integrity score.
 
     The integrity metric is defined as ``1 - (σ_t / σ_max)`` where ``σ_t`` is the
@@ -32,7 +31,7 @@ def compute_integrity(outcomes: List[float], sigma_max: float | None = None) -> 
     return max(0.0, min(1.0, raw))
 
 
-def compute_drift(history: List[Tuple[float, float]]) -> float:
+def compute_drift(history: list[tuple[float, float]]) -> float:
     """Return the absolute drift between the latest value and the prior mean."""
     if len(history) < 2:
         return 0.0
@@ -43,7 +42,7 @@ def compute_drift(history: List[Tuple[float, float]]) -> float:
     return max(0.0, min(1.0, drift))
 
 
-def compute_severity(expected: List[float], observed: List[float]) -> float:
+def compute_severity(expected: list[float], observed: list[float]) -> float:
     """Return the bounded mean absolute error across expected and observed values."""
     if not expected or not observed or len(expected) != len(observed):
         return 0.0

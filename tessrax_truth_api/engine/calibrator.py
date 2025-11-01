@@ -1,8 +1,8 @@
 """Adaptive calibration scaffold for the Truth API."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
 
 from tessrax_truth_api.utils import base_metrics_snapshot, load_config
 
@@ -23,7 +23,7 @@ class Calibrator:
         self._config = load_config()
 
     @property
-    def thresholds(self) -> Dict[str, float]:
+    def thresholds(self) -> dict[str, float]:
         return self._config.get("thresholds", {})
 
     def metrics(self) -> CalibrationSnapshot:

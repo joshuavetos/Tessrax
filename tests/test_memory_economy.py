@@ -1,4 +1,5 @@
 """Tests for temporal compressor and contradiction economy."""
+
 from __future__ import annotations
 
 import py_compile
@@ -30,10 +31,12 @@ def _load_module(name: str, path: Path):
 
 
 temporal_compressor = _load_module(
-    "tessrax.core.memory.temporal_compressor", Path("tessrax/core/memory/temporal_compressor.py")
+    "tessrax.core.memory.temporal_compressor",
+    Path("tessrax/core/memory/temporal_compressor.py"),
 )
 contradiction_economy = _load_module(
-    "tessrax.core.metabolism.contradiction_economy", Path("tessrax/core/metabolism/contradiction_economy.py")
+    "tessrax.core.metabolism.contradiction_economy",
+    Path("tessrax/core/metabolism/contradiction_economy.py"),
 )
 
 

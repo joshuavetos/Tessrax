@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable, Mapping, Sequence
 from types import SimpleNamespace
-from typing import Iterable, Mapping, Optional, Sequence
 
 try:  # pragma: no cover - optional dependency with heavyweight backend
     from sentence_transformers import SentenceTransformer, util
@@ -18,10 +18,10 @@ from tessrax.types import ContradictionRecord, GovernanceDecision
 
 logger = logging.getLogger(__name__)
 
-_MODEL: Optional[SentenceTransformer] = None
+_MODEL: SentenceTransformer | None = None
 
 
-def _load_model() -> Optional[SentenceTransformer]:
+def _load_model() -> SentenceTransformer | None:
     """Lazily load the sentence transformer used for contradiction typing."""
 
     global _MODEL
@@ -30,7 +30,9 @@ def _load_model() -> Optional[SentenceTransformer]:
     try:
         _MODEL = SentenceTransformer("all-MiniLM-L6-v2")
     except Exception as exc:  # pragma: no cover - defensive path when model load fails
-        logger.warning("Falling back to heuristic contradiction classification: %s", exc)
+        logger.warning(
+            "Falling back to heuristic contradiction classification: %s", exc
+        )
         _MODEL = None
     return _MODEL
 
@@ -46,7 +48,11 @@ def _token_overlap_ratio(text_a: str, text_b: str) -> float:
 
 
 def _claim_to_text(claim: object) -> str:
-    if hasattr(claim, "subject") and hasattr(claim, "metric") and hasattr(claim, "value"):
+    if (
+        hasattr(claim, "subject")
+        and hasattr(claim, "metric")
+        and hasattr(claim, "value")
+    ):
         subject = getattr(claim, "subject", "")
         metric = getattr(claim, "metric", "")
         value = getattr(claim, "value", "")
@@ -63,7 +69,9 @@ def classify_contradiction(text_a: str, text_b: str) -> str:
             emb_a, emb_b = model.encode([text_a, text_b], convert_to_tensor=True)
             score = util.pytorch_cos_sim(emb_a, emb_b).item()
         except Exception as exc:  # pragma: no cover - catch runtime backend errors
-            logger.warning("Semantic model error – reverting to heuristic scoring: %s", exc)
+            logger.warning(
+                "Semantic model error – reverting to heuristic scoring: %s", exc
+            )
             score = None
         else:
             if score < 0.4:
@@ -159,7 +167,7 @@ class GovernanceKernel:
 
     def _clarity_fuel(self, delta: float) -> float:
         detachment_score = min(max(delta * 4, 0.0), 2.0)
-        return 12 * (detachment_score ** 1.5)
+        return 12 * (detachment_score**1.5)
 
     def _rationale(self, contradiction: ContradictionRecord) -> str:
         protocol_summary = (
@@ -205,7 +213,9 @@ class GovernanceKernel:
         return list(self._alerts)
 
     @staticmethod
-    def _attach_signature(decision: GovernanceDecision, signature: DecisionSignature) -> None:
+    def _attach_signature(
+        decision: GovernanceDecision, signature: DecisionSignature
+    ) -> None:
         decision.timestamp_token = signature.timestamp_token
         decision.signature = signature.signature
 
@@ -213,9 +223,15 @@ class GovernanceKernel:
         """Route inbound records to the appropriate governance lane."""
 
         if isinstance(record, Mapping):
-            raw_meta = dict(record.get("meta", {})) if isinstance(record.get("meta"), Mapping) else {}
+            raw_meta = (
+                dict(record.get("meta", {}))
+                if isinstance(record.get("meta"), Mapping)
+                else {}
+            )
             event_type = record.get("event_type")
-            lane_source = SimpleNamespace(**{k: v for k, v in record.items() if k.isidentifier()})
+            lane_source = SimpleNamespace(
+                **{k: v for k, v in record.items() if k.isidentifier()}
+            )
         else:
             meta_attr = getattr(record, "meta", {})
             raw_meta = dict(meta_attr) if isinstance(meta_attr, Mapping) else {}
@@ -235,7 +251,8 @@ class GovernanceKernel:
                 "governance_ingest",
                 {
                     "event_type": "GOVERNANCE_INGEST",
-                    "record_id": getattr(record, "id", None) or (record.get("id") if isinstance(record, Mapping) else None),
+                    "record_id": getattr(record, "id", None)
+                    or (record.get("id") if isinstance(record, Mapping) else None),
                     "lane": lane,
                     "meta": raw_meta,
                 },

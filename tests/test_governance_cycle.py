@@ -11,7 +11,7 @@ from tessrax.types import Claim
 def make_claim(claim_id: str, value: float) -> Claim:
     return Claim(
         claim_id=claim_id,
-        subject="Helios", 
+        subject="Helios",
         metric="emissions",
         value=value,
         unit="ktCO2e",

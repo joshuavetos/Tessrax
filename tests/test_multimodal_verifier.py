@@ -1,4 +1,5 @@
 """Tests for multimodal verifier module."""
+
 from __future__ import annotations
 
 import py_compile
@@ -29,7 +30,9 @@ def _load_module(name: str, path: Path):
     return module
 
 
-verifier = _load_module("tessrax.core.multimodal.verifier", Path("tessrax/core/multimodal/verifier.py"))
+verifier = _load_module(
+    "tessrax.core.multimodal.verifier", Path("tessrax/core/multimodal/verifier.py")
+)
 
 
 def test_multimodal_self_test():

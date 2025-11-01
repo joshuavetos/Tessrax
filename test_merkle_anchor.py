@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import json
+import sys
+import types
 from pathlib import Path
 
 import pytest
-
-import importlib
-import importlib.util
-import sys
-import types
 
 MODULE_ROOT = Path(__file__).resolve().parent
 
@@ -36,6 +35,7 @@ def _load(module_name: str, relative: str):
     spec.loader.exec_module(module)
     return module
 
+
 anchor_service = _load("tessrax.core.anchor_service", "tessrax/core/anchor_service.py")
 merkle_engine = _load("tessrax.core.merkle_engine", "tessrax/core/merkle_engine.py")
 
@@ -49,7 +49,9 @@ def sample_receipts() -> list[dict]:
     ]
 
 
-def test_build_and_proof(tmp_path: Path, sample_receipts: list[dict], monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_and_proof(
+    tmp_path: Path, sample_receipts: list[dict], monkeypatch: pytest.MonkeyPatch
+) -> None:
     ledger_path = tmp_path / "ledger.jsonl"
     monkeypatch.setenv("TESSRAX_LEDGER_PATH", str(ledger_path))
     root = merkle_engine.build_merkle_tree(sample_receipts)
@@ -64,7 +66,9 @@ def test_build_and_proof(tmp_path: Path, sample_receipts: list[dict], monkeypatc
     assert target["audit_receipt"]["signature"].startswith("SIG-")
 
 
-def test_anchor_and_log(tmp_path: Path, sample_receipts: list[dict], monkeypatch: pytest.MonkeyPatch) -> None:
+def test_anchor_and_log(
+    tmp_path: Path, sample_receipts: list[dict], monkeypatch: pytest.MonkeyPatch
+) -> None:
     ledger_path = tmp_path / "ledger.jsonl"
     anchor_log = tmp_path / "anchors.jsonl"
     with ledger_path.open("w", encoding="utf-8") as handle:
@@ -77,7 +81,10 @@ def test_anchor_and_log(tmp_path: Path, sample_receipts: list[dict], monkeypatch
     monkeypatch.setenv("ANCHOR_MODE", "mock")
     anchor_reference = anchor_service.anchor_merkle_root(root)
     updated = engine.load_receipts()
-    assert any(r.get("external_anchor", {}).get("reference") == anchor_reference for r in updated)
+    assert any(
+        r.get("external_anchor", {}).get("reference") == anchor_reference
+        for r in updated
+    )
     log_entries = [json.loads(line) for line in anchor_log.open("r", encoding="utf-8")]
     assert log_entries[-1]["anchor_reference"] == anchor_reference
     assert log_entries[-1]["status"] == "DLK-VERIFIED"

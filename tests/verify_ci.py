@@ -17,7 +17,9 @@ def main() -> None:
     root = Path(__file__).resolve().parent.parent
     audit_kernel_src = root / "packages" / "audit-kernel" / "src"
     python_path = os.environ.get("PYTHONPATH", "")
-    extra_path = os.pathsep.join(filter(None, [str(root), str(audit_kernel_src), python_path]))
+    extra_path = os.pathsep.join(
+        filter(None, [str(root), str(audit_kernel_src), python_path])
+    )
     env = dict(os.environ, PYTHONPATH=extra_path)
     result = subprocess.run(
         ["pytest", "--collect-only"],

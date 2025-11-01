@@ -8,9 +8,9 @@ import logging
 import sqlite3
 import threading
 from collections import deque
+from collections.abc import Iterable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, List, Optional
 
 from tessrax.types import Claim
 
@@ -31,7 +31,11 @@ class LedgerIndex:
     @staticmethod
     def _derive_database_path(ledger_path: Path) -> Path:
         suffix = ledger_path.suffix or ""
-        return ledger_path.with_suffix(f"{suffix}.sqlite3") if suffix else ledger_path.with_name(f"{ledger_path.name}.sqlite3")
+        return (
+            ledger_path.with_suffix(f"{suffix}.sqlite3")
+            if suffix
+            else ledger_path.with_name(f"{ledger_path.name}.sqlite3")
+        )
 
     def _initialise(self) -> None:
         cursor = self._connection.cursor()
@@ -51,13 +55,15 @@ class LedgerIndex:
             )
             """
         )
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_claims_subject ON claims(subject)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_claims_subject ON claims(subject)"
+        )
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_claims_subject_metric ON claims(subject, metric)"
         )
         self._connection.commit()
 
-    def sync(self, limit: Optional[int] = None) -> None:
+    def sync(self, limit: int | None = None) -> None:
         """Load ledger entries from disk into the SQLite index."""
 
         if not self.ledger_path.exists():
@@ -91,7 +97,7 @@ class LedgerIndex:
         payload = claim.to_json()
         self._insert_with_payload(payload)
 
-    def query_similar(self, subject: str, metric: str | None = None) -> List[Claim]:
+    def query_similar(self, subject: str, metric: str | None = None) -> list[Claim]:
         """Return claims that share the subject (and optional metric)."""
 
         with self._lock:
@@ -154,7 +160,7 @@ class LedgerIndex:
             ),
         )
 
-    def _load_ledger_entries(self, limit: Optional[int]) -> Iterable[dict]:
+    def _load_ledger_entries(self, limit: int | None) -> Iterable[dict]:
         entries: Iterable[str]
         with self.ledger_path.open("r", encoding="utf-8") as handle:
             if limit is None:
@@ -177,7 +183,7 @@ class LedgerIndex:
         return results
 
     @staticmethod
-    def _extract_contradiction(receipt: dict) -> Optional[dict]:
+    def _extract_contradiction(receipt: dict) -> dict | None:
         decision = receipt.get("decision")
         if isinstance(decision, dict):
             contradiction = decision.get("contradiction")

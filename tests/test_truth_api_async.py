@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -41,7 +40,9 @@ def anyio_backend():
 async def client():
     test_app = create_app()
     transport = ASGITransport(app=test_app)
-    async with AsyncClient(transport=transport, base_url="http://testserver") as async_client:
+    async with AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as async_client:
         yield async_client
 
 
@@ -62,7 +63,11 @@ async def test_detect_endpoint_generates_receipt(client: AsyncClient):
     headers = _auth_headers("free")
     response = await client.post(
         "/detect",
-        json={"claim_a": "Cats are animals", "claim_b": "Cats are not animals", "tier": "free"},
+        json={
+            "claim_a": "Cats are animals",
+            "claim_b": "Cats are not animals",
+            "tier": "free",
+        },
         headers=headers,
     )
     assert response.status_code == status.HTTP_200_OK
@@ -76,12 +81,18 @@ async def test_verify_receipt_returns_merkle_details(client: AsyncClient):
     headers = _auth_headers("free")
     detect_response = await client.post(
         "/detect",
-        json={"claim_a": "Paris is in France", "claim_b": "Paris is not in France", "tier": "free"},
+        json={
+            "claim_a": "Paris is in France",
+            "claim_b": "Paris is not in France",
+            "tier": "free",
+        },
         headers=headers,
     )
     receipt_uuid = detect_response.json()["receipt_uuid"]
 
-    verify_response = await client.get(f"/verify_receipt/{receipt_uuid}", headers=headers)
+    verify_response = await client.get(
+        f"/verify_receipt/{receipt_uuid}", headers=headers
+    )
     assert verify_response.status_code == status.HTTP_200_OK
     payload = verify_response.json()
     assert payload["uuid"] == receipt_uuid

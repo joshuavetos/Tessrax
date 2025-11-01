@@ -3,16 +3,16 @@ Auto-append latest epistemic metrics to ledger.log after successful test run.
 Triggered post-pytest via CI workflow.
 """
 
-import json
 import datetime
+import json
 import subprocess
 from pathlib import Path
 
 from tessrax.metrics.epistemic_health import (
-    compute_integrity,
     compute_drift,
-    compute_severity,
     compute_entropy,
+    compute_integrity,
+    compute_severity,
 )
 
 
@@ -49,4 +49,6 @@ if __name__ == "__main__":  # pragma: no cover - manual invocation helper
     sample_expected = [0.9, 0.85, 0.8]
     sample_observed = [0.92, 0.84, 0.79]
     sample_labels = ["semantic", "procedural", "semantic"]
-    append_metrics_to_ledger(sample_outcomes, sample_expected, sample_observed, sample_labels)
+    append_metrics_to_ledger(
+        sample_outcomes, sample_expected, sample_observed, sample_labels
+    )

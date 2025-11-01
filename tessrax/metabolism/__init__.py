@@ -6,7 +6,7 @@ import importlib
 from types import ModuleType
 from typing import Any, Dict, Tuple
 
-_EXPORTS: Dict[str, Tuple[str, str]] = {
+_EXPORTS: dict[str, tuple[str, str]] = {
     "AdversarialAgent": ("tessrax.metabolism.adversarial", "AdversarialAgent"),
     "AsyncContradictionDetector": (
         "tessrax.metabolism.async_detector",

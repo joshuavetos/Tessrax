@@ -4,20 +4,23 @@ import hashlib
 import json
 from pathlib import Path
 
-import pytest
-
 from tessrax.ledger import Ledger, compute_merkle_root
 from tests.test_ledger import make_decision
 
 
 def _manual_merkle(entries):
-    nodes = [hashlib.sha256(json.dumps(entry, sort_keys=True).encode("utf-8")).hexdigest() for entry in entries]
+    nodes = [
+        hashlib.sha256(json.dumps(entry, sort_keys=True).encode("utf-8")).hexdigest()
+        for entry in entries
+    ]
     while len(nodes) > 1:
         next_level = []
         for index in range(0, len(nodes), 2):
             left = nodes[index]
             right = nodes[index + 1] if index + 1 < len(nodes) else nodes[index]
-            next_level.append(hashlib.sha256((left + right).encode("utf-8")).hexdigest())
+            next_level.append(
+                hashlib.sha256((left + right).encode("utf-8")).hexdigest()
+            )
         nodes = next_level
     return nodes[0]
 
@@ -48,7 +51,10 @@ def test_signature_chain_offline(tmp_path: Path) -> None:
     export_path = tmp_path / "contract-ledger.jsonl"
     ledger.export(export_path)
 
-    on_disk = [json.loads(line) for line in export_path.read_text(encoding="utf-8").splitlines()]
+    on_disk = [
+        json.loads(line)
+        for line in export_path.read_text(encoding="utf-8").splitlines()
+    ]
     assert all(entry.get("signature") for entry in on_disk)
 
     prev_hash = "GENESIS"

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 from audit_kernel import audit_confidence
+
 from tessrax.types import ContradictionRecord
 
 
@@ -77,7 +78,9 @@ class AuditKernel:
         )
 
 
-def batch_assess(kernel: AuditKernel, contradictions: Sequence[ContradictionRecord]) -> Sequence[AuditInsights]:
+def batch_assess(
+    kernel: AuditKernel, contradictions: Sequence[ContradictionRecord]
+) -> Sequence[AuditInsights]:
     """Evaluate a batch of contradictions and yield audit insights."""
 
     return [kernel.assess(item) for item in contradictions]

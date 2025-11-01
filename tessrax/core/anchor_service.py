@@ -23,7 +23,9 @@ def _resolve_anchor_log() -> Path:
 
 
 def _anchor_receipt(root_hash: str, anchor_reference: str, mode: str) -> dict:
-    execution_hash = hashlib.sha256(f"anchor:{root_hash}:{anchor_reference}:{mode}".encode("utf-8")).hexdigest()
+    execution_hash = hashlib.sha256(
+        f"anchor:{root_hash}:{anchor_reference}:{mode}".encode()
+    ).hexdigest()
     return {
         "auditor": _GOVERNANCE_AUDITOR,
         "clauses": _CLAUSES,
@@ -81,7 +83,10 @@ def _self_test() -> bool:
 
     import tempfile
 
-    prior_env = {key: os.environ.get(key) for key in ["TESSRAX_LEDGER_PATH", "TESSRAX_ANCHOR_LOG", "ANCHOR_MODE"]}
+    prior_env = {
+        key: os.environ.get(key)
+        for key in ["TESSRAX_LEDGER_PATH", "TESSRAX_ANCHOR_LOG", "ANCHOR_MODE"]
+    }
     try:
         with tempfile.TemporaryDirectory(prefix="tessrax_anchor_") as tmp:
             tmp_path = Path(tmp)
@@ -101,10 +106,18 @@ def _self_test() -> bool:
             root = engine.refresh_ledger()
             anchor_reference = anchor_merkle_root(root)
             receipts = engine.load_receipts()
-            if not any(r.get("external_anchor", {}).get("reference") == anchor_reference for r in receipts):
+            if not any(
+                r.get("external_anchor", {}).get("reference") == anchor_reference
+                for r in receipts
+            ):
                 raise AssertionError("Anchor reference not recorded in ledger")
-            log_entries = [json.loads(line) for line in anchor_log.open("r", encoding="utf-8")]
-            if not log_entries or log_entries[-1]["anchor_reference"] != anchor_reference:
+            log_entries = [
+                json.loads(line) for line in anchor_log.open("r", encoding="utf-8")
+            ]
+            if (
+                not log_entries
+                or log_entries[-1]["anchor_reference"] != anchor_reference
+            ):
                 raise AssertionError("Anchor log missing latest reference")
             if log_entries[-1]["integrity_score"] < 0.9:
                 raise AssertionError("Anchor integrity score below governed threshold")

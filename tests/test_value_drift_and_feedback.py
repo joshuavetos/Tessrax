@@ -1,4 +1,5 @@
 """Tests for value drift monitor and human feedback API."""
+
 from __future__ import annotations
 
 import sys
@@ -29,7 +30,8 @@ def _load_module(name: str, path: Path):
 
 
 value_drift_monitor = _load_module(
-    "tessrax.core.ethics.value_drift_monitor", Path("tessrax/core/ethics/value_drift_monitor.py")
+    "tessrax.core.ethics.value_drift_monitor",
+    Path("tessrax/core/ethics/value_drift_monitor.py"),
 )
 human_feedback = _load_module(
     "tessrax.api.human_feedback", Path("tessrax/api/human_feedback.py")

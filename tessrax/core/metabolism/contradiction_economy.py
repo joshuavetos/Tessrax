@@ -3,10 +3,11 @@
 Fulfils AEP-001, RVC-001, and POST-AUDIT-001 by delivering deterministic
 energy ledgers with explicit receipts.
 """
+
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, Sequence
 
 from tessrax.core.governance.receipts import write_receipt
 
@@ -14,15 +15,23 @@ ECONOMY_PATH = Path("tessrax/core/metabolism/economy.json")
 ECONOMY_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
-def _stable_json(payload: Dict[str, float]) -> str:
-    return "{" + ",".join(f'"{key}":{payload[key]:.6f}' for key in sorted(payload)) + "}\n"
+def _stable_json(payload: dict[str, float]) -> str:
+    return (
+        "{" + ",".join(f'"{key}":{payload[key]:.6f}' for key in sorted(payload)) + "}\n"
+    )
 
 
-def update_economy(events: Sequence[Dict[str, float]]) -> Dict[str, float]:
+def update_economy(events: Sequence[dict[str, float]]) -> dict[str, float]:
     """Update contradiction economy ledger and return aggregate metrics."""
 
-    contradiction_energy = sum(event.get("entropy", 0.0) for event in events if event.get("type") == "contradiction")
-    repair_energy = sum(event.get("entropy", 0.0) for event in events if event.get("type") == "repair")
+    contradiction_energy = sum(
+        event.get("entropy", 0.0)
+        for event in events
+        if event.get("type") == "contradiction"
+    )
+    repair_energy = sum(
+        event.get("entropy", 0.0) for event in events if event.get("type") == "repair"
+    )
     balance = round(contradiction_energy - repair_energy, 6)
     total_energy = round(contradiction_energy + repair_energy, 6)
     error_margin = round(abs(balance) / (total_energy or 1.0), 6)
@@ -33,7 +42,9 @@ def update_economy(events: Sequence[Dict[str, float]]) -> Dict[str, float]:
         "error_margin": error_margin,
     }
     ECONOMY_PATH.write_text(_stable_json(metrics), encoding="utf-8")
-    write_receipt("tessrax.core.metabolism.contradiction_economy", "verified", metrics, 0.96)
+    write_receipt(
+        "tessrax.core.metabolism.contradiction_economy", "verified", metrics, 0.96
+    )
     return metrics
 
 

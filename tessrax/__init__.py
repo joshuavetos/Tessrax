@@ -15,7 +15,7 @@ if sys.version_info < (3, 11):  # pragma: no cover - executed during import
         stacklevel=2,
     )
 
-_EXPORTS: Dict[str, Tuple[str, str]] = {
+_EXPORTS: dict[str, tuple[str, str]] = {
     "ClaimExtractor": ("tessrax.extraction", "ClaimExtractor"),
     "ContradictionEngine": ("tessrax.contradiction", "ContradictionEngine"),
     "GovernanceKernel": ("tessrax.governance", "GovernanceKernel"),

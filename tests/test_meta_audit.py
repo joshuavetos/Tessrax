@@ -58,7 +58,9 @@ def meta_modules() -> tuple[ClaimExtractor, TruthScore]:
 )
 def test_meta_audit_thresholds(meta_modules, case_type, prompt, response, expected):
     extractor, scorer = meta_modules
-    claims = extractor.extract(response, prompt_id=case_type.upper(), metadata={"prompt": prompt})
+    claims = extractor.extract(
+        response, prompt_id=case_type.upper(), metadata={"prompt": prompt}
+    )
     report = scorer.score(claims, context={"prompt": prompt, "case_type": case_type})
     print(
         f"{case_type}: EIS={report['epistemic_integrity']:.3f} accuracy={report['accuracy_score']:.3f} "

@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from config_loader import load_config
 from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
 
 
-def _claims(values: List[str]) -> List[dict]:
-    return [{"agent": f"agent-{idx}", "claim": value} for idx, value in enumerate(values, start=1)]
+def _claims(values: list[str]) -> list[dict]:
+    return [
+        {"agent": f"agent-{idx}", "claim": value}
+        for idx, value in enumerate(values, start=1)
+    ]
 
 
 def test_calculate_stability_high_consensus() -> None:

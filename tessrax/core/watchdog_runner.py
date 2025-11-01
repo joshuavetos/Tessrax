@@ -1,17 +1,19 @@
 """Continuous watchdog monitor that triggers the Tessrax governance audit."""
+
 from __future__ import annotations
 
 import os
 import sys
 import time
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
-from typing import Callable, Sequence
 
 try:
     from watchdog.events import FileSystemEvent, FileSystemEventHandler
     from watchdog.observers import Observer
 except ModuleNotFoundError:  # pragma: no cover - optional dependency guard
+
     class FileSystemEvent:
         def __init__(self, src_path: str, is_directory: bool = False) -> None:
             self.src_path = src_path
@@ -47,7 +49,11 @@ AUDIT_COMMAND: Sequence[str] = ("python", "tessrax/core/governance_controller.py
 class PythonFileEventHandler(FileSystemEventHandler):
     """React to Python file events by running the governance audit."""
 
-    def __init__(self, command: Sequence[str], runner: Callable[[Sequence[str]], bool] | None = None) -> None:
+    def __init__(
+        self,
+        command: Sequence[str],
+        runner: Callable[[Sequence[str]], bool] | None = None,
+    ) -> None:
         super().__init__()
         self._command = list(command)
         self._runner = runner or _run_governance_audit
@@ -63,11 +69,15 @@ class PythonFileEventHandler(FileSystemEventHandler):
             print("❌ Governance audit failed")
         return True
 
-    def on_modified(self, event: FileSystemEvent) -> None:  # pragma: no cover - integration behaviour
+    def on_modified(
+        self, event: FileSystemEvent
+    ) -> None:  # pragma: no cover - integration behaviour
         if not event.is_directory:
             self._handle_path(event.src_path)
 
-    def on_created(self, event: FileSystemEvent) -> None:  # pragma: no cover - integration behaviour
+    def on_created(
+        self, event: FileSystemEvent
+    ) -> None:  # pragma: no cover - integration behaviour
         if not event.is_directory:
             self._handle_path(event.src_path)
 
@@ -81,9 +91,13 @@ def _run_governance_audit(command: Sequence[str]) -> bool:
     return result.returncode == 0
 
 
-def run_watchdog(directory: str | os.PathLike[str] = ".", *, command: Sequence[str] = AUDIT_COMMAND) -> None:
+def run_watchdog(
+    directory: str | os.PathLike[str] = ".", *, command: Sequence[str] = AUDIT_COMMAND
+) -> None:
     if not _WATCHDOG_AVAILABLE:
-        raise SystemExit("[Tessrax] watchdog dependency is required. Install it via 'pip install watchdog'.")
+        raise SystemExit(
+            "[Tessrax] watchdog dependency is required. Install it via 'pip install watchdog'."
+        )
     observer = Observer()
     handler = PythonFileEventHandler(command)
     observer.schedule(handler, str(directory), recursive=True)

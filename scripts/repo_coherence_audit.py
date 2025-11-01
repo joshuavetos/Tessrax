@@ -5,23 +5,23 @@ that they can be imported, and generates dependency metadata to help
 identify orphaned or problematic modules. Outputs are written to the
 ``out`` directory relative to the repository root.
 """
+
 from __future__ import annotations
 
 import argparse
 import ast
 import importlib.util
 import json
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Sequence, Set, Tuple
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = REPO_ROOT / "out"
 
 
-def iter_python_modules(root: Path) -> List[Path]:
+def iter_python_modules(root: Path) -> list[Path]:
     """Return all Python module paths excluding test modules."""
-    modules: List[Path] = []
+    modules: list[Path] = []
     for path in root.rglob("*.py"):
         if path.name.startswith("test_"):
             continue
@@ -45,7 +45,7 @@ def write_module_index(modules: Sequence[Path]) -> None:
     target.write_text("\n".join(lines), encoding="utf-8")
 
 
-def attempt_import(module_path: Path, module_name: str) -> Tuple[bool, str | None]:
+def attempt_import(module_path: Path, module_name: str) -> tuple[bool, str | None]:
     """Attempt to import the module at ``module_path`` under ``module_name``."""
     try:
         spec = importlib.util.spec_from_file_location(module_name, module_path)
@@ -58,8 +58,8 @@ def attempt_import(module_path: Path, module_name: str) -> Tuple[bool, str | Non
     return True, None
 
 
-def validate_imports(modules: Sequence[Path]) -> List[Tuple[str, str]]:
-    failures: List[Tuple[str, str]] = []
+def validate_imports(modules: Sequence[Path]) -> list[tuple[str, str]]:
+    failures: list[tuple[str, str]] = []
     for module_path in modules:
         module_name = module_name_for_path(module_path, REPO_ROOT)
         ok, message = attempt_import(module_path, module_name)
@@ -68,7 +68,7 @@ def validate_imports(modules: Sequence[Path]) -> List[Tuple[str, str]]:
     return failures
 
 
-def write_import_failures(failures: Sequence[Tuple[str, str]]) -> None:
+def write_import_failures(failures: Sequence[tuple[str, str]]) -> None:
     target = OUT_DIR / "import_failures.txt"
     if not failures:
         if target.exists():
@@ -78,8 +78,8 @@ def write_import_failures(failures: Sequence[Tuple[str, str]]) -> None:
     target.write_text("\n".join(formatted), encoding="utf-8")
 
 
-def build_dependency_edges(modules: Sequence[Path]) -> List[Tuple[str, str]]:
-    edges: Set[Tuple[str, str]] = set()
+def build_dependency_edges(modules: Sequence[Path]) -> list[tuple[str, str]]:
+    edges: set[tuple[str, str]] = set()
     for module_path in modules:
         source = str(module_path.relative_to(REPO_ROOT))
         try:
@@ -98,15 +98,17 @@ def build_dependency_edges(modules: Sequence[Path]) -> List[Tuple[str, str]]:
     return sorted(edges)
 
 
-def write_dependency_edges(edges: Sequence[Tuple[str, str]]) -> None:
+def write_dependency_edges(edges: Sequence[tuple[str, str]]) -> None:
     target = OUT_DIR / "dependency_edges.json"
     json_edges = [[src, dst] for src, dst in edges]
     target.write_text(json.dumps(json_edges, indent=2), encoding="utf-8")
 
 
-def detect_orphans(modules: Sequence[Path], edges: Sequence[Tuple[str, str]]) -> List[Path]:
-    imported_modules: Set[str] = {dst for _, dst in edges}
-    orphans: List[Path] = []
+def detect_orphans(
+    modules: Sequence[Path], edges: Sequence[tuple[str, str]]
+) -> list[Path]:
+    imported_modules: set[str] = {dst for _, dst in edges}
+    orphans: list[Path] = []
     for module_path in modules:
         if module_path.name == "__init__.py":
             continue
@@ -122,7 +124,9 @@ def write_orphans(orphans: Sequence[Path]) -> None:
     target.write_text("\n".join(lines), encoding="utf-8")
 
 
-def write_summary(total_modules: int, failures: Sequence[Tuple[str, str]], orphans: Sequence[Path]) -> None:
+def write_summary(
+    total_modules: int, failures: Sequence[tuple[str, str]], orphans: Sequence[Path]
+) -> None:
     target = OUT_DIR / "repo_coherence_report.json"
     report = {
         "total_modules": total_modules,
@@ -158,7 +162,9 @@ def perform_audit(root: Path) -> None:
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Audit Python modules for coherence and connectivity.")
+    parser = argparse.ArgumentParser(
+        description="Audit Python modules for coherence and connectivity."
+    )
     parser.add_argument(
         "--root",
         type=Path,

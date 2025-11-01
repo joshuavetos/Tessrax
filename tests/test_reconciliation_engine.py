@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import json
 from datetime import datetime, timezone
 
@@ -59,13 +60,19 @@ def test_reconciliation_engine_emits_clarity_receipt(tmp_path) -> None:
     assert payload["action"] == "SYNTHESIZE_CLARITY"
     assert payload["rationale"]
 
-    audit_entries = [json.loads(line) for line in audit_log.read_text(encoding="utf-8").splitlines() if line]
+    audit_entries = [
+        json.loads(line)
+        for line in audit_log.read_text(encoding="utf-8").splitlines()
+        if line
+    ]
     assert audit_entries
     assert audit_entries[0]["engine_seed"] == 42
     assert audit_entries[0]["ordered_inputs"] == ["claim-a", "claim-b"]
 
     diagnostics_entries = [
-        json.loads(line) for line in diagnostics_log.read_text(encoding="utf-8").splitlines() if line
+        json.loads(line)
+        for line in diagnostics_log.read_text(encoding="utf-8").splitlines()
+        if line
     ]
     assert diagnostics_entries
     assert diagnostics_entries[0]["processed_events"] == 1

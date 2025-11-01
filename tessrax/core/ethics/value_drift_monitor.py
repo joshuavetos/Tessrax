@@ -4,11 +4,12 @@ All computations follow AEP-001, RVC-001, and POST-AUDIT-001. The
 module estimates cosine similarity between historical and proposed
 rule corpora to identify ethical shifts.
 """
+
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Sequence
 from math import sqrt
-from typing import Dict, Iterable, Sequence
 
 from tessrax.core.governance.receipts import write_receipt
 
@@ -33,7 +34,9 @@ def _cosine_similarity(a: Counter, b: Counter) -> float:
     return round(numerator / (norm_a * norm_b), 6)
 
 
-def assess_value_drift(previous_rules: Sequence[str], proposed_rules: Sequence[str]) -> Dict[str, float | str]:
+def assess_value_drift(
+    previous_rules: Sequence[str], proposed_rules: Sequence[str]
+) -> dict[str, float | str]:
     """Assess semantic drift and flag ethical shift events."""
 
     base = _tokenize(previous_rules)
@@ -47,7 +50,9 @@ def assess_value_drift(previous_rules: Sequence[str], proposed_rules: Sequence[s
         "status": status,
     }
     integrity = 0.98 if status != "ethical shift" or drift < 0.5 else 0.9
-    write_receipt("tessrax.core.ethics.value_drift_monitor", "verified", metrics, integrity)
+    write_receipt(
+        "tessrax.core.ethics.value_drift_monitor", "verified", metrics, integrity
+    )
     return metrics
 
 
@@ -55,7 +60,11 @@ def _self_test() -> bool:
     """Validate drift detection on simulated rule updates."""
 
     historical = ["Rules shall remain transparent", "Audit logs immutable"]
-    revised = ["Rules shall remain transparent", "Audit logs immutable", "Introduce adaptive oversight"]
+    revised = [
+        "Rules shall remain transparent",
+        "Audit logs immutable",
+        "Introduce adaptive oversight",
+    ]
     metrics = assess_value_drift(historical, revised)
     assert metrics["drift"] > 0, "Expected drift"  # type: ignore[index]
     assert metrics["status"] == "ethical shift", "Shift should be detected"  # type: ignore[index]

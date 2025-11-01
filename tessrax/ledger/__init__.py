@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Iterable, List, Mapping, Optional, Sequence
+from typing import Any, List, Optional
 
 from tessrax.types import GovernanceDecision, LedgerReceipt
 
@@ -22,7 +23,7 @@ __all__ = [
 ]
 
 
-def compute_merkle_root(batch: Sequence[Mapping[str, Any]]) -> Optional[str]:
+def compute_merkle_root(batch: Sequence[Mapping[str, Any]]) -> str | None:
     """Compute recursive Merkle root for a batch of ledger entries."""
 
     if not batch:
@@ -32,7 +33,7 @@ def compute_merkle_root(batch: Sequence[Mapping[str, Any]]) -> Optional[str]:
         for entry in batch
     ]
     while len(nodes) > 1:
-        paired: List[str] = []
+        paired: list[str] = []
         for index in range(0, len(nodes), 2):
             left = nodes[index]
             right = nodes[index + 1] if index + 1 < len(nodes) else nodes[index]
@@ -44,10 +45,10 @@ def compute_merkle_root(batch: Sequence[Mapping[str, Any]]) -> Optional[str]:
 class Ledger:
     """Append-only ledger with hash chaining and optional persistence."""
 
-    def __init__(self, path: Optional[Path] = None) -> None:
-        self._receipts: List[LedgerReceipt] = []
-        self._meta_events: List[dict[str, Any]] = []
-        self.path: Optional[Path] = Path(path) if path is not None else None
+    def __init__(self, path: Path | None = None) -> None:
+        self._receipts: list[LedgerReceipt] = []
+        self._meta_events: list[dict[str, Any]] = []
+        self.path: Path | None = Path(path) if path is not None else None
         if self.path is not None:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self.path.touch(exist_ok=True)
@@ -55,9 +56,9 @@ class Ledger:
     def append(
         self,
         decision: GovernanceDecision,
-        signature: Optional[str] = None,
+        signature: str | None = None,
         *,
-        sub_merkle_root: Optional[str] = None,
+        sub_merkle_root: str | None = None,
     ) -> LedgerReceipt:
         prev_hash = self._receipts[-1].hash if self._receipts else GENESIS_HASH
         payload = decision.to_summary()
@@ -74,10 +75,10 @@ class Ledger:
             self._persist(receipt)
         return receipt
 
-    def receipts(self) -> List[LedgerReceipt]:
+    def receipts(self) -> list[LedgerReceipt]:
         return list(self._receipts)
 
-    def verify(self, receipts: Optional[Iterable[LedgerReceipt]] = None) -> bool:
+    def verify(self, receipts: Iterable[LedgerReceipt] | None = None) -> bool:
         chain = list(receipts if receipts is not None else self._receipts)
         prev_hash = GENESIS_HASH
         for receipt in chain:
@@ -121,7 +122,7 @@ class Ledger:
         event.setdefault("event_type", event.get("event_type", "UNKNOWN"))
         self._meta_events.append(event)
 
-    def meta_events(self) -> List[dict[str, Any]]:
+    def meta_events(self) -> list[dict[str, Any]]:
         """Expose recorded metadata events for downstream telemetry."""
 
         return list(self._meta_events)
@@ -130,8 +131,8 @@ class Ledger:
         self,
         decisions: Iterable[GovernanceDecision],
         *,
-        consensus_nodes: Optional[Iterable[Any]] = None,
-    ) -> Optional[str]:
+        consensus_nodes: Iterable[Any] | None = None,
+    ) -> str | None:
         """Append a batch of decisions and emit a sub-Merkle root for verification."""
 
         decisions_list = list(decisions)
@@ -149,7 +150,9 @@ class Ledger:
 
     @staticmethod
     def _hash_payload(prev_hash: str, payload: dict) -> str:
-        serialised = json.dumps({"prev": prev_hash, "payload": payload}, sort_keys=True).encode("utf-8")
+        serialised = json.dumps(
+            {"prev": prev_hash, "payload": payload}, sort_keys=True
+        ).encode("utf-8")
         return hashlib.sha256(serialised).hexdigest()
 
 
@@ -188,7 +191,7 @@ def verify_file(path: Path) -> bool:
     return True
 
 
-def build_cli(argv: Optional[Sequence[str]] = None) -> argparse.ArgumentParser:
+def build_cli(argv: Sequence[str] | None = None) -> argparse.ArgumentParser:
     """Create the canonical ledger CLI parser."""
 
     parser = argparse.ArgumentParser(description="Verify Tessrax ledger receipts")
@@ -198,7 +201,7 @@ def build_cli(argv: Optional[Sequence[str]] = None) -> argparse.ArgumentParser:
     return parser
 
 
-def _cli(argv: Optional[Sequence[str]] = None) -> None:
+def _cli(argv: Sequence[str] | None = None) -> None:
     parser = build_cli(argv)
     args = parser.parse_args(argv)
 
@@ -208,7 +211,7 @@ def _cli(argv: Optional[Sequence[str]] = None) -> None:
         verify_main([str(args.path)])
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     """Entry-point used by ``python -m tessrax.ledger``."""
 
     _cli(argv)

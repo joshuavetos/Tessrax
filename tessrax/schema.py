@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List, Literal, Optional, Type, cast
+from typing import Literal, cast
 
 try:  # pragma: no cover - optional dependency
     from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -21,14 +21,14 @@ if BaseModel is not None:
         timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
         subject: str
         metric: str
-        contradiction_ids: List[str]
+        contradiction_ids: list[str]
         synthesis: str
         confidence: float = Field(ge=0.0, le=1.0)
         action: str = Field(default="SYNTHESIZE_CLARITY")
         severity: str
         clarity_fuel: float = Field(default=0.0, ge=0.0)
         rationale: str
-        audit_reference: Optional[str] = None
+        audit_reference: str | None = None
 
         @field_validator("timestamp", mode="before")
         def _ensure_timezone(cls, value: datetime) -> datetime:
@@ -69,18 +69,20 @@ else:
         timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
         subject: str = ""
         metric: str = ""
-        contradiction_ids: List[str] = field(default_factory=list)
+        contradiction_ids: list[str] = field(default_factory=list)
         synthesis: str = ""
         confidence: float = 0.0
         action: str = "SYNTHESIZE_CLARITY"
         severity: str = "medium"
         clarity_fuel: float = 0.0
         rationale: str = ""
-        audit_reference: Optional[str] = None
+        audit_reference: str | None = None
 
         def __post_init__(self) -> None:
             if self.timestamp.tzinfo is None:
-                object.__setattr__(self, "timestamp", self.timestamp.replace(tzinfo=timezone.utc))
+                object.__setattr__(
+                    self, "timestamp", self.timestamp.replace(tzinfo=timezone.utc)
+                )
             if not 0.0 <= self.confidence <= 1.0:
                 raise ValueError("confidence must be between 0.0 and 1.0")
             if self.clarity_fuel < 0.0:
@@ -104,4 +106,4 @@ else:
                 payload["audit_reference"] = self.audit_reference
             return payload
 
-    ClarityStatement = cast(Type[_ClarityStatementFallback], _ClarityStatementFallback)
+    ClarityStatement = cast(type[_ClarityStatementFallback], _ClarityStatementFallback)

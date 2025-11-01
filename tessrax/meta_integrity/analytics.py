@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Mapping, MutableMapping
+from collections.abc import Iterable, Mapping, MutableMapping
 
 
-def compute_epistemic_metrics(reports: Iterable[Mapping[str, float]]) -> MutableMapping[str, float]:
+def compute_epistemic_metrics(
+    reports: Iterable[Mapping[str, float]],
+) -> MutableMapping[str, float]:
     """Compute aggregate drift and resilience metrics from audit ``reports``."""
 
     reports = list(reports)
@@ -14,7 +16,10 @@ def compute_epistemic_metrics(reports: Iterable[Mapping[str, float]]) -> Mutable
 
     first = reports[0]
     last = reports[-1]
-    drift = abs(float(last.get("epistemic_integrity", 0.0)) - float(first.get("epistemic_integrity", 0.0)))
+    drift = abs(
+        float(last.get("epistemic_integrity", 0.0))
+        - float(first.get("epistemic_integrity", 0.0))
+    )
     resilience_hits = 0
     hallucination_hits = 0
     for report in reports:

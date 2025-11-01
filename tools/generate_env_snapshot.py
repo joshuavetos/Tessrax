@@ -15,7 +15,9 @@ if str(ROOT) not in sys.path:
 import importlib.util
 
 METRICS_PATH = ROOT / "tessrax" / "metrics" / "epistemic_health.py"
-spec = importlib.util.spec_from_file_location("tessrax.metrics.epistemic_health", METRICS_PATH)
+spec = importlib.util.spec_from_file_location(
+    "tessrax.metrics.epistemic_health", METRICS_PATH
+)
 epistemic_health = importlib.util.module_from_spec(spec)
 assert spec and spec.loader  # narrow typing for mypy/linters
 spec.loader.exec_module(epistemic_health)
@@ -40,12 +42,16 @@ def build_snapshot(notes: str | None = None) -> dict[str, object]:
     integrity = epistemic_health.compute_integrity([0.18, 0.21, 0.2, 0.19])
     drift = epistemic_health.compute_drift([(0.0, 0.2), (1.0, 0.22), (2.0, 0.215)])
     severity = epistemic_health.compute_severity([0.19, 0.2, 0.21], [0.21, 0.19, 0.2])
-    independence = epistemic_health.compute_entropy(["alpha", "beta", "beta", "gamma", "gamma"])
+    independence = epistemic_health.compute_entropy(
+        ["alpha", "beta", "beta", "gamma", "gamma"]
+    )
 
     metadata = {
         "generated_at": datetime.now(tz=timezone.utc).isoformat(),
         "python_version": sys.version.split()[0],
-        "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+        "git_commit": subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True
+        ).strip(),
         "environment_hash": env_hash,
     }
     if notes:
@@ -70,9 +76,15 @@ def write_snapshot(path: Path, payload: dict[str, object]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Generate the Tessrax environment snapshot")
-    parser.add_argument("--output", type=Path, default=SNAPSHOT_PATH, help="Destination file")
-    parser.add_argument("--notes", type=str, default=None, help="Optional override notes")
+    parser = argparse.ArgumentParser(
+        description="Generate the Tessrax environment snapshot"
+    )
+    parser.add_argument(
+        "--output", type=Path, default=SNAPSHOT_PATH, help="Destination file"
+    )
+    parser.add_argument(
+        "--notes", type=str, default=None, help="Optional override notes"
+    )
     args = parser.parse_args(argv)
 
     payload = build_snapshot(notes=args.notes)

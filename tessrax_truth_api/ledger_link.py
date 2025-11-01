@@ -1,10 +1,12 @@
 """Decorators for ledger aware endpoints."""
+
 from __future__ import annotations
 
 import datetime
 import inspect
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Dict
+from typing import Any
 
 from fastapi import Request
 
@@ -42,7 +44,7 @@ def _record_event(
     provenance: ProvenanceService,
     event_type: str,
     args: tuple[Any, ...],
-    kwargs: Dict[str, Any],
+    kwargs: dict[str, Any],
     response: Any,
 ) -> None:
     payload = {
@@ -53,8 +55,10 @@ def _record_event(
     provenance.record_event(event_type, payload)
 
 
-def _serialise_args(args: tuple[Any, ...], kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    data: Dict[str, Any] = {f"arg_{idx}": _maybe_model_dump(value) for idx, value in enumerate(args)}
+def _serialise_args(args: tuple[Any, ...], kwargs: dict[str, Any]) -> dict[str, Any]:
+    data: dict[str, Any] = {
+        f"arg_{idx}": _maybe_model_dump(value) for idx, value in enumerate(args)
+    }
     data.update({key: _maybe_model_dump(value) for key, value in kwargs.items()})
     return data
 

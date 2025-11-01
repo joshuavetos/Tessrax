@@ -32,7 +32,9 @@ def test_field_evidence_count() -> None:
 
 
 @pytest.mark.parametrize("path_type", (str, pathlib.Path))
-def test_load_field_evidence_supports_path_override(tmp_path: pathlib.Path, path_type: type) -> None:
+def test_load_field_evidence_supports_path_override(
+    tmp_path: pathlib.Path, path_type: type
+) -> None:
     source = tmp_path / "sample.jsonl"
     source.write_text(
         '{"id": "test", "category": "demo", "year": 2025, "source_type": "note", '

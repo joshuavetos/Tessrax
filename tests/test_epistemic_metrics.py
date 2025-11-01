@@ -1,8 +1,8 @@
 from tessrax.metrics.epistemic_health import (
-    compute_integrity,
     compute_drift,
-    compute_severity,
     compute_entropy,
+    compute_integrity,
+    compute_severity,
 )
 
 

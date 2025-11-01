@@ -1,27 +1,29 @@
 """Scheduler CLI for Tessrax meta launch campaign."""
+
 from __future__ import annotations
 
 import argparse
 import datetime as dt
 import hashlib
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any
 
 from poster import PostPayload, dispatch_post
 
 CONFIG_PATH = Path(__file__).resolve().with_name("config.json")
 
 
-def load_config(path: Path) -> Dict[str, Any]:
+def load_config(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
 
 
-def parse_template(content: str) -> Tuple[str, str]:
+def parse_template(content: str) -> tuple[str, str]:
     lines = content.splitlines()
     title = ""
-    body_lines: List[str] = []
+    body_lines: list[str] = []
     capture_body = False
     for line in lines:
         stripped = line.strip()
@@ -44,7 +46,7 @@ def parse_template(content: str) -> Tuple[str, str]:
     return title, body
 
 
-def iter_channels(config: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+def iter_channels(config: dict[str, Any]) -> Iterable[dict[str, Any]]:
     return sorted(config["channels"], key=lambda item: item["window_start"])
 
 
@@ -57,19 +59,17 @@ def ensure_logs_directory(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def preview_plan(config: Dict[str, Any]) -> str:
+def preview_plan(config: dict[str, Any]) -> str:
     rows = []
     for entry in iter_channels(config):
         template_path = Path(entry["post_template"])
         title, _ = parse_template(template_path.read_text(encoding="utf-8"))
-        rows.append(
-            f"{entry['window_start']} | {entry['channel']} | {title}"
-        )
+        rows.append(f"{entry['window_start']} | {entry['channel']} | {title}")
     header = "Launch Plan (chronological)"
     return "\n".join([header, "-" * len(header), *rows])
 
 
-def run_campaign(config: Dict[str, Any], *, live: bool = False) -> Path:
+def run_campaign(config: dict[str, Any], *, live: bool = False) -> Path:
     channels = list(iter_channels(config))
     logs_dir = Path(config["campaign"]["logs_directory"])
     ensure_logs_directory(logs_dir)
@@ -157,7 +157,7 @@ def handle_run(args: argparse.Namespace) -> None:
     print(f"Log written to {log_path}")
 
 
-def main(argv: List[str] | None = None) -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
     handler = getattr(args, "func", handle_preview)
