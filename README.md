@@ -241,3 +241,33 @@ Contradictions are inevitable. Tessrax turns that inevitability into architectur
    •   It metabolizes contradiction into governance clarity.
 
 Tessrax — turning contradiction into cognition, and cognition into proof.
+
+## Dockerized Cluster & React Dashboard
+
+The repository ships with a three-node docker-compose deployment under `docker/docker-compose.yml`:
+
+- `governance-node-a` / `governance-node-b` – FastAPI governance services replicating ledgers to a moto-backed S3 bucket.
+- `tessrax-etl-worker` – Runs the influenza ETL pipeline to feed real-world telemetry into the cluster.
+
+```bash
+cd docker
+docker compose up --build
+```
+
+Cloud logging is enabled via `config/docker.json`, mirroring ledger writes locally and in the mock bucket `tessrax-cluster-ledger`.
+
+### React Control Tower
+
+Visiting `http://localhost:8000/dashboard` renders the React interface served directly from FastAPI. It consumes `/dashboard/api/*` endpoints for ledger snapshots, summaries, and epistemic metrics.
+
+### Public Health ETL Flow
+
+`scripts/etl_public_health.py` transforms the sample CDC influenza dataset (`data/public_health/influenza_activity.csv`) into governance claims. Execute it manually with:
+
+```bash
+python scripts/etl_public_health.py --endpoint http://localhost:8000
+```
+
+### Stripe Test Mode Billing
+
+The monetization API now exposes `/billing/checkout`, powered by a Stripe test-mode gateway. Streamlit pricing flows display the generated checkout URL before completing subscription creation via `/billing/subscribe`.

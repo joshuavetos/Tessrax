@@ -9,11 +9,14 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from config_loader import load_config
+from dashboard.api_routes import create_dashboard_router
 from tessrax.ledger import Ledger
+from tessrax.logging import LedgerWriter, S3LedgerWriter
 from tessrax.metabolism.async_detector import AsyncContradictionDetector
 from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
 from tessrax.types import Claim
@@ -21,7 +24,10 @@ from tessrax.types import Claim
 config = load_config()
 
 ledger_path = Path(config.logging.ledger_path)
-ledger_path.parent.mkdir(parents=True, exist_ok=True)
+cloud_writer = None
+if config.logging.cloud and config.logging.cloud.enabled:
+    cloud_writer = S3LedgerWriter(config.logging.cloud)
+ledger_writer = LedgerWriter(ledger_path, cloud_writer)
 
 governance_ledger = Ledger()
 detector = AsyncContradictionDetector(governance_ledger)
@@ -34,6 +40,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         await detector.stop()
+        ledger_writer.close()
 
 
 app = FastAPI(title="Tessrax-Core API", version="1.0.0", lifespan=lifespan)
@@ -72,8 +79,7 @@ async def submit_claims(submission: ClaimsSubmission) -> AnalysisResult:
         "claims": raw_claims,
     }
 
-    with ledger_path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record) + "\n")
+    ledger_writer.append(record)
 
     return AnalysisResult(stability_score=stability, governance_lane=lane)
 
@@ -148,3 +154,31 @@ async def get_live_contradictions() -> dict[str, int]:
 @app.get("/metrics")
 async def metrics() -> dict[str, int]:
     return detector.metrics()
+
+
+dashboard_static = (
+    Path(__file__).resolve().parent.parent / "dashboard" / "react_app"
+)
+if dashboard_static.exists():
+    app.mount(
+        "/dashboard",
+        StaticFiles(directory=dashboard_static, html=True),
+        name="dashboard",
+    )
+
+
+@app.get("/", response_class=HTMLResponse)
+async def root_dashboard() -> HTMLResponse:
+    if dashboard_static.exists():
+        index_file = dashboard_static / "index.html"
+        return HTMLResponse(index_file.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>Tessrax Governance API</h1>")
+
+
+app.include_router(
+    create_dashboard_router(
+        ledger_path=ledger_path,
+        thresholds=config.thresholds,
+        metrics_provider=detector.metrics,
+    )
+)

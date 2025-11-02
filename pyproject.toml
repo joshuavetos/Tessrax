@@ -25,6 +25,9 @@ dependencies = [
   "pandas>=2.0",
   "networkx>=3.2",
   "ed25519>=1.5; python_version < '3.13'",
+  "boto3>=1.28",
+  "moto[s3]>=4.2",
+  "stripe>=7.0",
 ]
 
 [project.scripts]

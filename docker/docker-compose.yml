@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  governance-node-a:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: tessrax-cluster:latest
+    container_name: tessrax-governance-a
+    environment:
+      - NODE_ID=a
+      - TESSRAX_CONFIG_PATH=/app/config/docker.json
+      - STRIPE_TEST_SECRET_KEY=sk_test_mocked_tessrax
+    volumes:
+      - ../config/docker.json:/app/config/docker.json:ro
+      - ledger-data:/app/ledger
+    ports:
+      - "8000:8000"
+
+  governance-node-b:
+    image: tessrax-cluster:latest
+    container_name: tessrax-governance-b
+    environment:
+      - NODE_ID=b
+      - TESSRAX_CONFIG_PATH=/app/config/docker.json
+      - STRIPE_TEST_SECRET_KEY=sk_test_mocked_tessrax
+    depends_on:
+      - governance-node-a
+    volumes:
+      - ../config/docker.json:/app/config/docker.json:ro
+      - ledger-data:/app/ledger
+    ports:
+      - "8001:8000"
+
+  etl-worker:
+    image: tessrax-cluster:latest
+    container_name: tessrax-etl-worker
+    command: ["python", "scripts/etl_public_health.py", "--endpoint", "http://governance-node-a:8000"]
+    environment:
+      - TESSRAX_CONFIG_PATH=/app/config/docker.json
+    depends_on:
+      - governance-node-a
+    volumes:
+      - ../config/docker.json:/app/config/docker.json:ro
+      - ledger-data:/app/ledger
+
+volumes:
+  ledger-data:

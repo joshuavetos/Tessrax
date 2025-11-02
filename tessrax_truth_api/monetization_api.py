@@ -17,10 +17,11 @@ from tessrax_truth_api.services.subscription_service import (
     SubscriptionTier,
     SubscriptionStatus,
     Subscription,
-    BillingReceipt
+    BillingReceipt,
 )
 from tessrax_truth_api.services.entitlement_service import EntitlementService
 from tessrax_truth_api.services.webhook_service import WebhookService, WebhookEvent
+from tessrax_truth_api.services.stripe_gateway import CheckoutSession, StripeGateway
 
 
 # Pydantic models for request/response validation
@@ -95,6 +96,23 @@ class WebhookResponse(BaseModel):
     processed_at: str
 
 
+class CheckoutRequest(BaseModel):
+    """Request to create a Stripe checkout session."""
+
+    tier: Literal["starter", "professional", "enterprise"]
+    success_url: str = Field(..., description="Redirect URL after successful payment")
+    cancel_url: str = Field(..., description="Redirect URL after cancellation")
+
+
+class CheckoutResponse(BaseModel):
+    """Checkout session details for redirecting the client."""
+
+    session_id: str
+    checkout_url: str
+    currency: str
+    amount_cents: int
+
+
 # Initialize router
 router = APIRouter(prefix="/billing", tags=["monetization"])
 
@@ -102,18 +120,48 @@ router = APIRouter(prefix="/billing", tags=["monetization"])
 _subscription_service: SubscriptionService | None = None
 _entitlement_service: EntitlementService | None = None
 _webhook_service: WebhookService | None = None
+_stripe_gateway: StripeGateway | None = None
 
 
 def init_services(
     subscription_service: SubscriptionService,
     entitlement_service: EntitlementService,
-    webhook_service: WebhookService
+    webhook_service: WebhookService,
+    stripe_gateway: StripeGateway,
 ) -> None:
     """Initialize service instances (called from main.py)."""
-    global _subscription_service, _entitlement_service, _webhook_service
+    global _subscription_service, _entitlement_service, _webhook_service, _stripe_gateway
     _subscription_service = subscription_service
     _entitlement_service = entitlement_service
     _webhook_service = webhook_service
+    _stripe_gateway = stripe_gateway
+
+
+@router.post("/checkout", response_model=CheckoutResponse)
+async def create_checkout_session(request: CheckoutRequest) -> CheckoutResponse:
+    if not _subscription_service or not _stripe_gateway:
+        raise HTTPException(status_code=500, detail="Services not initialized")
+    try:
+        tier = SubscriptionTier(request.tier)
+    except ValueError as exc:  # pragma: no cover - validation should catch
+        raise HTTPException(status_code=400, detail=str(exc))
+    pricing = _subscription_service.TIER_PRICING.get(tier)
+    if not pricing:
+        raise HTTPException(status_code=404, detail="Unknown tier pricing configuration")
+    amount_cents = int(float(pricing["price"]) * 100)
+    session = _stripe_gateway.create_checkout_session(
+        amount_cents=amount_cents,
+        currency="usd",
+        tier=tier.value,
+        success_url=request.success_url,
+        cancel_url=request.cancel_url,
+    )
+    return CheckoutResponse(
+        session_id=session.id,
+        checkout_url=session.url,
+        currency=session.currency,
+        amount_cents=session.amount_total,
+    )
 
 
 @router.post("/subscribe", response_model=SubscribeResponse, status_code=status.HTTP_201_CREATED)
