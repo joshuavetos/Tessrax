@@ -25,6 +25,7 @@ from tessrax_truth_api.services.stripe_gateway import StripeGateway
 from tessrax_truth_api.services.cache_service import CachedEntry, CacheService
 from tessrax_truth_api.services.provenance_service import ProvenanceService
 from tessrax_truth_api.services.validation_service import ValidationService
+from tessrax_truth_api import monetization_api
 from tessrax_truth_api.utils import (
     encode_metrics,
     hmac_signature,
@@ -301,4 +302,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-from tessrax_truth_api import monetization_api
