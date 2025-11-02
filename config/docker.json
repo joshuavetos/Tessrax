@@ -1,0 +1,13 @@
+{
+  "logging": {
+    "ledger_path": "ledger/cluster_ledger.jsonl",
+    "cloud": {
+      "enabled": true,
+      "provider": "s3",
+      "bucket": "tessrax-cluster-ledger",
+      "region": "us-east-1",
+      "endpoint_url": null,
+      "use_mock": true
+    }
+  }
+}

@@ -158,14 +158,39 @@ def render_subscribe_form(api_base_url: str, preselected_tier: str) -> None:
                 import hashlib
                 customer_id = f"sha256:{hashlib.sha256(customer_email.encode()).hexdigest()[:32]}"
 
-                # Call subscription API
+                # Initiate Stripe checkout in test mode
+                try:
+                    checkout_response = requests.post(
+                        f"{api_base_url}/billing/checkout",
+                        json={
+                            "tier": tier,
+                            "success_url": "https://example.com/success",
+                            "cancel_url": "https://example.com/cancel"
+                        },
+                        timeout=10
+                    )
+                    checkout_response.raise_for_status()
+                    checkout_payload = checkout_response.json()
+                    st.info(
+                        "Test-mode Stripe checkout created. Use the link below to simulate payment."
+                    )
+                    st.markdown(
+                        f"[Open Stripe Checkout Session]({checkout_payload['checkout_url']})",
+                        unsafe_allow_html=False
+                    )
+                except requests.exceptions.RequestException as checkout_error:
+                    st.error(f"Failed to create Stripe checkout session: {checkout_error}")
+                    return
+
+                # Call subscription API with checkout session identifier
                 try:
                     response = requests.post(
                         f"{api_base_url}/billing/subscribe",
                         json={
                             "customer_id": customer_id,
                             "tier": tier,
-                            "trial_days": trial_days
+                            "trial_days": trial_days,
+                            "stripe_checkout_session_id": checkout_payload.get("session_id")
                         },
                         timeout=10
                     )

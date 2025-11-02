@@ -18,6 +18,10 @@ from tessrax_truth_api.models import (
     SelfTestSummary,
 )
 from tessrax_truth_api.services.billing_service import BillingService
+from tessrax_truth_api.services.subscription_service import SubscriptionService
+from tessrax_truth_api.services.entitlement_service import EntitlementService
+from tessrax_truth_api.services.webhook_service import WebhookService
+from tessrax_truth_api.services.stripe_gateway import StripeGateway
 from tessrax_truth_api.services.cache_service import CachedEntry, CacheService
 from tessrax_truth_api.services.provenance_service import ProvenanceService
 from tessrax_truth_api.services.validation_service import ValidationService
@@ -47,6 +51,10 @@ def create_app() -> FastAPI:
         ),
     )
     billing_service = BillingService()
+    subscription_service = SubscriptionService()
+    entitlement_service = EntitlementService(subscription_service)
+    webhook_service = WebhookService(subscription_service)
+    stripe_gateway = StripeGateway()
     cache_service = CacheService()
     provenance_service = ProvenanceService()
 
@@ -56,6 +64,14 @@ def create_app() -> FastAPI:
     app.state.provenance_service = provenance_service
     app.state.calibrator = calibrator
     app.state.config = config
+
+    monetization_api.init_services(
+        subscription_service,
+        entitlement_service,
+        webhook_service,
+        stripe_gateway,
+    )
+    app.include_router(monetization_api.router)
 
     app.add_middleware(TruthLockMiddleware)
 
@@ -285,3 +301,4 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+from tessrax_truth_api import monetization_api
