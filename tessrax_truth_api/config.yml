@@ -23,3 +23,13 @@ billing:
     enterprise:
       limit: null
 hmac_secret: development-hmac-secret
+
+deployment:
+  host: 0.0.0.0
+  port: 8443
+  allowed_hosts:
+    - 127.0.0.1
+    - ::1
+  tls:
+    cert_file:
+    key_file:

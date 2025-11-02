@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tessrax.dev/tip.schema.json",
+  "title": "Tessrax Integration Protocol Handshake",
+  "type": "object",
+  "required": [
+    "protocol",
+    "version",
+    "source",
+    "target",
+    "timestamp",
+    "nonce",
+    "capabilities",
+    "integrity",
+    "status",
+    "signature"
+  ],
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "const": "TIP",
+      "description": "Protocol identifier."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+$",
+      "description": "Semantic version string beginning with 'v'."
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Originating module identifier."
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Target module identifier."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp for the handshake event."
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Randomised nonce preventing replay."
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Capabilities offered during the handshake."
+    },
+    "integrity": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Integrity score asserted by the source module."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposal",
+        "accepted",
+        "rejected"
+      ],
+      "description": "Negotiation status for the handshake."
+    },
+    "signature": {
+      "type": "string",
+      "minLength": 32,
+      "description": "Detached signature covering the envelope."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata block for extended negotiation.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

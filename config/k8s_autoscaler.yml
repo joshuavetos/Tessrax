@@ -1,0 +1,15 @@
+cluster_name: tessrax-governance
+horizontal_pod_autoscaler:
+  name: truth-api-hpa
+  namespace: tessrax
+  deployment: truth-api
+  min_replicas: 2
+  max_replicas: 12
+  target_cpu_percentage: 70
+cluster_autoscaler:
+  namespace: kube-system
+  service_account: cluster-autoscaler
+  min_nodes: 3
+  max_nodes: 18
+  scale_up_threshold: 0.65
+  scale_down_threshold: 0.35

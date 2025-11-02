@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 
+from ai_skills.lab_integration import AISkillsLabClient, LiveReceiptStream
 from ai_skills.prompting.evaluator import Evaluator
 from ai_skills.prompting.template_engine import TemplateEngine
 
@@ -48,6 +50,39 @@ def build_parser() -> argparse.ArgumentParser:
         "--truth", required=True, help="Ground-truth reference text."
     )
 
+    stream_parser = subparsers.add_parser(
+        "stream-receipts",
+        help="Stream Truth API receipts into the AI Skills Lab endpoint.",
+    )
+    stream_parser.add_argument(
+        "--ledger",
+        required=True,
+        type=Path,
+        help="Path to the Truth API ledger file to follow.",
+    )
+    stream_parser.add_argument(
+        "--endpoint",
+        required=True,
+        help="HTTPS endpoint exposed by the AI Skills Lab ingestion service.",
+    )
+    stream_parser.add_argument(
+        "--api-key",
+        default=None,
+        help="Optional API key used for authenticated streaming.",
+    )
+    stream_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of receipts to forward before stopping.",
+    )
+    stream_parser.add_argument(
+        "--timeout",
+        type=float,
+        default=None,
+        help="Timeout in seconds before exiting without new receipts.",
+    )
+
     return parser
 
 
@@ -85,6 +120,17 @@ def score_command(args: argparse.Namespace) -> dict[str, str | float | bool]:
     return evaluator.score_as_dict(args.guess, args.truth)
 
 
+def stream_command(args: argparse.Namespace) -> int:
+    """Stream receipts to the configured AI Skills Lab endpoint."""
+
+    ledger_path: Path = args.ledger
+    if not ledger_path.exists():
+        raise FileNotFoundError(f"Ledger file not found: {ledger_path}")
+    stream = LiveReceiptStream(ledger_path)
+    client = AISkillsLabClient(args.endpoint, api_key=args.api_key)
+    return client.stream_and_publish(stream, limit=args.limit, timeout=args.timeout)
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry-point compatible with ``python -m`` execution."""
 
@@ -99,6 +145,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "score":
         result = score_command(args)
         print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+
+    if args.command == "stream-receipts":
+        published = stream_command(args)
+        print(json.dumps({"status": "ok", "published": published}, indent=2, sort_keys=True))
         return 0
 
     parser.error("No command specified.")

@@ -15,11 +15,25 @@ from typing import Any
 
 import jwt
 import yaml
-from dotenv import dotenv_values
 
 _CONFIG_LOCK = threading.Lock()
 _ENV_LOCK = threading.Lock()
 
+
+def _parse_env_file(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    if not path.exists():
+        return values
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if "=" not in stripped:
+                continue
+            key, value = stripped.split("=", 1)
+            values[key.strip()] = value.strip().strip('"')
+    return values
 
 def _config_path() -> Path:
     return Path(__file__).resolve().parent / "config.yml"
@@ -44,9 +58,9 @@ def load_env() -> dict[str, str]:
 
     with _ENV_LOCK:
         env_path = _env_path()
-        if env_path.exists():
-            return {**dotenv_values(env_path), **os.environ}
-        return dict(os.environ)
+        values = _parse_env_file(env_path)
+        combined = {**values, **os.environ}
+        return combined
 
 
 def hmac_signature(payload: dict[str, Any], secret: str | None = None) -> str:
