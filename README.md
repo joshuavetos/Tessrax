@@ -14,32 +14,35 @@
 
 **Tessrax is a governance engine that turns contradiction into cognition.**
 
-It detects logical and semantic conflicts across data or claims, metabolizes them through formal governance protocols, and logs every resolution as a signed, hash-linked ledger receipt.
+It detects logical and semantic conflicts across data, models, or agent outputs—then metabolizes those conflicts into verified clarity through formal governance protocols.
 
-> ⚖️ Contradiction is not a bug — it’s a signal. Tessrax governs it, audits it, and turns it into verified clarity.
+Every reconciliation becomes a **signed, hash-linked ledger receipt**, proving not just that a decision was made, but *how and why*.
+
+> ⚖️ **Contradiction is not a bug — it’s a signal.**  
+> Tessrax governs it, audits it, and transforms it into clarity.
 
 Use Tessrax to:
-- Detect and reconcile contradictions in claims, metrics, or agent outputs
-- Enforce epistemic integrity across AI or multi-agent systems
-- Generate a cryptographically signed audit trail of all governance decisions
+- Detect and reconcile contradictions in AI or multi-agent systems  
+- Enforce epistemic integrity across distributed or self-auditing environments  
+- Generate cryptographically verifiable receipts of governance decisions  
 
 ---
 
-## 🔧 Core System Components
+## 🔩 Core Architecture
 
-| Component             | Role |
-|-----------------------|------|
-| **Claim Extractor**   | Normalizes raw inputs into structured, provenance-rich claims |
-| **Contradiction Engine** | Flags and quantifies tensions between claims |
-| **Governance Kernel** | Applies Tessrax protocols to determine remediation paths |
-| **Reconciliation Engine** | Synthesizes clarity statements and appends audit records |
-| **Ledger**            | Verifiable, hash-linked, tamper-evident receipt log |
-| **Dashboard**         | Real-time view of epistemic metrics and contradiction metabolism |
+| Layer | Purpose |
+|-------|----------|
+| **Memory Engine** | Stores all claims, contradictions, and reconciliation logs |
+| **Metabolism Engine** | Converts contradictions into structured clarity statements |
+| **Governance Kernel** | Executes policy and quorum logic over uncertain or conflicting data |
+| **Trust Engine** | Signs, verifies, and anchors every ledger entry cryptographically |
+| **Dashboard** | Visualizes contradictions, resolutions, and epistemic health metrics in real time |
 
-See [`docs/architecture_overview.md`](docs/architecture_overview.md) for detailed diagrams.
+<details>
+<summary>📊 View Architecture Diagram</summary>
 
-> ℹ️  Need a lightweight deployment? See [README_CORE](README_CORE.md) for the audited runtime
-and [README_ENTERPRISE](README_ENTERPRISE.md) for optional queueing and billing modules.
+![Tessrax System Diagram](docs/assets/architecture_overview.svg)
+</details>
 
 ---
 
@@ -52,31 +55,30 @@ Tessrax requires **Python 3.11.x**.
 git clone https://github.com/joshuavetos/Tessrax.git
 cd Tessrax
 
-# Set up environment
+# Create and activate a virtual environment
 python3.11 -m venv .venv --prompt tessrax
-source .venv/bin/activate     # On Windows: .venv\Scripts\activate
+source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 pip install -e .[dev]
-export PYTHONPATH=$(pwd):$PYTHONPATH
 
-# Run tests and a sample contradiction detection
+# Verify install
 pytest -q
 
-# Install enterprise extras if required
+# Optional: enterprise extensions
 pip install -e .[enterprise]
- 
-See [`docs/enterprise_migration.md`](docs/enterprise_migration.md) for guidance on the
-v15 → v16 enterprise upgrade path and the temporary Python 3.10 support policy.
-python examples/minimal_detect.py
+```
 
-📄 Full setup: docs/getting_started.md
+📄 For full setup and advanced configuration, see [`docs/getting_started.md`](docs/getting_started.md).
 
-⸻
+---
 
-🧾 Sample Governance Receipt
+## 🧾 Governance Receipts
 
-After each governance cycle, Tessrax appends a signed receipt to the audit ledger:
+Each governance cycle ends with a cryptographically signed receipt recorded in the audit ledger:
 
+```json
 {
   "event_type": "CONTRADICTION_RESOLUTION",
   "timestamp": "2025-10-17T13:10:00Z",
@@ -87,187 +89,157 @@ After each governance cycle, Tessrax appends a signed receipt to the audit ledge
   "hash": "fae2d0485f1cba11",
   "signature": "ed25519:4aa3..."
 }
+```
 
-All receipts are independently verifiable and anchored in a Merkle-linked ledger chain.
+Receipts are tamper-evident, Merkle-linked, and independently verifiable.
 
-⸻
+---
 
-🧪 Demonstrations
+## 🧪 Demonstrations
 
-Script	Description
-examples/minimal_detect.py	Loads test claims and flags contradictions
-examples/governance_demo.py	Simulates a full governance cycle with ledger outputs
-examples/dashboard_snapshot.py	Generates a Streamlit-compatible metrics snapshot
+| Script | Description |
+|---------|-------------|
+| `examples/minimal_detect.py` | Loads sample claims and flags contradictions |
+| `examples/governance_demo.py` | Runs a full governance cycle and appends ledger receipts |
+| `examples/dashboard_snapshot.py` | Produces a Streamlit-ready visualization snapshot |
 
-Run any demo from the project root:
-
+```bash
 python examples/<script>.py
+```
 
+---
 
-⸻
+## 🔬 Runtime Integrity
 
-🧬 Runtime & Integrity
-   •   ✅ Python version: 3.11.x (enforced by CI and local lockfiles)
-   •   🔒 Dependency lock: requirements-lock.txt, auto-generated via automation/regenerate_lock.sh
-   •   📦 Absolute imports enforced (tessrax.*) via .flake8
-   •   🔍 Tests: pytest -q, same as CI runner
-   •   🧪 Self-test: python -m tessrax.metabolism.reconcile --self-test
-   •   📁 Stub data: ledger/ledger.jsonl, company_frienthropy.csv (replace for production)
+| Check | Method |
+|--------|--------|
+| ✅ Python | 3.11.x (enforced by CI) |
+| 🔒 Lockfiles | `requirements-lock.txt` auto-generated via `automation/regenerate_lock.sh` |
+| 🧠 Imports | Absolute (`tessrax.*`) enforced via `.flake8` |
+| 🧪 Tests | `pytest -q` |
+| 🧬 Self-Test | `python -m tessrax.metabolism.reconcile --self-test` |
 
-⸻
+All test results and receipts are mirrored in the **audit ledger** under `ledger/ledger.jsonl`.
+
+---
 
 ## 🗂️ Field Evidence Archive (2025-10-28)
 
-Tessrax ships with the **Field Evidence Archive (2025-10-28)**, a machine-readable JSONL dataset that captures on-the-ground audits, contradiction analyses, and policy alignment checkpoints gathered during field deployments. The archive powers simulation benchmarks inside the governance kernel and feeds the audit and compliance modules with immutable, provenance-rich evidence packets.
-
-Each record in `tessrax/data/evidence/field_evidence_archive_2025-10-28.jsonl` follows this schema:
+Tessrax ships with a **Field Evidence Archive**, a JSONL dataset of real and simulated contradiction audits gathered during 2023–2025. It powers simulation benchmarks and compliance metrics inside the governance kernel.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | `str` | Stable identifier for the evidence entry |
-| `category` | `str` | Governance domain (e.g., supply_chain, governance, safety) |
-| `year` | `int` | Calendar year the evidence was captured |
-| `source_type` | `str` | Provenance channel such as field_report, audit log, or simulation |
-| `summary` | `str` | Narrative synopsis of the evidence |
-| `key_findings` | `list[str]` | Bullet-style findings extracted from the source |
-| `alignment` | `dict` | Policy alignment metadata including `policy_reference`, status, and score |
-| `citations` | `list[str]` | Human-readable citations or references |
+| `id` | `str` | Stable identifier |
+| `category` | `str` | Domain (e.g. `supply_chain`, `safety`) |
+| `source_type` | `str` | Provenance (`field_report`, `simulation`, etc.) |
+| `summary` | `str` | Narrative synopsis |
+| `alignment` | `dict` | Policy reference, status, and score |
 
-The archive is immutable—subsequent updates should be delivered as new timestamped JSONL files under `tessrax/data/evidence/`. Provenance is maintained through field operations memos, regulatory site visits, and governance simulations recorded by Tessrax teams between 2023 and 2025.
+Located at `tessrax/data/evidence/field_evidence_archive_2025-10-28.jsonl`.
 
-⸻
+---
 
-🧩 System Architecture
+## 🧱 Verification & Continuous Integration
 
-Concept	Description
-Memory	Canonical record of all claims and contradictions
-Metabolism	Conversion of contradictions into clarity statements
-Governance	Decision logic over epistemic uncertainty
-Trust	Signed receipts, ledger verification, provenance guarantees
+Tessrax performs a full reproducibility audit on every commit:
 
-Refer to docs/architecture_overview.md and docs/metabolic_reconciliation.md
+- ✅ **GitHub Actions** CI (`.github/workflows/tests.yml`)
+- ✅ Lockfile and dependency consistency guard
+- ✅ Governance kernel integrity and drift validation
+- ✅ Adversarial contradiction simulations
+- ✅ Coverage reporting to Codecov (85 %)
 
-⸻
+---
 
-📁 Repository Structure
+## 📦 Repository Layout
 
-Path	Purpose
-tessrax/	Core engines, reconciliation kernel, ledger logic
-examples/	Demonstrations and CLI simulations
-docs/	Architecture, governance protocols, audit flows
-tests/	Pytest suite for all subsystems
-automation/	Lockfile guards, meta-launcher logic, CI tools
-dashboard/	Streamlit dashboard templates and visualizers
+| Path | Purpose |
+|------|----------|
+| `tessrax/` | Core engines (Memory, Metabolism, Governance, Trust) |
+| `examples/` | Demonstrations and CLI simulations |
+| `docs/` | Architecture and protocol documentation |
+| `dashboard/` | Streamlit/React visualization layer |
+| `automation/` | CI helpers, lockfile scripts |
+| `tests/` | Pytest suite |
+| `docker/` | Multi-node FastAPI cluster deployment |
+| `tessrax_truth_api/` | REST interface for governance receipts |
 
+---
 
-⸻
+## 🧩 AI Skills Prompt Toolkit
 
-🧱 Verification & CI
+The `ai_skills` module provides deterministic prompt templates and evaluation tools.
 
-Tessrax runs a complete reproducibility audit on every commit:
-   •   ✅ GitHub Actions (.github/workflows/tests.yml)
-   •   ✅ Lockfile consistency guard (sync_guard.py)
-   •   ✅ Epistemic metrics validator (integrity, drift, severity)
-   •   ✅ Adversarial contradiction testing and resilience simulations
-
-⸻
-
-🛡️ Community, Security & Contributions
-   •   📜 Code of Conduct
-   •   🧪 Contributing Guide
-   •   🔐 Security Policy
-   •   🧠 Open to issues, proposals, and experimental forks
-
-⸻
-
-## ai_skills Prompt Toolkit
-
-The repository now bundles a hermetic prompt-engineering module named `ai_skills`.
-It relies solely on the Python standard library and exposes deterministic prompt
-templates, a template renderer, and an evaluation CLI.
-
-### Rendering the Socratic Debugger Template
+### Example: Render a Socratic Debugger
 
 ```bash
-python -m ai_skills.prompting.cli render --template socratic_debugger --task "Add numbers" --context "3 and 5"
+python -m ai_skills.prompting.cli render   --template socratic_debugger   --task "Add numbers"   --context "3 and 5"
 ```
 
-Expected output:
-
-```
-"""
-ROLE: You are a careful reasoner. Work step-by-step and show checks.
-TASK: Add numbers
-CONTEXT: 3 and 5
-STEPS:
-1) Extract claims (bulleted).
-2) For each claim, note confidence and what would falsify it.
-3) Produce an answer and a short "Why I might be wrong" section.
-OUTPUT: Answer, then Checks.
-"""
-```
-
-### Scoring a Guess Against the Truth Reference
+### Validate a Guess
 
 ```bash
 python -m ai_skills.prompting.cli score --guess "test" --truth "test"
 ```
 
-### Full Validation Checklist
-
+Full checklist:
 ```bash
 pytest tests/ -v
 python -m ai_skills.prompting.cli render --template socratic_debugger --task "test" --context "test"
 python -m ai_skills.prompting.cli score --guess "test" --truth "test"
 ```
 
-⸻
+---
 
-🔬 Citation
+## 🧭 Why Tessrax Exists
 
-If referencing in research or implementation:
+Modern AI systems are non-deterministic, multi-agent, and epistemically unstable. Contradictions are inevitable. Tessrax turns that inevitability into architecture:
 
-Vetos, J. (2025). Tessrax: A Framework for AI Governance and Contradiction Metabolism.
-GitHub. https://github.com/joshuavetos/Tessrax
+- It doesn’t suppress conflict — it **resolves** and **records** it.  
+- It doesn’t trust blindly — it **signs, verifies, and proves**.  
+- It metabolizes contradiction into **governance clarity**.
 
-⸻
+> **Tessrax:** turning contradiction into cognition, and cognition into proof.
 
-🧭 Why Tessrax Exists
+---
 
-Modern AI systems are increasingly non-deterministic, multi-agent, and epistemically unstable.
-Contradictions are inevitable. Tessrax turns that inevitability into architecture:
-   •   It doesn’t suppress conflict — it resolves and records it.
-   •   It doesn’t trust blindly — it signs, verifies, and proves.
-   •   It metabolizes contradiction into governance clarity.
+## 🧰 Dockerized Cluster & Dashboard
 
-Tessrax — turning contradiction into cognition, and cognition into proof.
+A three-node demo cluster ships with `docker/docker-compose.yml`:
 
-## Dockerized Cluster & React Dashboard
-
-The repository ships with a three-node docker-compose deployment under `docker/docker-compose.yml`:
-
-- `governance-node-a` / `governance-node-b` – FastAPI governance services replicating ledgers to a moto-backed S3 bucket.
-- `tessrax-etl-worker` – Runs the influenza ETL pipeline to feed real-world telemetry into the cluster.
+- `governance-node-a` / `governance-node-b` — FastAPI services replicating ledgers to a moto-backed S3 bucket  
+- `tessrax-etl-worker` — ETL pipeline ingesting telemetry into the cluster
 
 ```bash
 cd docker
 docker compose up --build
 ```
 
-Cloud logging is enabled via `config/docker.json`, mirroring ledger writes locally and in the mock bucket `tessrax-cluster-ledger`.
+Visit `http://localhost:8000/dashboard` for the React-based control tower.
 
-### React Control Tower
+---
 
-Visiting `http://localhost:8000/dashboard` renders the React interface served directly from FastAPI. It consumes `/dashboard/api/*` endpoints for ledger snapshots, summaries, and epistemic metrics.
+## 💳 Stripe Test-Mode Billing
 
-### Public Health ETL Flow
+The monetization API exposes `/billing/checkout` and `/billing/subscribe`, using a Stripe test gateway for sandboxed subscription flow demonstrations.
 
-`scripts/etl_public_health.py` transforms the sample CDC influenza dataset (`data/public_health/influenza_activity.csv`) into governance claims. Execute it manually with:
+---
 
-```bash
-python scripts/etl_public_health.py --endpoint http://localhost:8000
-```
+## 🔬 Citation
 
-### Stripe Test Mode Billing
+> Vetos, J. (2025). *Tessrax: A Framework for AI Governance and Contradiction Metabolism.* GitHub.  
+> [https://github.com/joshuavetos/Tessrax](https://github.com/joshuavetos/Tessrax)
 
-The monetization API now exposes `/billing/checkout`, powered by a Stripe test-mode gateway. Streamlit pricing flows display the generated checkout URL before completing subscription creation via `/billing/subscribe`.
+---
+
+## 🛡️ Community & Contributions
+
+- 📜 [Code of Conduct](CODE_OF_CONDUCT.md)  
+- 🧪 [Contributing Guide](CONTRIBUTING.md)  
+- 🔐 [Security Policy](SECURITY.md)
+
+---
+
+## 🧠 License
+
+Released under the MIT License. See [LICENSE](LICENSE) for details.
