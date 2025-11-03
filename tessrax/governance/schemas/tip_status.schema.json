@@ -1,0 +1,58 @@
+{
+  "$id": "https://tessrax.com/schemas/tip_status.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tessrax Integration Protocol Status Signal",
+  "type": "object",
+  "required": [
+    "event_type",
+    "module_id",
+    "integrity_score",
+    "open_scars",
+    "merkle_anchor",
+    "signing_key_id",
+    "timestamp"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "const": "TIP_STATUS"
+    },
+    "module_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "integrity_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "open_scars": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "merkle_anchor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signing_key_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "examples": [
+    {
+      "event_type": "TIP_STATUS",
+      "module_id": "dashboard@sha256:1234",
+      "integrity_score": 0.94,
+      "open_scars": 0,
+      "merkle_anchor": "bafy123",
+      "signing_key_id": "ledger-core-ed25519-01",
+      "timestamp": "2025-02-18T00:00:00Z"
+    }
+  ]
+}
