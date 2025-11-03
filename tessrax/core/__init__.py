@@ -1,5 +1,20 @@
 """Tessrax core package marker enforcing governance integrity."""
 
+try:
+    import sys
+    import types
+    import nacl.encoding
+    import nacl.signing
+
+    ed25519 = types.SimpleNamespace(
+        SigningKey=nacl.signing.SigningKey,
+        VerifyKey=nacl.signing.VerifyKey,
+        encoding=nacl.encoding,
+    )
+    sys.modules.setdefault("ed25519", ed25519)
+except Exception as exc:  # pragma: no cover - defensive guard
+    print("⚠️ ed25519 alias patch failed:", exc)
+
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
