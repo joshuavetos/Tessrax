@@ -1,0 +1,220 @@
+{
+  "$id": "https://tessrax.com/schemas/tip_manifest.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tessrax Integration Protocol Manifest",
+  "type": "object",
+  "required": [
+    "module_id",
+    "version",
+    "description",
+    "endpoints",
+    "cli_entrypoints",
+    "dependencies",
+    "health",
+    "telemetry_topics",
+    "governance",
+    "governance_bus",
+    "ledger_refs",
+    "federation_profile"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "module_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][A-Za-z0-9\\.-]+)?$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "endpoints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "method", "route", "io_schema_hash"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "method": {"type": "string", "pattern": "^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)$"},
+          "route": {"type": "string", "minLength": 1},
+          "io_schema_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+        }
+      }
+    },
+    "cli_entrypoints": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 1
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 0
+    },
+    "health": {
+      "type": "object",
+      "required": ["readiness", "liveness", "last_checked"],
+      "additionalProperties": false,
+      "properties": {
+        "readiness": {"type": "string", "format": "uri"},
+        "liveness": {"type": "string", "format": "uri"},
+        "last_checked": {"type": "string", "format": "date-time"}
+      }
+    },
+    "telemetry_topics": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 0
+    },
+    "governance": {
+      "type": "object",
+      "required": ["signing_key_id", "signature"],
+      "additionalProperties": false,
+      "properties": {
+        "signing_key_id": {"type": "string", "minLength": 1},
+        "signature": {
+          "type": "object",
+          "required": ["algorithm", "value", "signed_at"],
+          "additionalProperties": false,
+          "properties": {
+            "algorithm": {"type": "string", "enum": ["SHA256"]},
+            "value": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+            "signed_at": {"type": "string", "format": "date-time"}
+          }
+        }
+      }
+    },
+    "governance_bus": {
+      "type": "object",
+      "required": ["ingest", "emit", "status_broadcast"],
+      "additionalProperties": false,
+      "properties": {
+        "ingest": {"type": "string", "minLength": 1},
+        "emit": {"type": "string", "minLength": 1},
+        "status_broadcast": {"type": "string", "minLength": 1}
+      }
+    },
+    "ledger_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "hash", "merkle_anchor"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+          "merkle_anchor": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "federation_profile": {
+      "type": "object",
+      "required": [
+        "integrity_score",
+        "reliability",
+        "compliance",
+        "scar_register",
+        "status",
+        "last_self_audit"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "integrity_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "reliability": {
+          "type": "object",
+          "required": ["uptime_24h", "error_budget_consumed"],
+          "additionalProperties": false,
+          "properties": {
+            "uptime_24h": {"type": "number", "minimum": 0, "maximum": 1},
+            "error_budget_consumed": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        },
+        "compliance": {
+          "type": "object",
+          "required": ["aep_001", "rvc_001", "post_audit_001", "eac_001"],
+          "additionalProperties": false,
+          "properties": {
+            "aep_001": {"type": "boolean"},
+            "rvc_001": {"type": "boolean"},
+            "post_audit_001": {"type": "boolean"},
+            "eac_001": {"type": "boolean"}
+          }
+        },
+        "scar_register": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ready", "quarantined", "maintenance"]
+        },
+        "last_self_audit": {"type": "string", "format": "date-time"}
+      }
+    }
+  },
+  "examples": [
+    {
+      "module_id": "dashboard@sha256:1234",
+      "version": "1.0.0",
+      "description": "Governance dashboard service",
+      "endpoints": [
+        {
+          "name": "status",
+          "method": "GET",
+          "route": "/status",
+          "io_schema_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        }
+      ],
+      "cli_entrypoints": ["python -m tessrax.dashboard.server"],
+      "dependencies": ["tip://ledger-core#abc"],
+      "health": {
+        "readiness": "https://localhost/healthz",
+        "liveness": "https://localhost/live",
+        "last_checked": "2025-02-18T00:00:00Z"
+      },
+      "telemetry_topics": ["governance.signals.drift"],
+      "governance": {
+        "signing_key_id": "ledger-core-ed25519-01",
+        "signature": {
+          "algorithm": "SHA256",
+          "value": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+          "signed_at": "2025-02-18T00:00:00Z"
+        }
+      },
+      "governance_bus": {
+        "ingest": "/governance/receipts",
+        "emit": "/governance/signals/{id}",
+        "status_broadcast": "/governance/status"
+      },
+      "ledger_refs": [
+        {
+          "path": "/ledger/dashboard.jsonl",
+          "hash": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+          "merkle_anchor": "bafyabc"
+        }
+      ],
+      "federation_profile": {
+        "integrity_score": 0.96,
+        "reliability": {
+          "uptime_24h": 0.999,
+          "error_budget_consumed": 0.01
+        },
+        "compliance": {
+          "aep_001": true,
+          "rvc_001": true,
+          "post_audit_001": true,
+          "eac_001": true
+        },
+        "scar_register": [],
+        "status": "ready",
+        "last_self_audit": "2025-02-18T00:00:00Z"
+      }
+    }
+  ]
+}

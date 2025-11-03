@@ -1,0 +1,69 @@
+{
+  "$id": "https://tessrax.com/schemas/tip_receipt.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tessrax Integration Protocol Receipt",
+  "type": "object",
+  "required": [
+    "auditor",
+    "clauses",
+    "timestamp",
+    "runtime_info",
+    "integrity_score",
+    "status",
+    "signature"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "auditor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clauses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["AEP-001", "POST-AUDIT-001", "RVC-001", "EAC-001"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "runtime_info": {
+      "type": "string",
+      "minLength": 1
+    },
+    "integrity_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": ["DLK-VERIFIED", "DLK-FAILED"]
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "details": {
+      "type": "object"
+    }
+  },
+  "examples": [
+    {
+      "auditor": "Tessrax Governance Kernel v16",
+      "clauses": ["AEP-001", "POST-AUDIT-001", "RVC-001", "EAC-001"],
+      "timestamp": "2025-02-18T00:00:00Z",
+      "runtime_info": "Validated tip.json",
+      "integrity_score": 0.96,
+      "status": "DLK-VERIFIED",
+      "signature": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "details": {
+        "module_id": "dashboard@sha256:1234"
+      }
+    }
+  ]
+}

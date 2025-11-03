@@ -13,9 +13,9 @@
 *.pkl binary
 *.bin binary
 *.csv binary
-*.jsonl binary
 
 # Ensure Mermaid and PlantUML stay UTF-8
 *.svg text
 *.mmd text working-tree-encoding=UTF-8
 *.puml text working-tree-encoding=UTF-8
+*.jsonl text eol=lf
