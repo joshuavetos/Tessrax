@@ -1,1 +1,2 @@
 {}
+{"auditor": "Tessrax Governance Kernel v16", "files": ["tessrax/provenance/tracer.py", "sandbox/ethical_drift.py", "tessrax/api/human_feedback.py", "dashboard/federation_map.py", "sdk/tessrax_client.py", "tessrax/diagnostics/health_monitor.py", "docs/pedagogy/contradiction_curriculum.md", "docs/api/human_feedback.md", "dashboard/README.md", "sdk/README.md", ".github/workflows/health_monitor.yml", "Latest.txt"], "tag": "SAFEPOINT_V17_4_EXPANSION_READY", "timestamp": "2025-11-04T14:18:40.532370+00:00"}
