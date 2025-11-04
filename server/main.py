@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from config_loader import load_config
 from dashboard.api_routes import create_dashboard_router
+from tessrax.api.human_feedback import router as human_feedback_router
 from tessrax.ledger import Ledger
 from tessrax.logging import LedgerWriter, S3LedgerWriter
 from tessrax.metabolism.async_detector import AsyncContradictionDetector
@@ -44,6 +45,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Tessrax-Core API", version="1.0.0", lifespan=lifespan)
+app.include_router(human_feedback_router)
 
 
 class AgentClaim(BaseModel):

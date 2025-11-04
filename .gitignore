@@ -34,6 +34,7 @@ venv/
 logs/
 !tests/logs/__init__.py
 out/
+!out/integrity_receipts_v17_4.jsonl
 !out/env_snapshot.json
 
 # Node / dashboard assets
@@ -50,4 +51,5 @@ tessrax/data/evidence/*
 !tessrax/data/evidence/__init__.py
 !tests/data/
 !tests/data/**
+dashboard/static/*.png
 pycache/

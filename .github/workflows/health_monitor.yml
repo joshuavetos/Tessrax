@@ -1,0 +1,51 @@
+name: Auto Governance Health Monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run health monitor
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          from tessrax.diagnostics.health_monitor import run_health_check
+
+          result = run_health_check()
+          badge_status = "passing" if result["integrity"] >= 0.9 else "attention"
+          readme = Path("dashboard/README.md")
+          readme.write_text(
+              "# Dashboard Health Monitor\n\n"
+              f"![Health Monitor](https://img.shields.io/badge/health-{badge_status}-brightgreen)\n\n"
+              "```json\n" + json.dumps(result, indent=2) + "\n```\n",
+              encoding="utf-8",
+          )
+          Path("out/health_summary_action.json").write_text(
+              json.dumps(result, indent=2, sort_keys=True),
+              encoding="utf-8",
+          )
+          PY
+      - name: Upload health artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-monitor-output
+          path: |
+            out/health_summary.json
+            out/health_summary_action.json
+            dashboard/README.md
