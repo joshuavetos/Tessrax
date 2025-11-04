@@ -11,6 +11,11 @@
 - Removed the legacy Truth-Lock prototype service, dedicated CI workflow, and associated tests in favour of the Tessrax Truth API.
 - Deleted archived redundancy audit artefacts and helper scripts that were no longer part of the active release process.
 
+## Tessrax v17.5 — Governed Ethical Drift Engine + Pedagogical Layer
+- Added DLK-verified ethical drift engine with receipt generation and entropy safeguards.
+- Authored governed AI literacy curriculum v1 linking sandbox demos for Modules 5 and 6.
+- Introduced reusable skills lab sandboxes aligned with governed audit outputs.
+
 ## Tessrax v17.4 — Governed Provenance + Feedback Suite
 - Added DLK-verified provenance tracing with Ed25519 signing in `tessrax/provenance/tracer.py` and regression tests.
 - Introduced the ethical drift simulator sandbox with reproducible JSON receipts and summaries.
