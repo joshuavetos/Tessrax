@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Contradiction Record v3",
+  "type": "object",
+  "required": [
+    "id",
+    "claimA",
+    "claimB",
+    "detected_at",
+    "conflict_type",
+    "severity_score",
+    "integrity_score",
+    "audit_trail",
+    "quorum_score",
+    "signature_confidence"
+  ],
+  "properties": {
+    "id": {"type": "string"},
+    "claimA": {"type": "object"},
+    "claimB": {"type": "object"},
+    "detected_at": {"type": "string", "format": "date-time"},
+    "conflict_type": {"type": "string"},
+    "severity_score": {"type": "number"},
+    "integrity_score": {
+      "type": "number",
+      "description": "Derived from ledger verification success ratio"
+    },
+    "audit_trail": {
+      "type": "number",
+      "description": "Proportion of complete, timestamped receipts"
+    },
+    "quorum_score": {
+      "type": "number",
+      "description": "Weighted agreement among governance agents"
+    },
+    "signature_confidence": {
+      "type": "number",
+      "description": "Average cryptographic verification confidence"
+    }
+  },
+  "additionalProperties": false
+}
