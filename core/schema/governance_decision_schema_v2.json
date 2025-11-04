@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Governance Decision Record v2",
+  "type": "object",
+  "required": [
+    "id",
+    "contradiction_id",
+    "decision_at",
+    "action",
+    "rationale",
+    "decision_maker",
+    "entropy",
+    "legitimacy",
+    "signature"
+  ],
+  "properties": {
+    "id": {"type": "string"},
+    "contradiction_id": {"type": "string"},
+    "decision_at": {"type": "string", "format": "date-time"},
+    "action": {"type": "string"},
+    "rationale": {"type": "string"},
+    "decision_maker": {"type": "string"},
+    "entropy": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Shannon entropy (base 2) of the contradiction distribution"
+    },
+    "legitimacy": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Weighted trustworthiness composite score"
+    },
+    "signature": {"type": "string"}
+  },
+  "additionalProperties": false
+}
