@@ -1,2 +1,1 @@
-Integrated Provenance, Ethical Drift, Human Feedback, Federated Visualizer,
-SDK, Pedagogy, Health Monitor — SAFEPOINT_V17_4_EXPANSION_READY.
+Governed Ethical Drift Engine + Pedagogy Layer — SAFEPOINT_V17_5_GOVERNED_ETHICS_AND_PEDAGOGY.

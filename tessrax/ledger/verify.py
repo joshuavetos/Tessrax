@@ -11,7 +11,7 @@ from tessrax.ledger import verify_file
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Verify Tessrax ledger receipts")
-    parser.add_argument("path", type=Path, help="Path to ledger JSONL file")
+    parser.add_argument("path", type=Path, nargs='?', default=Path('ledger/receipts/ethical_drift_v17_5.jsonl'), help="Path to ledger JSONL file")
     return parser
 
 
@@ -19,8 +19,11 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
+    target_path = args.path
+    if not target_path.exists():
+        raise SystemExit(f'Ledger verification failed: missing file {target_path}')
     try:
-        verify_file(args.path)
+        verify_file(target_path)
     except Exception as exc:  # pragma: no cover - surfaced directly to CLI
         raise SystemExit(f"Ledger verification failed: {exc}")
 
