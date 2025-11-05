@@ -16,4 +16,4 @@ ENV PYTHONPATH=/app
 
 EXPOSE 8000
 
-CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "tessrax_truth_api.main:app", "--host", "0.0.0.0", "--port", "8000"]

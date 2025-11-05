@@ -1,9 +1,26 @@
 """Async FastAPI application exposing the Tessrax Truth API."""
 
+from __future__ import annotations
+
 import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
+from config_loader import load_config as load_core_config
+
+from tessrax.api.human_feedback import router as human_feedback_router
+from tessrax.ledger import Ledger
+from tessrax.logging import LedgerWriter, S3LedgerWriter
+from tessrax.metabolism.async_detector import AsyncContradictionDetector
+from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
+from tessrax.types import Claim
+
+from tessrax_truth_api import monetization_api
 from tessrax_truth_api.engine.calibrator import Calibrator
 from tessrax_truth_api.engine.contradiction_engine import ContradictionEngine
 from tessrax_truth_api.ledger_link import ledger_guard
@@ -18,14 +35,13 @@ from tessrax_truth_api.models import (
     SelfTestSummary,
 )
 from tessrax_truth_api.services.billing_service import BillingService
-from tessrax_truth_api.services.subscription_service import SubscriptionService
-from tessrax_truth_api.services.entitlement_service import EntitlementService
-from tessrax_truth_api.services.webhook_service import WebhookService
-from tessrax_truth_api.services.stripe_gateway import StripeGateway
 from tessrax_truth_api.services.cache_service import CachedEntry, CacheService
+from tessrax_truth_api.services.entitlement_service import EntitlementService
 from tessrax_truth_api.services.provenance_service import ProvenanceService
+from tessrax_truth_api.services.stripe_gateway import StripeGateway
+from tessrax_truth_api.services.subscription_service import SubscriptionService
 from tessrax_truth_api.services.validation_service import ValidationService
-from tessrax_truth_api import monetization_api
+from tessrax_truth_api.services.webhook_service import WebhookService
 from tessrax_truth_api.utils import (
     encode_metrics,
     hmac_signature,
@@ -37,9 +53,69 @@ from tessrax_truth_api.utils import (
 )
 
 
+class AgentClaim(BaseModel):
+    """Payload representing a free-form claim submitted by an agent."""
+
+    agent: str = Field(..., description="Agent identifier")
+    claim: str = Field(..., description="Agent claim text")
+    context: dict[str, Any] | None = Field(
+        default=None, description="Optional claim metadata"
+    )
+
+
+class ClaimsSubmission(BaseModel):
+    """Container for a batch of agent claims."""
+
+    claims: list[AgentClaim] = Field(..., description="Claims to analyse")
+
+
+class AnalysisResult(BaseModel):
+    """Response structure for stability analysis requests."""
+
+    stability_score: float = Field(..., ge=0.0, le=1.0)
+    governance_lane: str
+
+
+class StructuredClaim(BaseModel):
+    """Structured payload used for asynchronous contradiction detection."""
+
+    claim_id: str
+    subject: str
+    metric: str
+    value: float
+    unit: str
+    timestamp: datetime
+    source: str
+    context: dict[str, str] = Field(default_factory=dict)
+
+    def to_claim(self) -> Claim:
+        return Claim(
+            claim_id=self.claim_id,
+            subject=self.subject,
+            metric=self.metric,
+            value=self.value,
+            unit=self.unit,
+            timestamp=self.timestamp,
+            source=self.source,
+            context=dict(self.context),
+        )
+
+
 def create_app() -> FastAPI:
     config = load_config()
+    core_config = load_core_config()
     app = FastAPI(title="Tessrax Truth API", version="2.0.0")
+
+    ledger_path = Path(core_config.logging.ledger_path)
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+
+    cloud_writer = None
+    if core_config.logging.cloud and core_config.logging.cloud.enabled:
+        cloud_writer = S3LedgerWriter(core_config.logging.cloud)
+    ledger_writer = LedgerWriter(ledger_path, cloud_writer)
+
+    governance_ledger = Ledger()
+    detector = AsyncContradictionDetector(governance_ledger)
 
     calibrator = Calibrator()
     thresholds = calibrator.thresholds
@@ -73,14 +149,18 @@ def create_app() -> FastAPI:
         stripe_gateway,
     )
     app.include_router(monetization_api.router)
+    app.include_router(human_feedback_router)
 
     app.add_middleware(TruthLockMiddleware)
 
     @app.on_event("startup")
-    async def startup_event() -> (
-        None
-    ):  # pragma: no cover - placeholder for future hooks
-        return None
+    async def startup_event() -> None:
+        await detector.start()
+
+    @app.on_event("shutdown")
+    async def shutdown_event() -> None:
+        await detector.stop()
+        ledger_writer.close()
 
     @app.post("/onboard", response_model=OnboardResponse)
     async def onboard(tier: str = "free", key: str = "create") -> OnboardResponse:
@@ -181,6 +261,58 @@ def create_app() -> FastAPI:
             signature=receipt.signature,
         )
 
+    @app.post("/submit_claims", response_model=AnalysisResult)
+    async def submit_claims(submission: ClaimsSubmission) -> AnalysisResult:
+        if not submission.claims:
+            raise HTTPException(status_code=400, detail="At least one claim is required")
+
+        raw_claims = [claim.dict() for claim in submission.claims]
+        stability = calculate_stability(raw_claims)
+        lane = route_to_governance_lane(stability, core_config.thresholds)
+
+        record = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "stability_score": stability,
+            "governance_lane": lane,
+            "claims": raw_claims,
+        }
+
+        ledger_writer.append(record)
+
+        return AnalysisResult(stability_score=stability, governance_lane=lane)
+
+    @app.get("/ledger")
+    async def get_ledger() -> JSONResponse:
+        if not ledger_path.exists():
+            return JSONResponse(content=[], status_code=200)
+
+        records: list[dict[str, Any]] = []
+        with ledger_path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    records.append(json.loads(line))
+                except json.JSONDecodeError as exc:  # pragma: no cover - defensive
+                    raise HTTPException(
+                        status_code=500, detail=f"Invalid ledger entry: {exc}"
+                    )
+        return JSONResponse(content=records)
+
+    @app.post("/claims")
+    async def submit_structured_claims(claims: list[StructuredClaim]) -> dict[str, object]:
+        if not claims:
+            raise HTTPException(status_code=400, detail="At least one claim is required")
+
+        for payload in claims:
+            await detector.publish(payload.to_claim())
+        return {"status": "queued", "count": len(claims)}
+
+    @app.get("/contradictions/live")
+    async def get_live_contradictions() -> dict[str, int]:
+        return {"active": len(detector.seen)}
+
     @app.get("/verify_receipt/{uuid}", response_model=ReceiptVerification)
     @ledger_guard(provenance_service, "TRUTH_API_RECEIPT_VERIFICATION")
     async def verify_receipt(uuid: str) -> ReceiptVerification:
@@ -221,7 +353,6 @@ def create_app() -> FastAPI:
     async def self_test() -> SelfTestSummary:
         results: list[SelfTestResult] = []
 
-        # Known contradiction
         contradiction_payload = {
             "claim_a": "The sky is blue",
             "claim_b": "The sky is not blue",
@@ -241,7 +372,6 @@ def create_app() -> FastAPI:
             )
         )
 
-        # Unknown outcome
         unknown_payload = {
             "claim_a": "Atlantis has 5 cities",
             "claim_b": "Atlantis has 4 cities",
@@ -261,7 +391,6 @@ def create_app() -> FastAPI:
             )
         )
 
-        # Tampered hash simulation
         tampered_payload = {
             "claim_a": "Water boils at 100C",
             "claim_b": "Water freezes at 0C",
