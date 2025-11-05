@@ -1,55 +1,22 @@
-# Python artifacts
 __pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.so
-*.dylib
-*.egg-info/
-*.egg
-.eggs/
-build/
-dist/
 .pytest_cache/
-.coverage
-htmlcov/
-
-# Environments
-.venv/
-venv/
-.env
-.env.*
-!.env.example
-
-# Editor settings
-*.swp
-*.swo
-*.idea/
-.vscode/
-
-# Data / logs
+*.pyc
+*.pyo
+*.pkl
 *.log
-*.tmp
-.DS_Store
-logs/
-!tests/logs/__init__.py
-out/
-!out/integrity_receipts_v17_4.jsonl
-!out/env_snapshot.json
-
-# Node / dashboard assets
-node_modules/
-dashboard/.cache/
-dashboard/build/
-
-# Tessrax generated artifacts
-analytics/output/
-data/
-tessrax/data/*
-!tessrax/data/__init__.py
-tessrax/data/evidence/*
-!tessrax/data/evidence/__init__.py
-!tests/data/
-!tests/data/**
-dashboard/static/*.png
-pycache/
+*.DS_Store
+.ipynb_checkpoints/
+env/
+.venv/
+*.sqlite
+*.db
+*.zip
+*.tar.gz
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.mov
+*.avi
+*.bin
