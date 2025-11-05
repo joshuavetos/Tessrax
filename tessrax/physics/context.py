@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-
-import numpy as np
+import math
 
 
 class ContextualStiffness:
@@ -21,7 +20,7 @@ class ContextualStiffness:
         """Return contextual stiffness adjusted by temporal decay."""
 
         base = self.DOMAIN_STIFFNESS.get(metric, 0.5)
-        decay = np.exp(-0.1 * temporal_distance)
+        decay = math.exp(-0.1 * temporal_distance)
         return float(base * decay)
 
 

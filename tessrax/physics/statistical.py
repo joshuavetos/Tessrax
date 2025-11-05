@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import numpy as np
+import math
 
 
 class StatisticalMechanics:
@@ -19,4 +19,6 @@ class StatisticalMechanics:
     def boltzmann_entropy(self, omega: float) -> float:
         """Return the Boltzmann entropy for the supplied microstate count."""
 
-        return float(self.k_B * np.log(omega))
+        if omega <= 0:
+            raise ValueError("Microstate count must be positive to compute entropy")
+        return float(self.k_B * math.log(omega))
