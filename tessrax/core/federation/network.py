@@ -6,6 +6,8 @@ import asyncio
 from pathlib import Path
 from typing import Iterable
 
+from tessrax.core.contracts.license import embed_license
+from tessrax.core.contracts.token import TokenBank
 from tessrax.core.ledger import append_entry
 
 from .node import LEDGER_PATH as DEFAULT_LEDGER_PATH
@@ -37,6 +39,8 @@ async def simulate_cluster(
 
     nodes = await _initialise_nodes(n)
 
+    bank = TokenBank()
+
     for round_index in range(rounds):
         events = await asyncio.gather(*(node.run_round() for node in nodes))
         quorum = merge_events(events)
@@ -44,6 +48,8 @@ async def simulate_cluster(
         append_entry(quorum, ledger_target)
         if ledger_target != DEFAULT_LEDGER_PATH:
             append_entry(quorum, DEFAULT_LEDGER_PATH)
+        reward = bank.mint("cluster", 5, "federated_quorum")
+        embed_license(reward)
         await asyncio.sleep(0.05)
 
     return True
