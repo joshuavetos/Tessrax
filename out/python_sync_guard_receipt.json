@@ -1,0 +1,19 @@
+{
+  "auditor": "Tessrax Governance Kernel v16",
+  "clauses": [
+    "AEP-001",
+    "POST-AUDIT-001",
+    "RVC-001",
+    "EAC-001"
+  ],
+  "event": "python_sync_guard",
+  "integrity_score": 0.99,
+  "runtime_info": {
+    "deps_count": 48,
+    "deps_hash": "66a31a2e60c104b17d66201a20e4e57f1502eb8cea06fdb60f6cd51031330fed",
+    "python_version": "3.11"
+  },
+  "signature": "a7cabf0f121d0a490898c1ad7ff7ae995cb99f00af6f0a493d5023a3bdee8fb5",
+  "status": "pass",
+  "timestamp": "2025-11-05T22:13:55.286172+00:00"
+}
