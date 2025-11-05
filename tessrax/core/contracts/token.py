@@ -19,13 +19,15 @@ class TokenBank:
 
     def mint(self, actor: str, amount: int, reason: str):
         self.balances[actor] = self.balances.get(actor, 0) + amount
+        timestamp = time.time()
+        digest_input = f"{actor}:{amount}:{reason}:{timestamp}".encode()
         entry = {
             "event": "reward_mint",
             "actor": actor,
             "amount": amount,
             "reason": reason,
-            "timestamp": time.time(),
-            "hash": hashlib.sha256(f"{actor}:{amount}:{reason}".encode()).hexdigest(),
+            "timestamp": timestamp,
+            "hash": hashlib.sha256(digest_input).hexdigest(),
         }
         self._append(entry)
         return entry
