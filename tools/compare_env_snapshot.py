@@ -10,22 +10,46 @@ def load(path: Path) -> dict[str, object]:
         return json.load(handle)
 
 
+STATIC_METADATA_KEYS = {"environment_hash"}
+
+# Metadata keys that are expected to drift between runs (timestamps, commit IDs, etc.)
+DYNAMIC_METADATA_KEYS = {"generated_at", "git_commit", "python_version"}
+
+
 def compare(
     baseline: dict[str, object],
     candidate: dict[str, object],
     float_tolerance: float = 0.01,
-) -> tuple[bool, list[str]]:
+) -> tuple[bool, list[str], list[str]]:
     discrepancies: list[str] = []
+    warnings: list[str] = []
 
     base_meta = baseline.get("metadata", {})
     cand_meta = candidate.get("metadata", {})
     for key in sorted(set(base_meta) | set(cand_meta)):
+        if key in DYNAMIC_METADATA_KEYS:
+            # These fields change every run (timestamp, commit hash, interpreter
+            # patch version). They cannot be made identical across executions, so we
+            # surface the difference as an informational warning instead of a hard
+            # failure. The caller can still report the drift to provide context.
+            if key in base_meta and key in cand_meta and base_meta[key] != cand_meta[key]:
+                warnings.append(
+                    f"metadata.{key} differs: {base_meta[key]} vs {cand_meta[key]}"
+                )
+            continue
         if key not in base_meta:
             discrepancies.append(f"metadata.{key} missing from baseline")
             continue
         if key not in cand_meta:
             discrepancies.append(f"metadata.{key} missing from candidate")
             continue
+        if key in STATIC_METADATA_KEYS:
+            if base_meta[key] != cand_meta[key]:
+                discrepancies.append(
+                    f"metadata.{key} differs: {base_meta[key]} vs {cand_meta[key]}"
+                )
+            continue
+
         if isinstance(base_meta[key], (int, float)):
             if abs(float(base_meta[key]) - float(cand_meta[key])) > float_tolerance:
                 discrepancies.append(
@@ -48,7 +72,7 @@ def compare(
                 f"metrics.{key} drifted: {base_metrics[key]} vs {cand_metrics[key]}"
             )
 
-    return not discrepancies, discrepancies
+    return not discrepancies, discrepancies, warnings
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,13 +89,16 @@ def main(argv: list[str] | None = None) -> int:
 
     baseline = load(args.baseline)
     candidate = load(args.candidate)
-    ok, discrepancies = compare(baseline, candidate, args.float_tolerance)
+    ok, discrepancies, warnings = compare(baseline, candidate, args.float_tolerance)
     if not ok:
         prefix = "::warning::" if args.warn_only else "::error::"
         print(f"{prefix}Snapshot divergence detected; manual re-audit required")
         for diff in discrepancies:
             print(diff)
         return 0 if args.warn_only else 1
+
+    for note in warnings:
+        print(f"::notice::{note}")
 
     print("Snapshots consistent within tolerance")
     return 0
