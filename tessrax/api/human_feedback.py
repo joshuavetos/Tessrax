@@ -7,12 +7,17 @@ feedback receipts are cryptographically hashed and appended to the ledger.
 
 from __future__ import annotations
 
+import contextlib
+import copy
 import hashlib
 import json
+import os
+import shutil
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Iterator
 
 try:  # pragma: no cover - FastAPI may be unavailable in test environments
     from fastapi import APIRouter, HTTPException, Request, status
@@ -55,7 +60,60 @@ except ModuleNotFoundError:  # pragma: no cover
 
 from ledger import append as ledger_append
 
-DATA_PATH = Path(__file__).with_name("human_feedback_history.json")
+LEGACY_DATA_PATH = Path(__file__).with_name("human_feedback_history.json")
+
+
+def _normalise_history_path(path: Path) -> Path:
+    if path.suffix:
+        return path
+    return path / "human_feedback_history.json"
+
+
+def _resolve_history_path() -> Path:
+    candidates: list[Path] = []
+
+    env_history = os.environ.get("TESSRAX_FEEDBACK_HISTORY_PATH")
+    if env_history:
+        candidates.append(_normalise_history_path(Path(env_history)))
+
+    env_data = os.environ.get("TESSRAX_DATA_DIR")
+    if env_data:
+        candidates.append(_normalise_history_path(Path(env_data)))
+
+    home_candidate = Path.home() / ".tessrax"
+    candidates.append(home_candidate / "human_feedback_history.json")
+
+    temp_candidate = Path(tempfile.gettempdir()) / "tessrax"
+    candidates.append(temp_candidate / "human_feedback_history.json")
+
+    for candidate in candidates:
+        parent = candidate.parent
+        try:
+            parent.mkdir(parents=True, exist_ok=True)
+            probe = parent / ".history_probe"
+            with probe.open("w", encoding="utf-8") as handle:
+                handle.write("")
+            probe.unlink(missing_ok=True)
+        except OSError:
+            continue
+
+        if (
+            candidate != LEGACY_DATA_PATH
+            and not candidate.exists()
+            and LEGACY_DATA_PATH.exists()
+        ):
+            try:
+                shutil.copy2(LEGACY_DATA_PATH, candidate)
+            except OSError:
+                # If we cannot migrate, continue with an empty history.
+                pass
+        return candidate
+
+    return LEGACY_DATA_PATH
+
+
+DATA_PATH = _resolve_history_path()
+LOCK_PATH = DATA_PATH.with_suffix(".lock")
 
 AUDITOR_ID = "Tessrax Governance Kernel v16"
 CLAUSES = ["AEP-001", "POST-AUDIT-001", "RVC-001", "EAC-001"]
@@ -108,25 +166,67 @@ router = APIRouter(prefix="/feedback", tags=["Human Feedback"])
 _rate_limiter = _RateLimiter()
 
 
-def _ensure_history_file() -> dict[str, Any]:
-    initialised = False
-    if not DATA_PATH.exists():
-        DATA_PATH.write_text(json.dumps({"history": []}, indent=2), encoding="utf-8")
-        initialised = True
-    with DATA_PATH.open("r", encoding="utf-8") as handle:
+@contextlib.contextmanager
+def _history_lock(timeout: float = 5.0, stale_seconds: float = 30.0) -> Iterator[None]:
+    deadline = time.monotonic() + timeout if timeout is not None else None
+    fd: int | None = None
+    while True:
         try:
+            fd = os.open(LOCK_PATH, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            break
+        except FileExistsError:
+            if stale_seconds is not None:
+                try:
+                    mtime = LOCK_PATH.stat().st_mtime
+                    if time.time() - mtime > stale_seconds:
+                        LOCK_PATH.unlink(missing_ok=True)
+                        continue
+                except OSError:
+                    pass
+            if deadline is not None and time.monotonic() >= deadline:
+                raise TimeoutError("Unable to acquire feedback history lock")
+            time.sleep(0.1)
+
+    try:
+        yield
+    finally:
+        try:
+            if fd is not None:
+                os.close(fd)
+        except OSError:
+            pass
+        LOCK_PATH.unlink(missing_ok=True)
+
+
+def _load_history() -> dict[str, Any]:
+    if not DATA_PATH.exists():
+        return {"history": []}
+    try:
+        with DATA_PATH.open("r", encoding="utf-8") as handle:
             data = json.load(handle)
-        except json.JSONDecodeError:
-            data = {"history": []}
-    if "history" not in data or not isinstance(data["history"], list):
-        data = {"history": []}
-    if initialised or data.get("history") == []:
-        DATA_PATH.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+    except (OSError, json.JSONDecodeError):
+        return {"history": []}
+    history = data.get("history")
+    if not isinstance(history, list):
+        data["history"] = []
     return data
 
 
+def _ensure_history_file() -> dict[str, Any]:
+    with _history_lock():
+        history = _load_history()
+        if not DATA_PATH.exists():
+            _write_history(history)
+        return copy.deepcopy(history)
+
+
 def _write_history(data: dict[str, Any]) -> None:
-    DATA_PATH.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+    DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+    serialized = json.dumps(data, indent=2, sort_keys=True)
+    tmp_path = DATA_PATH.with_suffix(".tmp")
+    with tmp_path.open("w", encoding="utf-8") as handle:
+        handle.write(serialized)
+    tmp_path.replace(DATA_PATH)
 
 
 def get_history() -> dict[str, Any]:
@@ -136,9 +236,10 @@ def get_history() -> dict[str, Any]:
 
 
 def _append_history(entry: dict[str, Any]) -> None:
-    history = _ensure_history_file()
-    history.setdefault("history", []).append(entry)
-    _write_history(history)
+    with _history_lock():
+        history = _load_history()
+        history.setdefault("history", []).append(entry)
+        _write_history(history)
 
 
 def _self_test() -> bool:
