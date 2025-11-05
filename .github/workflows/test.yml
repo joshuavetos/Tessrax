@@ -1,0 +1,21 @@
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          pytest -q
+      - name: Post CI Receipt
+        run: |
+          echo '{"event":"ci_pass","python":"3.11","timestamp":"$(date --utc +%FT%TZ)"}' >> out/ci_verification_receipt.json

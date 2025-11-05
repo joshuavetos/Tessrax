@@ -8,6 +8,7 @@ services:
     image: tessrax-cluster:latest
     container_name: tessrax-governance-a
     environment:
+      - PYTHON_VERSION=3.11
       - NODE_ID=a
       - TESSRAX_CONFIG_PATH=/app/config/docker.json
       - STRIPE_TEST_SECRET_KEY=sk_test_mocked_tessrax
@@ -21,6 +22,7 @@ services:
     image: tessrax-cluster:latest
     container_name: tessrax-governance-b
     environment:
+      - PYTHON_VERSION=3.11
       - NODE_ID=b
       - TESSRAX_CONFIG_PATH=/app/config/docker.json
       - STRIPE_TEST_SECRET_KEY=sk_test_mocked_tessrax
@@ -37,6 +39,7 @@ services:
     container_name: tessrax-etl-worker
     command: ["python", "scripts/etl_public_health.py", "--endpoint", "http://governance-node-a:8000"]
     environment:
+      - PYTHON_VERSION=3.11
       - TESSRAX_CONFIG_PATH=/app/config/docker.json
     depends_on:
       - governance-node-a
