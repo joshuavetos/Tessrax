@@ -21,7 +21,7 @@ class EthicalDriftEngine:
 
     def __init__(self, seed: int | None = None) -> None:
         self.seed = seed
-        random.seed(seed)
+        self._rng = random.Random(seed)
         self.dimensions: List[Tuple[str, str]] = [
             ("accuracy", "privacy"),
             ("transparency", "speed"),
@@ -53,7 +53,7 @@ class EthicalDriftEngine:
         for _ in range(runs):
             record: Dict[str, float] = {}
             for axis_a, axis_b in self.dimensions:
-                value_a = random.uniform(0.6, 1.0)
+                value_a = self._rng.uniform(0.6, 1.0)
                 value_b = 1.0 - value_a
                 record[axis_a] = value_a
                 record[axis_b] = value_b
