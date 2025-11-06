@@ -1,0 +1,36 @@
+name: Merkle Proof Governance
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  merkle-proof-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Tessrax package
+        run: |
+          pip install -e .
+          pip install pytest pynacl
+      - name: Initialise merkle proof ledger
+        run: |
+          python - <<'PY'
+          import tessrax.core.merkle_proof  # noqa: F401
+          from pathlib import Path
+          receipt = Path("out/merkle_proof_receipt.json")
+          if not receipt.exists():
+              raise SystemExit("Merkle proof receipt missing after initialisation")
+          PY
+      - name: Run merkle proof tests
+        run: pytest -q tests/test_merkle_proof.py
+      - name: Publish receipt location
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          receipt = Path("out/merkle_proof_receipt.json").resolve()
+          print(f"::notice::Merkle proof receipt available at {receipt}")
+          PY

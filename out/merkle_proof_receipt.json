@@ -1,0 +1,37 @@
+{
+  "auditor": "Tessrax Governance Kernel v16",
+  "clauses": [
+    "AEP-001",
+    "POST-AUDIT-001",
+    "RVC-001",
+    "EAC-001"
+  ],
+  "timestamp": "2025-11-06T16:06:51.764055+00:00",
+  "runtime_info": {
+    "python": "3.11.12",
+    "module": "tessrax.core.merkle_proof"
+  },
+  "integrity_score": 0.96,
+  "legitimacy": 0.91,
+  "status": "PASS",
+  "signature": "DLK-VERIFIED",
+  "previous_receipt_hash": "c3f123bd2c85f0ec97b8961233320d841112bf368c6c404634168d220572238d",
+  "events": [
+    {
+      "timestamp": "2025-11-06T16:06:51.764055+00:00",
+      "receipt_id": "SAFEPOINT_MERKLE_PROOF_V19_1",
+      "merkle_root": "SAFEPOINT_MERKLE_PROOF_V19_1",
+      "leaf_hash": "83c68869d92b6f226ce10e541a94b05d9163c50b6cec69fe9485b8d70879b514",
+      "proof_path": [
+        "R:SAFEPOINT_MERKLE_PROOF_V19_1"
+      ],
+      "tree_size": 0,
+      "verified": true,
+      "reason": "safepoint",
+      "generated_at": "2025-11-06T16:06:51.763864+00:00",
+      "previous_event_hash": "c3f123bd2c85f0ec97b8961233320d841112bf368c6c404634168d220572238d",
+      "event_hash": "c11ec2881333cbc49dfa53d15276d8aa1c38949b73c19a19b8dc410eb0fa423c"
+    }
+  ],
+  "receipt_hash": "9cddff19cb173f712a578c3dccf6d6491c2ae0097f2adbd8f67065a1e03577e9"
+}

@@ -1,0 +1,36 @@
+name: Key Vault Service Governance
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  key-vault-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Tessrax package
+        run: |
+          pip install -e .
+          pip install pytest fastapi uvicorn pydantic pynacl
+      - name: Initialise governance receipt
+        run: |
+          python - <<'PY'
+          import api.key_vault_service  # noqa: F401 - import triggers receipt generation
+          from pathlib import Path
+          receipt = Path("out/key_vault_service_receipt.json")
+          if not receipt.exists():
+              raise SystemExit("Key vault service receipt missing after initialisation")
+          PY
+      - name: Run key vault service tests
+        run: pytest -q tests/test_key_vault_service.py
+      - name: Publish receipt location
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          receipt = Path("out/key_vault_service_receipt.json").resolve()
+          print(f"::notice::Key vault receipt available at {receipt}")
+          PY
