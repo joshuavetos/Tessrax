@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -41,7 +42,7 @@ func Verify(receipt Receipt) (bool, error) {
 
 func Status(window int) (Receipt, error) {
 	client := http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(BaseURL + "/api/status?window=" + string(rune(window)))
+	resp, err := client.Get(BaseURL + "/api/status?window=" + strconv.Itoa(window))
 	if err != nil {
 		return nil, err
 	}
