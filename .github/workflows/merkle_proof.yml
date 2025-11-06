@@ -1,6 +1,7 @@
 name: Merkle Proof Governance
 
 on:
+  workflow_call:
   push:
   pull_request:
 

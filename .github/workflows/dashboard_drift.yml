@@ -1,6 +1,7 @@
 name: Dashboard Drift Visualizer
 
 on:
+  workflow_call:
   push:
     paths:
       - 'dashboard/drift_visualizer.py'

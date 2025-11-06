@@ -12,6 +12,9 @@ env/
 *.db
 *.zip
 *.tar.gz
+# Release packaging outputs are generated on demand and must remain untracked.
+out/Tessrax-v19-release.tar.gz
+out/Tessrax-v19-release.whl
 *.png
 *.jpg
 *.jpeg

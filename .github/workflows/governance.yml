@@ -1,5 +1,6 @@
 name: Tessrax Governance Audit
 on:
+  workflow_call:
   push:
     branches: [ main, dev ]
   pull_request:

@@ -1,5 +1,6 @@
 name: Nightly Adversarial Tests
 on:
+  workflow_call:
   schedule:
     - cron: "0 3 * * *"
 jobs:

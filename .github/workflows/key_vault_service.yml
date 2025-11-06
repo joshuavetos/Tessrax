@@ -1,6 +1,7 @@
 name: Key Vault Service Governance
 
 on:
+  workflow_call:
   push:
   pull_request:
 

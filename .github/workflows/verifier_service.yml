@@ -1,5 +1,10 @@
 name: External Verifier Service
-on: [push, pull_request]
+
+on:
+  workflow_call:
+  push:
+  pull_request:
+
 jobs:
   run-verifier-tests:
     runs-on: ubuntu-latest
