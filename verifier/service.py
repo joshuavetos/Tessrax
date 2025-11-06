@@ -75,7 +75,8 @@ def verify_receipt(receipt: Receipt) -> Dict[str, Any]:
     except BadSignatureError as exc:
         raise HTTPException(status_code=400, detail="Invalid signature") from exc
 
-    merkle_hash = hashlib.sha256(canonical_payload).hexdigest()
+    payload_without_hash = {key: value for key, value in payload.items() if key != "hash"}
+    merkle_hash = hashlib.sha256(_canonical_payload(payload_without_hash)).hexdigest()
     verified = bool(merkle_hash == payload.get("hash"))
     status = "PASS" if verified else "FAIL"
     integrity = 0.96 if verified else 0.0
