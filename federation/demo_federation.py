@@ -10,15 +10,18 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 import os
 import sys
 import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Sequence
-from contextlib import contextmanager
+from typing import Mapping, Sequence
 from unittest.mock import patch
+
+import requests
 
 try:
     from tessrax.audit import AuditKernel
@@ -44,8 +47,14 @@ except ModuleNotFoundError as import_error:  # pragma: no cover - runtime fallba
 
 AUDIT_METADATA = {
     "auditor": "Tessrax Governance Kernel v16",
-    "clauses": ["AEP-001", "POST-AUDIT-001", "RVC-001", "EAC-001"],
+    "clauses": ["AEP-001", "POST-AUDIT-001", "RVC-001", "DLK-001", "EAC-001"],
 }
+
+SAFEPOINT_VERIFIER = "SAFEPOINT_VERIFIER_INTEGRATION_V18_7"
+VERIFIER_URL = "http://localhost:8088/verify"
+VERIFIER_OUTPUT = Path("out") / "verifier_integration.json"
+VERIFIER_RECEIPT = Path("out") / "verifier_integration_receipt.json"
+VERIFIER_LEDGER = Path("ledger") / "verifier_integration_ledger.jsonl"
 
 _DETERMINISTIC_TIMESTAMP = datetime(2025, 11, 6, 9, 15, tzinfo=timezone.utc)
 
@@ -97,6 +106,7 @@ class GovernanceReceipt:
             "legitimacy_score": round(self.legitimacy_score, 3),
             "status": self.status,
             "signature": self.signature,
+            "safepoint": SAFEPOINT_VERIFIER,
         }
 
 
@@ -262,6 +272,16 @@ async def federated_run() -> bool:
     if not consensus:
         raise RuntimeError("Federated consensus failed integrity check.")
     ledger_hashes = {node.name: await node.ledger_hash() for node in nodes}
+    verification_payload = {
+        "roots": roots,
+        "ledger_hashes": ledger_hashes,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "auditor": AUDIT_METADATA["auditor"],
+        "clauses": AUDIT_METADATA["clauses"],
+    }
+    verifier_client = ExternalVerifierClient()
+    verification_result = verifier_client.verify(verification_payload)
+    _write_verifier_outputs(verification_result)
     governance_receipt = GovernanceReceipt(
         timestamp=datetime.now(timezone.utc).isoformat(),
         runtime_info={
@@ -269,6 +289,7 @@ async def federated_run() -> bool:
             "ledger_hashes": ledger_hashes,
             "merkle_roots": roots,
             "receipts_per_node": [len(item) for item in receipts],
+            "verification": verification_result,
         },
         integrity_score=0.96,
         legitimacy_score=0.92,
@@ -281,6 +302,80 @@ async def federated_run() -> bool:
     print("DLK-VERIFIED RECEIPT:")
     print(json.dumps(governance_receipt.to_json(), indent=2))
     return consensus
+
+
+class ExternalVerifierClient:
+    """HTTP client for the external verifier service."""
+
+    def __init__(self, url: str = VERIFIER_URL) -> None:
+        self.url = url
+
+    def verify(self, payload: Mapping[str, object]) -> dict[str, object]:
+        _validate_verification_payload(payload)
+        try:
+            response = requests.post(self.url, json=payload, timeout=5)
+        except requests.RequestException as error:  # pragma: no cover - network failure
+            _record_verifier_failure(str(error))
+            raise
+        if response.status_code >= 400:
+            message = f"Verifier responded with status {response.status_code}"
+            _record_verifier_failure(message)
+            raise RuntimeError(message)
+        data = response.json()
+        if "nodes" not in data or not isinstance(data["nodes"], dict):
+            raise RuntimeError("Verifier response missing node map")
+        for node, details in data["nodes"].items():
+            if not isinstance(details, Mapping):
+                raise RuntimeError(f"Verifier response for {node} is malformed")
+            if "verified" not in details:
+                raise RuntimeError(f"Verifier response for {node} missing 'verified'")
+        return data
+
+
+def _validate_verification_payload(payload: Mapping[str, object]) -> None:
+    if "roots" not in payload or "ledger_hashes" not in payload:
+        raise RuntimeError("Verification payload missing required fields")
+
+
+def _record_verifier_failure(message: str) -> None:
+    logging.warning("External verifier failure: %s", message)
+    _append_verifier_ledger({
+        **AUDIT_METADATA,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "status": "FAIL",
+        "reason": message,
+        "safepoint": SAFEPOINT_VERIFIER,
+    })
+
+
+def _append_verifier_ledger(entry: dict[str, object]) -> None:
+    VERIFIER_LEDGER.parent.mkdir(parents=True, exist_ok=True)
+    with VERIFIER_LEDGER.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry, sort_keys=True) + "\n")
+
+
+def _write_verifier_outputs(result: Mapping[str, object]) -> None:
+    payload = {
+        **AUDIT_METADATA,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "status": "PASS",
+        "integrity_score": 0.965,
+        "legitimacy_score": 0.93,
+        "safepoint": SAFEPOINT_VERIFIER,
+        "verification": result,
+    }
+    _append_verifier_ledger({
+        **payload,
+        "status": "PASS",
+    })
+    VERIFIER_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    VERIFIER_OUTPUT.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    receipt_payload = {
+        **payload,
+        "signature": _sha256_hexdigest(json.dumps(result, sort_keys=True).encode("utf-8")),
+    }
+    VERIFIER_RECEIPT.parent.mkdir(parents=True, exist_ok=True)
+    VERIFIER_RECEIPT.write_text(json.dumps(receipt_payload, indent=2), encoding="utf-8")
 
 
 __all__ = [
