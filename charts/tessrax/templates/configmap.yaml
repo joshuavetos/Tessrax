@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tessrax-config
+data:
+  GOVERNANCE_MODE: "production"
+  FEDERATION_NODES: "3"
+  KEY_ROTATION_INTERVAL: "604800"
+  DRIFT_THRESHOLD: "0.1"
+  ENTROPY_THRESHOLD: "0.7"
