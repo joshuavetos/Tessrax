@@ -1,0 +1,146 @@
+{
+  "auditor": "Tessrax Governance Kernel v16",
+  "clauses": [
+    "AEP-001",
+    "POST-AUDIT-001",
+    "RVC-001",
+    "DLK-001",
+    "EAC-001"
+  ],
+  "timestamp": "2025-11-06T15:55:24.570497+00:00",
+  "runtime_info": {
+    "cycles": 2,
+    "nodes": 3,
+    "consensus_root": "4777bfeaa26aef918204237466c778c3bab347e996555f90d602e63accfb6a25",
+    "byzantine_detected": true,
+    "aggregated_runs": 6,
+    "consensus_distribution": {
+      "4777bfeaa26aef918204237466c778c3bab347e996555f90d602e63accfb6a25": 1,
+      "aab4de74c05ebd992684b17b120e71fea02797cdbed49197b7a13b3db7b31af9": 1,
+      "4dabea0ec62060f6f75b4baf3ad28f32ea5d0013b2ddbbf2f22c1d0f085b1d37": 1,
+      "09aeabfcdbc822e924f617f914de76d5c2a1fba435b4b075265d22808a72274d": 1,
+      "f9f0f7a4eebe113e92d7abec9bc36192c4db6b403b6f93b78f23ebe26c23c70a": 1,
+      "d00c3b02cc88d874e81a1162a6b6ff41790783b3cd413bf84b489637273f59c2": 1
+    },
+    "consensus_ratio": 0.167,
+    "audit_entries": [
+      {
+        "timestamp": "2025-11-06T15:55:24.567473+00:00",
+        "cycle_index": 0,
+        "nodes": 3,
+        "results": [
+          {
+            "roots": {
+              "alpha": "4777bfeaa26aef918204237466c778c3bab347e996555f90d602e63accfb6a25",
+              "beta": "92a2d3810683093fe7ad6a742df4bca2b04bf72da0ea17a00eb489606c8f5a13",
+              "gamma": "6f6e83f23ac44b00ad629032fc864ea87816ee75a65638ec7acd8ae33966db64"
+            },
+            "byzantine_detected": true,
+            "consensus_root": "4777bfeaa26aef918204237466c778c3bab347e996555f90d602e63accfb6a25",
+            "auditor": "Tessrax Governance Kernel v16",
+            "clauses": [
+              "AEP-001",
+              "POST-AUDIT-001",
+              "RVC-001",
+              "DLK-001"
+            ]
+          },
+          {
+            "roots": {
+              "alpha": "885f2a1322c2bd40750a629eef04cfe7629c599bc4369fd81e5c598d2b8f807a",
+              "beta": "aab4de74c05ebd992684b17b120e71fea02797cdbed49197b7a13b3db7b31af9",
+              "gamma": "630360704e9202f210a3b4ce31033a3124ef4ecf8919bf954de78dcf09ccd234"
+            },
+            "byzantine_detected": true,
+            "consensus_root": "aab4de74c05ebd992684b17b120e71fea02797cdbed49197b7a13b3db7b31af9",
+            "auditor": "Tessrax Governance Kernel v16",
+            "clauses": [
+              "AEP-001",
+              "POST-AUDIT-001",
+              "RVC-001",
+              "DLK-001"
+            ]
+          },
+          {
+            "roots": {
+              "alpha": "4dabea0ec62060f6f75b4baf3ad28f32ea5d0013b2ddbbf2f22c1d0f085b1d37",
+              "beta": "993b533d0a262f5d089fe2d4302e6ab2316edb75e68951fd747015d07bc69b8c",
+              "gamma": "bd4ce39a31b63bd9cec094a612bc9fd02dcb42c65d6f67b666831b3f3ee638dd"
+            },
+            "byzantine_detected": true,
+            "consensus_root": "4dabea0ec62060f6f75b4baf3ad28f32ea5d0013b2ddbbf2f22c1d0f085b1d37",
+            "auditor": "Tessrax Governance Kernel v16",
+            "clauses": [
+              "AEP-001",
+              "POST-AUDIT-001",
+              "RVC-001",
+              "DLK-001"
+            ]
+          }
+        ]
+      },
+      {
+        "timestamp": "2025-11-06T15:55:24.570329+00:00",
+        "cycle_index": 1,
+        "nodes": 3,
+        "results": [
+          {
+            "roots": {
+              "alpha": "09aeabfcdbc822e924f617f914de76d5c2a1fba435b4b075265d22808a72274d",
+              "beta": "dd15ffab904a2307749d4385c5bdb15dc32809253042b0bc1a08572762164241",
+              "gamma": "05aec5c68373e5a17ef6aa630f2ee12bb25dccbc900bdc1e718202f98ca72bcd"
+            },
+            "byzantine_detected": true,
+            "consensus_root": "09aeabfcdbc822e924f617f914de76d5c2a1fba435b4b075265d22808a72274d",
+            "auditor": "Tessrax Governance Kernel v16",
+            "clauses": [
+              "AEP-001",
+              "POST-AUDIT-001",
+              "RVC-001",
+              "DLK-001"
+            ]
+          },
+          {
+            "roots": {
+              "alpha": "37c4e85ea754197c50eea9f4a18e2f8192ef0a1b0d8137c0e20586493dd61a80",
+              "beta": "61583c558251da85a6d2dd801f9577307ad4aafcbafe8c7356cfefec83fb9a3c",
+              "gamma": "f9f0f7a4eebe113e92d7abec9bc36192c4db6b403b6f93b78f23ebe26c23c70a"
+            },
+            "byzantine_detected": true,
+            "consensus_root": "f9f0f7a4eebe113e92d7abec9bc36192c4db6b403b6f93b78f23ebe26c23c70a",
+            "auditor": "Tessrax Governance Kernel v16",
+            "clauses": [
+              "AEP-001",
+              "POST-AUDIT-001",
+              "RVC-001",
+              "DLK-001"
+            ]
+          },
+          {
+            "roots": {
+              "alpha": "d00c3b02cc88d874e81a1162a6b6ff41790783b3cd413bf84b489637273f59c2",
+              "beta": "c6db02217ecb67099f15d441e9dab39b0e84e1a164df4dfda90f0693a6e364fc",
+              "gamma": "592ff6d94dbf776cd54dadc0a8d22563e94e4425c07813f661f5c1f134cc798e"
+            },
+            "byzantine_detected": true,
+            "consensus_root": "d00c3b02cc88d874e81a1162a6b6ff41790783b3cd413bf84b489637273f59c2",
+            "auditor": "Tessrax Governance Kernel v16",
+            "clauses": [
+              "AEP-001",
+              "POST-AUDIT-001",
+              "RVC-001",
+              "DLK-001"
+            ]
+          }
+        ]
+      }
+    ],
+    "safepoint": "SAFEPOINT_FEDERATION_ORCHESTRATOR_V18_6"
+  },
+  "integrity_score": 0.972,
+  "legitimacy_score": 0.91,
+  "status": "PASS",
+  "signature": "d906c562a985d219d3acc39a3a5bbfd9b7abc5efd05f695a57367ad62cdf1ca1",
+  "safepoint": "SAFEPOINT_FEDERATION_ORCHESTRATOR_V18_6",
+  "receipt_hash": "5d18ceb63407c49070ccf46b3b9a69aa503107c3f2f5f70141738e95d05f9bf9"
+}

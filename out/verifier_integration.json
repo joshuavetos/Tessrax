@@ -1,0 +1,14 @@
+{
+  "verified": true,
+  "nodes": {
+    "alpha": {
+      "verified": true
+    },
+    "beta": {
+      "verified": true
+    },
+    "gamma": {
+      "verified": true
+    }
+  }
+}
