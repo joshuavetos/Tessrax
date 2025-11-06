@@ -1,6 +1,7 @@
 name: Governance Kernel Integration
 
 on:
+  workflow_call:
   push:
     paths:
       - 'tessrax/core/governance_kernel.py'

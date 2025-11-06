@@ -1,6 +1,9 @@
 name: Continuous Integrity Monitor
 
-on: [push, pull_request]
+on:
+  workflow_call:
+  push:
+  pull_request:
 
 jobs:
   test-integrity-monitor:

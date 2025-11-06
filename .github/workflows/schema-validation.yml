@@ -1,5 +1,6 @@
 name: Schema Validation and Metric Tests
 on:
+  workflow_call:
   push:
     branches: [main]
   pull_request:

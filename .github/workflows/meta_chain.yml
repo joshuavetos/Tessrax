@@ -1,0 +1,173 @@
+---
+# yamllint disable rule:truthy
+name: Meta CI Chain
+
+on:
+  workflow_call:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  dashboard:
+    needs: ci
+    uses: ./.github/workflows/dashboard.yml
+    secrets: inherit
+
+  dashboard_drift:
+    needs: dashboard
+    uses: ./.github/workflows/dashboard_drift.yml
+    secrets: inherit
+
+  federation_demo:
+    needs: dashboard_drift
+    uses: ./.github/workflows/federation_demo.yml
+    secrets: inherit
+
+  federation_orchestrator:
+    needs: federation_demo
+    uses: ./.github/workflows/federation_orchestrator.yml
+    secrets: inherit
+
+  federation_resilience:
+    needs: federation_orchestrator
+    uses: ./.github/workflows/federation_resilience.yml
+    secrets: inherit
+
+  governance:
+    needs: federation_resilience
+    uses: ./.github/workflows/governance.yml
+    secrets: inherit
+
+  health_monitor:
+    needs: governance
+    uses: ./.github/workflows/health_monitor.yml
+    secrets: inherit
+
+  integrity_monitor:
+    needs: health_monitor
+    uses: ./.github/workflows/integrity_monitor.yml
+    secrets: inherit
+
+  kernel_integration:
+    needs: integrity_monitor
+    uses: ./.github/workflows/kernel_integration.yml
+    secrets: inherit
+
+  key_vault:
+    needs: kernel_integration
+    uses: ./.github/workflows/key_vault.yml
+    secrets: inherit
+
+  key_vault_service:
+    needs: key_vault
+    uses: ./.github/workflows/key_vault_service.yml
+    secrets: inherit
+
+  merkle_proof:
+    needs: key_vault_service
+    uses: ./.github/workflows/merkle_proof.yml
+    secrets: inherit
+
+  nightly_adversarial:
+    needs: merkle_proof
+    uses: ./.github/workflows/nightly-adversarial.yml
+    secrets: inherit
+
+  repair_engine:
+    needs: nightly_adversarial
+    uses: ./.github/workflows/repair_engine.yml
+    secrets: inherit
+
+  schema_validation:
+    needs: repair_engine
+    uses: ./.github/workflows/schema-validation.yml
+    secrets: inherit
+
+  secrets_lint:
+    needs: schema_validation
+    uses: ./.github/workflows/secrets-lint.yml
+    secrets: inherit
+
+  smoketest:
+    needs: secrets_lint
+    uses: ./.github/workflows/smoketest.yml
+    secrets: inherit
+
+  single_test:
+    needs: smoketest
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  tests_suite:
+    needs: single_test
+    uses: ./.github/workflows/tests.yml
+    secrets: inherit
+
+  verifier_integration:
+    needs: tests_suite
+    uses: ./.github/workflows/verifier_integration.yml
+    secrets: inherit
+
+  verifier_service:
+    needs: verifier_integration
+    uses: ./.github/workflows/verifier_service.yml
+    secrets: inherit
+
+  verify_metric_provenance:
+    needs: verifier_service
+    uses: ./.github/workflows/verify-metric-provenance.yml
+    secrets: inherit
+
+  release_packager:
+    needs: verify_metric_provenance
+    uses: ./.github/workflows/release.yml
+    secrets: inherit
+
+  finalize:
+    needs:
+      - ci
+      - dashboard
+      - dashboard_drift
+      - federation_demo
+      - federation_orchestrator
+      - federation_resilience
+      - governance
+      - health_monitor
+      - integrity_monitor
+      - kernel_integration
+      - key_vault
+      - key_vault_service
+      - merkle_proof
+      - nightly_adversarial
+      - repair_engine
+      - schema_validation
+      - secrets_lint
+      - smoketest
+      - single_test
+      - tests_suite
+      - verifier_integration
+      - verifier_service
+      - verify_metric_provenance
+      - release_packager
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Generate Meta Chain Receipt
+        env:
+          NEEDS_CONTEXT: ${{ toJson(needs) }}
+        run: |
+          python scripts/meta_chain_summary.py out/meta_chain_receipt_runtime.json
+      - name: Upload Meta Chain Receipt Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: meta-chain-ledger
+          path: out/meta_chain_receipt_runtime.json

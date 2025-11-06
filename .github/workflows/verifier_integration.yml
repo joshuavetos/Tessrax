@@ -1,6 +1,7 @@
 name: External Verifier Integration CI
 
 on:
+  workflow_call:
   push:
     paths:
       - 'federation/demo_federation.py'

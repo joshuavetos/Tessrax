@@ -1,5 +1,10 @@
 name: Governance Dashboard
-on: [push, pull_request]
+
+on:
+  workflow_call:
+  push:
+  pull_request:
+
 jobs:
   test-dashboard:
     runs-on: ubuntu-latest

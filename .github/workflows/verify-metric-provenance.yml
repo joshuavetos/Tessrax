@@ -2,6 +2,7 @@
 name: Verify Metric Provenance
 
 on:
+  workflow_call:
   pull_request:
     branches: [main]
   push:

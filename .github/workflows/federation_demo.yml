@@ -1,5 +1,10 @@
 name: Federation Demo
-on: [push, pull_request]
+
+on:
+  workflow_call:
+  push:
+  pull_request:
+
 jobs:
   run-federation-demo:
     runs-on: ubuntu-latest

@@ -1,6 +1,7 @@
 name: Federation Orchestrator CI
 
 on:
+  workflow_call:
   push:
     paths:
       - 'federation/orchestrator.py'
