@@ -1,0 +1,2 @@
+# Developer tooling aligned with Tessrax governance.
+pytest-cov==4.1.0
