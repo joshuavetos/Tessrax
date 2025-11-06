@@ -1,0 +1,52 @@
+{
+  "id": null,
+  "uid": "tessrax-overview",
+  "title": "Tessrax Governance Overview",
+  "tags": ["governance", "tessrax"],
+  "timezone": "browser",
+  "schemaVersion": 27,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Receipt Latency (P95)",
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum(rate(receipt_latency_seconds_bucket[5m])) by (le))"}
+      ],
+      "yaxes": [{"label": "seconds"}]
+    },
+    {
+      "type": "graph",
+      "title": "Queue Depth Utilization",
+      "targets": [
+        {"expr": "queue_depth_ratio"}
+      ],
+      "yaxes": [{"label": "ratio"}]
+    },
+    {
+      "type": "graph",
+      "title": "Integrity Score Drift",
+      "targets": [
+        {"expr": "integrity_score_drift"}
+      ],
+      "yaxes": [{"label": "Δ integrity"}]
+    },
+    {
+      "type": "graph",
+      "title": "Key Rotation Age (days)",
+      "targets": [
+        {"expr": "key_rotation_age_days"}
+      ],
+      "yaxes": [{"label": "days"}]
+    },
+    {
+      "type": "graph",
+      "title": "Entropy / Drift Ratio",
+      "targets": [
+        {"expr": "entropy_drift_ratio"}
+      ],
+      "yaxes": [{"label": "ratio"}]
+    }
+  ]
+}

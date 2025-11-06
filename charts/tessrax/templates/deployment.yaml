@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tessrax
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: tessrax
+  template:
+    metadata:
+      labels:
+        app: tessrax
+    spec:
+      containers:
+        - name: tessrax
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+        {{- with .Values.env }}
+          env:
+{{- toYaml . | nindent 12 }}
+        {{- end }}
+          volumeMounts:
+            - name: ledger-storage
+              mountPath: /app/ledger
+      volumes:
+        - name: ledger-storage
+          persistentVolumeClaim:
+            claimName: tessrax-ledger-pvc

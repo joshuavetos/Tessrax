@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tessrax
+description: Tessrax Governance Stack — Helm chart for deployment of the full runtime (Ledger, Governance Kernel, KeyVault, Dashboard)
+type: application
+version: 1.0.0
+appVersion: "19.6"

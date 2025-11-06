@@ -1,0 +1,29 @@
+image:
+  repository: tessrax/tessrax
+  tag: "v19.6"
+  pullPolicy: IfNotPresent
+
+replicaCount: 3
+
+service:
+  type: ClusterIP
+  port: 8080
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: standard
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "2"
+    memory: "2Gi"
+
+env:
+  - name: PYTHONUNBUFFERED
+    value: "1"
+  - name: LOG_LEVEL
+    value: "INFO"
