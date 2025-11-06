@@ -1,0 +1,29 @@
+name: Governance Kernel Integration
+
+on:
+  push:
+    paths:
+      - 'tessrax/core/governance_kernel.py'
+      - 'tests/test_kernel_integration.py'
+      - '.github/workflows/kernel_integration.yml'
+  pull_request:
+    paths:
+      - 'tessrax/core/governance_kernel.py'
+      - 'tests/test_kernel_integration.py'
+      - '.github/workflows/kernel_integration.yml'
+
+jobs:
+  kernel-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest
+      - name: Run kernel integration tests
+        run: pytest tests/test_kernel_integration.py -q

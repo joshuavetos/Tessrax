@@ -1,0 +1,40 @@
+name: Dashboard Drift Visualizer
+
+on:
+  push:
+    paths:
+      - 'dashboard/drift_visualizer.py'
+      - 'tests/test_drift_visualizer.py'
+      - '.github/workflows/dashboard_drift.yml'
+  pull_request:
+    paths:
+      - 'dashboard/drift_visualizer.py'
+      - 'tests/test_drift_visualizer.py'
+      - '.github/workflows/dashboard_drift.yml'
+
+jobs:
+  drift-visualizer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install streamlit pandas pytest
+      - name: Run targeted tests
+        run: pytest tests/test_drift_visualizer.py -q
+      - name: Headless Streamlit launch
+        run: |
+          export STREAMLIT_BROWSER_SERVER_PORT=8501
+          set +e
+          timeout 10s streamlit run dashboard/drift_visualizer.py --server.headless true --browser.gatherUsageStats false
+          exit_code=$?
+          if [ "$exit_code" -ne 0 ] && [ "$exit_code" -ne 124 ]; then
+            exit "$exit_code"
+          fi

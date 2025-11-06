@@ -1,0 +1,68 @@
+{
+  "directive": "SAFEPOINT_VISUAL_REPAIR_V18_4",
+  "status": "PASS",
+  "timestamp": "2025-11-06T15:43:42.281782Z",
+  "integrity": 0.97,
+  "legitimacy": 0.92,
+  "auditor": "Tessrax Governance Kernel v16",
+  "clauses": [
+    "AEP-001",
+    "POST-AUDIT-001",
+    "RVC-001",
+    "DLK-001"
+  ],
+  "signature": "DLK-VERIFIED",
+  "events": [
+    {
+      "clarity": {
+        "directive": "CLARITY_RESOLUTION",
+        "timestamp": "2025-11-06T15:43:42.281567Z",
+        "auditor": "Tessrax Governance Kernel v16",
+        "clauses": [
+          "AEP-001",
+          "POST-AUDIT-001",
+          "RVC-001",
+          "EAC-001"
+        ],
+        "contradictions": [
+          {
+            "subject": "integrity",
+            "metric": "entropy",
+            "value": 0.93
+          },
+          {
+            "subject": "integrity",
+            "metric": "drift",
+            "value": 0.07
+          },
+          {
+            "subject": "rotation_receipt",
+            "metric": "hash",
+            "value": "samplehash"
+          }
+        ],
+        "hash": "240bb90d9553e4ef4875605246173db48e14a2b5ee4a5e0c089df4a84c827015"
+      },
+      "receipt": {
+        "payload": {
+          "directive": "REPAIR_RECEIPT",
+          "timestamp": "2025-11-06T15:43:42.281724Z",
+          "auditor": "Tessrax Governance Kernel v16",
+          "clauses": [
+            "AEP-001",
+            "POST-AUDIT-001",
+            "RVC-001",
+            "DLK-001"
+          ],
+          "source_fragment_hash": "f26b66509f1bac4629525e13afae44ac2b6d0e837426c3fbf510aac8eab2d4dc",
+          "clarity_hash": "240bb90d9553e4ef4875605246173db48e14a2b5ee4a5e0c089df4a84c827015"
+        },
+        "hash": "e123f564a5d9fb0ffefe702906712c39bc8308955ec237f40cc9e0f6d68afeda",
+        "prev_hash": "53343e703de5af7fcfe914c186575988802cc73f02a399fec9e7eaf4814fee65",
+        "timestamp": "2025-11-06T15:43:42.281724Z"
+      },
+      "source_hash": "6ae255a74eba09c37687ba61e399f6ec57d7c3a4fb04da082b16bc3e545ae1c2"
+    }
+  ],
+  "hash": "6d0855e5accba9e4298dc3e6c28615451339d9772524a53be25eeda7d9866d99"
+}

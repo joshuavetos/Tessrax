@@ -1,13 +1,21 @@
-"""Governance kernel extensions with field evidence integration."""
+"""Governance kernel extensions with field evidence integration and repair loops."""
 
 from __future__ import annotations
 
+import asyncio
+import signal
+from contextlib import suppress
+from pathlib import Path
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from typing import Any
 
 from tessrax.data.evidence_loader import load_field_evidence
 from tessrax.governance import GovernanceKernel as BaseGovernanceKernel
+from tessrax.core.integrity_monitor import IntegrityMonitor
+from tessrax.core.key_vault import KeyVault
+from tessrax.core.ledger import Ledger
+from tessrax.core.repair_engine import RepairEngine
 
 
 class GovernanceKernel(BaseGovernanceKernel):
@@ -17,6 +25,12 @@ class GovernanceKernel(BaseGovernanceKernel):
         super().__init__(*args, **kwargs)
         self._field_evidence: list[dict[str, Any]] = []
         self._field_evidence_summary: dict[str, Any] = {}
+        self._ledger_path = Path(".ledger.jsonl")
+        self._ledger = Ledger(self._ledger_path)
+        self.key_vault = KeyVault(self._ledger, path=Path("out/keys"))
+        self.integrity_monitor = IntegrityMonitor(ledger_path=self._ledger_path)
+        self.repair_engine = RepairEngine(self._ledger)
+        self._background_tasks: list[asyncio.Task[Any]] = []
         if auto_integrate:
             self.integrate_field_evidence()
 
@@ -35,6 +49,41 @@ class GovernanceKernel(BaseGovernanceKernel):
                 self._field_evidence
             )
         return dict(self._field_evidence_summary)
+
+    async def start_background_services(self) -> None:
+        """Launch integrity monitoring and repair loops."""
+
+        loop = asyncio.get_running_loop()
+        if any(not task.done() for task in self._background_tasks):
+            return
+        monitor_task = loop.create_task(self.integrity_monitor.monitor(), name="integrity-monitor")
+        repair_task = loop.create_task(self.repair_engine.monitor(), name="repair-engine")
+        self._background_tasks = [monitor_task, repair_task]
+        self._register_signal_handlers(loop)
+
+    async def shutdown_background_services(self) -> None:
+        """Cancel background monitoring tasks gracefully."""
+
+        if not self._background_tasks:
+            return
+        for task in self._background_tasks:
+            task.cancel()
+        with suppress(asyncio.CancelledError):
+            await asyncio.gather(*self._background_tasks, return_exceptions=True)
+        self._background_tasks.clear()
+
+    def _register_signal_handlers(self, loop: asyncio.AbstractEventLoop) -> None:
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            try:
+                loop.add_signal_handler(sig, lambda sig=sig: asyncio.create_task(self.shutdown_background_services()))
+            except (NotImplementedError, RuntimeError):  # pragma: no cover - platform dependent
+                pass
+
+    @property
+    def background_tasks(self) -> list[asyncio.Task[Any]]:
+        """Expose background tasks for observability and testing."""
+
+        return list(self._background_tasks)
 
     def _summarise_field_evidence(
         self, records: Iterable[Mapping[str, Any]]
