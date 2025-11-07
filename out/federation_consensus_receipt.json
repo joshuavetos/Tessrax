@@ -1,0 +1,18 @@
+{
+  "auditor": "Tessrax Governance Kernel v16",
+  "clauses": [
+    "AEP-001",
+    "POST-AUDIT-001",
+    "RVC-001",
+    "EAC-001"
+  ],
+  "consensus_latency_ms": 0.248,
+  "integrity_score": 0.97,
+  "runtime_info": {
+    "platform": "Linux-6.12.13-x86_64-with-glibc2.39",
+    "python_version": "3.11.12"
+  },
+  "signature": "ba3b5599612806b203267dba10041a3677a4ee589882b8b53f8d149e7759fe69",
+  "status": "pass",
+  "timestamp": 1762552327.8286698
+}
