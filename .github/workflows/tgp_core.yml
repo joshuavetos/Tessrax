@@ -1,0 +1,31 @@
+name: TGP Core Validation
+
+on:
+  push:
+    paths:
+      - "tessrax/tgp/**"
+      - "tests/test_tgp_*"
+      - "scripts/generate_tgp_receipt.py"
+      - ".github/workflows/tgp_core.yml"
+  pull_request:
+    paths:
+      - "tessrax/tgp/**"
+      - "tests/test_tgp_*"
+      - "scripts/generate_tgp_receipt.py"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run TGP tests
+        run: pytest -q tests/test_tgp_packets.py tests/test_tgp_signatures.py tests/test_tgp_router_client.py

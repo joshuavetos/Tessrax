@@ -1,0 +1,23 @@
+{
+  "auditor": "Tessrax Governance Kernel v16",
+  "clauses": [
+    "AEP-001",
+    "POST-AUDIT-001",
+    "RVC-001",
+    "EAC-001"
+  ],
+  "integrity_score": 1.0,
+  "metrics": {
+    "documentation_files": 19,
+    "python_modules": 292,
+    "workflows": 27
+  },
+  "runtime_info": {
+    "platform": "Linux-6.12.13-x86_64-with-glibc2.39",
+    "python_version": "3.11.12",
+    "repo_root": "/workspace/Tessrax"
+  },
+  "signature": "6fac1d8ead3dd71ee63bd831bf9868070a0caf125333e6642a6de49f888db295",
+  "status": "pass",
+  "timestamp": 1762552337.0517294
+}
