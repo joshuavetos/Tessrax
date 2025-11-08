@@ -8,8 +8,16 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
-from tessrax.core.merkle_engine import hash_receipt as engine_hash_receipt
 from tessrax.core import merkle_proof
+from tessrax.core.merkle_engine import hash_receipt as engine_hash_receipt
+from tessrax.ledger import verify_file
+
+_DEMO_RECEIPT = (
+    Path(__file__).resolve().parents[1]
+    / "ledger"
+    / "receipts"
+    / "ethical_drift_v17_5.jsonl"
+)
 
 
 def _load_receipt(path: Path) -> dict:
@@ -21,15 +29,8 @@ def _load_receipt(path: Path) -> dict:
     return payload
 
 
-def _cli(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="tessrax.verify",
-        description="Verify Tessrax ledger receipts using governed Merkle proofs.",
-    )
-    parser.add_argument("receipt_file", help="Path to the governed ledger receipt JSON file")
-    args = parser.parse_args(argv)
-    receipt_path = Path(args.receipt_file).expanduser().resolve()
-    payload = _load_receipt(receipt_path)
+def _verify_json_receipt(path: Path) -> None:
+    payload = _load_receipt(path)
     receipt_id = payload.get("receipt_id")
     if receipt_id is None:
         receipt_id = engine_hash_receipt(payload)
@@ -42,15 +43,67 @@ def _cli(argv: Sequence[str] | None = None) -> int:
         f"Verification success for receipt {bundle.receipt_id} (root: {bundle.merkle_root})",
         file=sys.stdout,
     )
-    return 0
+
+
+def _verify_demo_ledger() -> None:
+    if not _DEMO_RECEIPT.exists():
+        raise FileNotFoundError(
+            f"Demo ledger fixture missing; expected {_DEMO_RECEIPT}"
+        )
+    verify_file(_DEMO_RECEIPT)
+    print(
+        "Demo ledger verification succeeded for ethical_drift_v17_5.jsonl",
+        file=sys.stdout,
+    )
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="tessrax.verify",
+        description="Verify Tessrax ledger receipts using governed Merkle proofs.",
+    )
+    parser.add_argument(
+        "receipt_file",
+        nargs="?",
+        help="Path to the governed ledger receipt JSON file",
+    )
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="Run verification against the bundled ethical_drift_v17_5.jsonl ledger",
+    )
+    return parser
+
+
+def _cli(argv: Sequence[str] | None = None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    if not args.demo and not args.receipt_file:
+        parser.print_help(sys.stderr)
+        return 2
+
+    try:
+        if args.demo:
+            _verify_demo_ledger()
+        else:
+            target = Path(args.receipt_file).expanduser().resolve()
+            if target.suffix.lower() == ".jsonl":
+                verify_file(target)
+                print(
+                    f"Ledger verification succeeded for {target}",
+                    file=sys.stdout,
+                )
+            else:
+                _verify_json_receipt(target)
+        return 0
+    except Exception as exc:
+        print(f"Verification failed: {exc}", file=sys.stderr)
+        return 1
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    try:
-        return _cli(argv)
-    except Exception as exc:  # pragma: no cover - defensive CLI guard
-        print(f"Verification failed: {exc}", file=sys.stderr)
-        return 1
+    return _cli(argv)
 
 
 if __name__ == "__main__":  # pragma: no cover

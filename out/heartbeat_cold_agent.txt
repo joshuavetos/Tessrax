@@ -1,0 +1,42 @@
+{
+  "audit_result": {
+    "audit": {
+      "auditor": "Tessrax Governance Kernel v16",
+      "clauses": [
+        "AEP-001",
+        "POST-AUDIT-001",
+        "RVC-001",
+        "EAC-001"
+      ]
+    },
+    "computed_root": "288b51590cf311080b204827e66b779c29315a246dbd97784fb91aa4b01ff462",
+    "expected_root": "288b51590cf311080b204827e66b779c29315a246dbd97784fb91aa4b01ff462",
+    "status": true
+  },
+  "auditor": "Tessrax Governance Kernel v16",
+  "clauses": [
+    "AEP-001",
+    "POST-AUDIT-001",
+    "RVC-001",
+    "EAC-001"
+  ],
+  "integrity_score": 1.0,
+  "ledger_metadata": {
+    "auditor": "Tessrax Governance Kernel v16",
+    "clauses": [
+      "AEP-001",
+      "POST-AUDIT-001",
+      "RVC-001",
+      "EAC-001"
+    ],
+    "entries": 4
+  },
+  "runtime_info": {
+    "dataset_size": 4,
+    "merkle_root": "288b51590cf311080b204827e66b779c29315a246dbd97784fb91aa4b01ff462",
+    "run_time_ms": 0.601
+  },
+  "signature": "bb623c850768e13646c228cbb47782e364fa39ec0fda4bcaac916bdad4806c54",
+  "status": "PASS",
+  "timestamp": 1762626323
+}

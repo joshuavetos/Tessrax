@@ -1,0 +1,18 @@
+[Tessrax] Change detected — re-auditing...
+✅ Governance audit passed
+Tessrax self-test execution summary:
+ - PASS tessrax.core.watchdog_runner: passed
+ - PASS tessrax.core.governance_controller: passed
+ - PASS tessrax.core.merkle_engine: passed
+ - PASS tessrax.core.anchor_service: passed
+ - PASS tessrax.core.predictive.causal_forecaster: passed
+ - PASS tessrax.core.ledger.audit_integration: passed
+ - PASS tessrax.core.sandbox.adversarial_sim: passed
+ - PASS tessrax.core.memory.temporal_compressor: passed
+ - PASS tessrax.core.multimodal.verifier: passed
+ - PASS tessrax.core.protocols.tex_protocol: passed
+ - PASS tessrax.core.metabolism.contradiction_economy: passed
+ - PASS tessrax.core.ethics.value_drift_monitor: passed
+ - PASS tessrax.core.governance.policy_compiler: passed
+Skipped modules without _self_test: 3
+Double-lock receipt: {'auditor': 'Tessrax Governance Kernel v16', 'clauses': ['AEP-001', 'POST-AUDIT-001', 'RVC-001', 'EAC-001'], 'status': 'DLK-VERIFIED', 'integrity_score': 0.99, 'runtime_info': {'python': '3.11.12 (main, Oct 24 2025, 00:36:31) [GCC 13.3.0]', 'module_count': 16, 'executed': 13, 'failures': 0}, 'signature': '/workspace/Tessrax/tessrax/selftest.py'}

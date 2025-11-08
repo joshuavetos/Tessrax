@@ -12,6 +12,11 @@ The update must include:
 
 All changes must be committed atomically with verifiable receipts.
 
+## Runtime Repair — fix/runtime-repair-v20
+- Added a lazy audit-kernel adapter in `tessrax.core` to prevent circular import failures during self-tests.
+- Enabled `python -m tessrax` and `python -m tessrax.ledger` execution paths through dedicated `__main__` modules.
+- Expanded `tessrax.verify` with demo-ledger verification and optional receipt inputs to stabilise CLI workflows.
+
 ---
 
 # 🧩 TASKS

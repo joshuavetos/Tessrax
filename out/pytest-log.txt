@@ -1,0 +1,10 @@
+.........                                                                                                                [100%]
+======================================================= warnings summary =======================================================
+tests/conftest.py:26
+  /workspace/Tessrax/tests/conftest.py:26: PytestRemovedIn9Warning: The (path: py.path.local) argument is deprecated, please use (collection_path: pathlib.Path)
+  see https://docs.pytest.org/en/latest/deprecations.html#py-path-local-arguments-for-hooks-replaced-with-pathlib-path
+    def pytest_ignore_collect(path, config):  # type: ignore[override]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--------------------------------- generated xml file: /workspace/Tessrax/out/pytest-report.xml ---------------------------------
+9 passed, 1 warning in 0.09s

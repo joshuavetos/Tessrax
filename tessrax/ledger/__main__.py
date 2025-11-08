@@ -1,15 +1,15 @@
-"""Command line entry point for ``python -m tessrax.ledger``."""
+"""CLI harness for :mod:`tessrax.ledger`."""
 
 from __future__ import annotations
 
-import sys
+from typing import Sequence
 
-from tessrax.ledger import main
+from . import _cli
 
 
-def run() -> None:
-    main(sys.argv[1:])
+def main(argv: Sequence[str] | None = None) -> None:
+    _cli(argv)
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
-    run()
+    main(None)
