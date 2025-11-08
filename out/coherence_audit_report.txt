@@ -1,32 +1,11 @@
-Tessrax Coherence Repair – Audit Summary
-========================================
-
-Fixed Imports
--------------
-- Added package initialisers for `tessrax_truth_api.engine`, `.middleware`, and `.services` so relative imports resolve consistently during packaging and tests.
-- Converted the non-Python documentation artefact `tessrax/docs/unified_test_bundle.py` into a Markdown document to prevent syntax errors during module discovery.
-
-Dependency Changes
-------------------
-- Declared the full runtime dependency set inside `pyproject.toml`/`setup.cfg`, aligned with Python 3.11 support (`python_requires = ">=3.10,<3.12"`).
-- Promoted runtime pins for FastAPI, Starlette, Redis, Celery, Streamlit, pandas, matplotlib, plotly, etc., and introduced a light-weight `[ml]` extra for optional `sentence-transformers` usage.
-- Updated `requirements.txt` to mirror the packaging metadata, add explicit versions, and call out the ML extra for optional installation.
-
-Added Files
------------
-- `setup.cfg` with unified packaging metadata.
-- `tessrax_truth_api/engine/__init__.py`
-- `tessrax_truth_api/middleware/__init__.py`
-- `tessrax_truth_api/services/__init__.py`
-- `tessrax/docs/unified_test_bundle.md`
-
-CI / Workflow Notes
--------------------
-- Existing GitHub Actions already target Python 3.11 and install dependencies before running tests; no YAML changes were required.
-- Added `tests/verify_ci.py` to execute `pytest --collect-only` locally and persist the output in `tests/logs/ci_runs.log` for reproducible evidence trails.
-
-Validation
-----------
-- Created a dedicated Python 3.11 virtual environment with `uv` and verified `pip install -e .` plus `pip install -e .[dev]` complete successfully.
-- Pytest suite passes in the Python 3.11 environment: `pytest -q` (39 passed).
-- `python tests/verify_ci.py` records the `pytest --collect-only` digest inside `tests/logs/ci_runs.log` to back audit claims with machine-verifiable artifacts.
+Tessrax Runtime Repair Report (fix/runtime-repair-v20)
+- Cycles addressed: tessrax.core <-> audit_kernel resolved via tessrax.core.audit_kernel adapter.
+- Files updated: tessrax/core/__init__.py, tessrax/core/audit_kernel.py, tessrax/verify.py, tessrax/__main__.py, tessrax/ledger/__main__.py, docs/CHANGELOG_TESSRAX_V20.md.
+- Artifacts generated: out/repair_scan.json, out/repair_log.txt, out/heartbeat_current.txt, out/heartbeat_selftest.txt, out/heartbeat_cold_agent.txt, out/pytest-log.txt, out/pytest-report.xml.
+- Tests executed: python -m tessrax.current, python -m tessrax.selftest, python -m tessrax.cold_agent.bench, pytest -q.
+- Skipped/xfail tests: none.
+- Reproduction commands:
+    python -m tessrax.current
+    python -m tessrax.selftest
+    python -m tessrax.cold_agent.bench
+    pytest -q --junitxml=out/pytest-report.xml

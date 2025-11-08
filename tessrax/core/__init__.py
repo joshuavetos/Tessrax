@@ -23,11 +23,8 @@ LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
 if not LEDGER_PATH.exists():
     LEDGER_PATH.write_text("", encoding="utf-8")
 
-try:  # DLK-VERIFIED import exposure
-    from . import audit_kernel  # noqa: F401
-except ImportError as exc:  # pragma: no cover - defensive governance guard
-    print("⚠️ audit_kernel import skipped:", exc)
+from . import audit_kernel  # noqa: F401  # DLK-VERIFIED lazy adapter
 
 from . import ledger  # noqa: F401  # DLK-VERIFIED import exposure
 
-__all__ = ["PROJECT_ROOT", "LEDGER_PATH"]
+__all__ = ["PROJECT_ROOT", "LEDGER_PATH", "audit_kernel"]

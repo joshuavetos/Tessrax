@@ -1,0 +1,3 @@
+[fix] Introduced tessrax.core.audit_kernel lazy adapter to break circular import and auto-resolve vendored package.
+[fix] Added CLI entry modules for tessrax and tessrax.ledger to enable python -m execution paths.
+[fix] Extended tessrax.verify CLI with optional receipt argument, demo mode, and ledger verification support.
