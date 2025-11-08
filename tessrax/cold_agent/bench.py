@@ -41,8 +41,17 @@ def _serialize_contradictions(records: Iterable[object]) -> List[Dict[str, objec
     return payload
 
 
-def main(dataset: Sequence[Dict[str, object]] | None = None) -> Dict[str, object]:
-    """Run the Cold Agent reference pipeline and persist an execution receipt."""
+def main(
+    dataset: Sequence[Dict[str, object]] | None = None,
+    *,
+    output_path: Path | str | None = None,
+) -> Dict[str, object]:
+    """Run the Cold Agent pipeline and persist an execution receipt.
+
+    ``output_path`` may be provided to redirect the receipt artifact for
+    tests or bespoke integrations.  When omitted, the artifact is written
+    to :data:`OUTPUT_PATH`.
+    """
 
     dataset = dataset or _default_dataset()
     validator = SchemaValidator()
@@ -109,8 +118,9 @@ def main(dataset: Sequence[Dict[str, object]] | None = None) -> Dict[str, object
     if status != "PASS":  # pragma: no cover - defensive guard
         raise RuntimeError("Audit failed; refusing to persist non-compliant receipt")
 
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with OUTPUT_PATH.open("w", encoding="utf-8") as handle:
+    target_path = Path(output_path) if output_path is not None else OUTPUT_PATH
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    with target_path.open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2, sort_keys=True)
 
     return summary
