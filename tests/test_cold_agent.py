@@ -7,14 +7,13 @@ import json
 from tessrax.cold_agent import bench
 
 
-def test_cold_agent_bench_creates_receipt(tmp_path, monkeypatch):
+def test_cold_agent_bench_creates_receipt(tmp_path):
     """Bench run should emit a governance-compliant receipt artifact."""
 
     # Redirect output path to a temporary directory to keep tests hermetic.
     output_path = tmp_path / "cold_agent_run_receipt.json"
-    monkeypatch.setattr(bench, "OUTPUT_PATH", output_path)
 
-    summary = bench.main()
+    summary = bench.main(output_path=output_path)
     assert summary["status"] == "PASS"
     assert summary["integrity_score"] == 1.0
     assert summary["auditor"] == "Tessrax Governance Kernel v16"
