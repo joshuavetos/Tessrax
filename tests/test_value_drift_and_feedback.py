@@ -42,10 +42,9 @@ def test_value_drift_self_test():
     assert value_drift_monitor._self_test()
 
 
-def test_human_feedback_roundtrip(tmp_path):
-    # Backup existing file
-    data_path = Path(human_feedback.DATA_PATH)
-    original = data_path.read_text(encoding="utf-8") if data_path.exists() else ""
+def test_human_feedback_roundtrip(tmp_path, monkeypatch):
+    data_path = tmp_path / "history.json"
+    monkeypatch.setattr(human_feedback, "DATA_PATH", data_path, raising=False)
     try:
         assert human_feedback._self_test()
         history = human_feedback.get_history()["history"]
@@ -53,4 +52,30 @@ def test_human_feedback_roundtrip(tmp_path):
         last_entry = history[-1]
         assert last_entry["verdict"], "Verdict should be recorded"
     finally:
-        data_path.write_text(original, encoding="utf-8")
+        if data_path.exists():
+            data_path.unlink()
+
+
+def test_human_feedback_self_test_is_stable(tmp_path, monkeypatch):
+    data_path = tmp_path / "history.json"
+    monkeypatch.setattr(human_feedback, "DATA_PATH", data_path, raising=False)
+    try:
+        assert human_feedback._self_test()
+        first_history = human_feedback.get_history()["history"]
+        assert first_history[-1]["timestamp"] == human_feedback._SELF_TEST_TIMESTAMP
+        assert human_feedback._self_test()
+        second_history = human_feedback.get_history()["history"]
+        assert second_history.count(second_history[-1]) == 1
+    finally:
+        if data_path.exists():
+            data_path.unlink()
+
+
+def test_human_feedback_recovers_from_corrupt_history(tmp_path, monkeypatch):
+    data_path = tmp_path / "history.json"
+    monkeypatch.setattr(human_feedback, "DATA_PATH", data_path, raising=False)
+    data_path.parent.mkdir(parents=True, exist_ok=True)
+    data_path.write_text("not-json", encoding="utf-8")
+    history = human_feedback.get_history()["history"]
+    assert history == []
+    assert not data_path.exists(), "Corrupt file should be quarantined"
