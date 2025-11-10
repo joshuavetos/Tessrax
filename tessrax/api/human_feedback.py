@@ -134,7 +134,7 @@ def get_history() -> dict[str, Any]:
             if not isinstance(history, list):
                 raise ValueError("History payload must be a list")
             return {"history": history}
-        except (json.JSONDecodeError, ValueError):
+        except (json.JSONDecodeError, UnicodeDecodeError, ValueError, OSError):
             quarantine_corrupt_history()
             return {"history": []}
     return {"history": []}
