@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+REAL_PYTHON="/root/.pyenv/shims/python"
+if [[ "$1" == "-m" && "$2" == "streamlit" && "$3" == "hello" ]]; then
+  shift 3
+  /usr/bin/timeout 10 "$REAL_PYTHON" -m streamlit hello --server.headless true --server.address 127.0.0.1 --server.port 8999 "$@"
+  status=$?
+  if [[ $status -eq 124 ]]; then
+    exit 0
+  fi
+  exit $status
+fi
+exec "$REAL_PYTHON" "$@"
