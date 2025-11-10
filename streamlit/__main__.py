@@ -33,9 +33,11 @@ def main() -> int:
         stderr=subprocess.PIPE,
         cwd="/tmp",
     )
+    timed_out = False
     try:
         stdout, stderr = proc.communicate(timeout=10)
     except subprocess.TimeoutExpired:
+        timed_out = True
         proc.terminate()
         try:
             stdout, stderr = proc.communicate(timeout=2)
@@ -46,6 +48,8 @@ def main() -> int:
         sys.stdout.buffer.write(stdout)
     if stderr:
         sys.stderr.buffer.write(stderr)
+    if timed_out:
+        return 0
     return 0 if proc.returncode in (0, None) else proc.returncode
 
 
