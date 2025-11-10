@@ -1,0 +1,19 @@
+{
+  "auditor": "Tessrax Governance Kernel v16",
+  "clauses": [
+    "AEP-001",
+    "POST-AUDIT-001",
+    "RVC-001",
+    "EAC-001"
+  ],
+  "integrity_score": 1.0,
+  "runtime_info": {
+    "python": "3.11.12 (main, Oct 24 2025, 00:36:31) [GCC 13.3.0]",
+    "repo_root": "/workspace/Tessrax",
+    "report_path": "/workspace/Tessrax/audit_report.json"
+  },
+  "signature": "10b9128168d0ff2d85dadc880ce827a0f3db8ef2cddcc2ec401b6ce5e18eb7c8",
+  "status": "DLK-VERIFIED",
+  "tesst_signals": [],
+  "timestamp": "2025-11-10T18:13:42.907585+00:00"
+}
