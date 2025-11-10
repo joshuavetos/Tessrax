@@ -6,6 +6,30 @@ import json
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+_EPHEMERAL_PAYLOAD_KEYS = frozenset({"timestamp"})
+
+
+def _canonical_payload(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Return the payload view used when computing ledger hashes.
+
+    Ledger receipts historically inject runtime metadata such as the
+    persistence timestamp *after* computing the chain hash.  Legitimate
+    ledgers therefore may include fields in ``payload`` that were never
+    part of the original digest.  Verification mirrors the writer
+    behaviour by stripping those keys before recomputing the hash.  When
+    the payload already excludes runtime metadata the mapping is returned
+    unchanged to avoid unnecessary allocations.
+    """
+
+    if not any(key in payload for key in _EPHEMERAL_PAYLOAD_KEYS):
+        return payload
+
+    return {
+        key: value
+        for key, value in payload.items()
+        if key not in _EPHEMERAL_PAYLOAD_KEYS
+    }
+
 LEDGER_CANDIDATES: tuple[Path, ...] = (
     Path("data/ledger.jsonl"),
     Path("ledger/ledger.jsonl"),
@@ -77,11 +101,21 @@ def verify() -> bool:
 
         expected_hash = compute_hash(entry_prev, payload)
         if expected_hash != entry_hash:
-            print(
-                f"❌ Entry {index} hash mismatch (expected {expected_hash}, found {entry_hash})"
-            )
-            ok = False
-            break
+            canonical_payload = _canonical_payload(payload)
+            if canonical_payload is payload:
+                print(
+                    f"❌ Entry {index} hash mismatch (expected {expected_hash}, found {entry_hash})"
+                )
+                ok = False
+                break
+
+            expected_hash = compute_hash(entry_prev, canonical_payload)
+            if expected_hash != entry_hash:
+                print(
+                    f"❌ Entry {index} hash mismatch (expected {expected_hash}, found {entry_hash})"
+                )
+                ok = False
+                break
 
         previous_hash = entry_hash
 
