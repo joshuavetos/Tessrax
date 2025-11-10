@@ -11,12 +11,17 @@ import hashlib
 import json
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from ledger import append as ledger_append
+
+DATA_PATH = Path("out/human_feedback_history.json")
+_CORRUPT_SUFFIX = ".corrupted"
+_SELF_TEST_TIMESTAMP = "1970-01-01T00:00:00+00:00"
 
 AUDITOR_ID = "Tessrax Governance Kernel v16"
 CLAUSES = ["AEP-001", "POST-AUDIT-001", "RVC-001", "EAC-001"]
@@ -104,9 +109,64 @@ async def submit_feedback(payload: FeedbackSubmission, request: Request) -> Feed
     receipt_id = hashlib.sha256(serialized).hexdigest()[:32]
     ledger_append({"event_type": "HUMAN_FEEDBACK_RECEIPT", "payload": receipt})
 
+    history = get_history()
+    history.setdefault("history", []).append({
+        "receipt_id": receipt_id,
+        "verdict": receipt["status"],
+        "timestamp": timestamp,
+    })
+    DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DATA_PATH.write_text(json.dumps(history, indent=2), encoding="utf-8")
+
     return FeedbackResponse(
         receipt_id=receipt_id,
         status="recorded",
         integrity_score=receipt["integrity_score"],
         timestamp=timestamp,
     )
+
+
+def get_history() -> dict[str, Any]:
+    if DATA_PATH.exists():
+        try:
+            payload = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+            history = payload.get("history", []) if isinstance(payload, dict) else []
+            if not isinstance(history, list):
+                raise ValueError("History payload must be a list")
+            return {"history": history}
+        except (json.JSONDecodeError, ValueError):
+            quarantine_corrupt_history()
+            return {"history": []}
+    return {"history": []}
+
+
+def quarantine_corrupt_history() -> None:
+    """Move a corrupt history file aside so future writes succeed."""
+
+    if not DATA_PATH.exists():
+        return
+    backup_path = DATA_PATH.with_suffix(DATA_PATH.suffix + _CORRUPT_SUFFIX)
+    try:
+        if backup_path.exists():
+            backup_path.unlink()
+        DATA_PATH.replace(backup_path)
+    except OSError:
+        DATA_PATH.unlink(missing_ok=True)
+
+
+def _self_test() -> bool:
+    probe = {
+        "receipt_id": "self-test",
+        "verdict": "verified",
+        "timestamp": _SELF_TEST_TIMESTAMP,
+    }
+    history = get_history()
+    existing = [entry for entry in history.get("history", []) if entry.get("receipt_id") != probe["receipt_id"]]
+    existing.append(probe)
+    history["history"] = existing
+    DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DATA_PATH.write_text(json.dumps(history, indent=2), encoding="utf-8")
+    persisted = get_history()["history"]
+    if not persisted or persisted[-1] != probe:
+        raise RuntimeError("Human feedback self-test failed to persist probe entry")
+    return True
