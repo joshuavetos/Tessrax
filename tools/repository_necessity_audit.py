@@ -191,7 +191,11 @@ def _classify_files(
         rel_path = file_path.relative_to(repo_root).as_posix()
         if rel_path.startswith("tests/"):
             test_only.append(rel_path)
-        elif any(module and f"/{module}" in rel_path for module in imported_modules):
+        elif any(
+            module
+            and (f"/{module}" in rel_path or rel_path == f"{module}.py")
+            for module in imported_modules
+        ):
             used.append(rel_path)
         elif rel_path in pytest_text:
             test_only.append(rel_path)
