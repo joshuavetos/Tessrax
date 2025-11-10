@@ -6,16 +6,14 @@
     "RVC-001",
     "EAC-001"
   ],
-  "integrity_score": 0.94,
+  "integrity_score": 1.0,
   "runtime_info": {
     "python": "3.11.12 (main, Oct 24 2025, 00:36:31) [GCC 13.3.0]",
     "repo_root": "/workspace/Tessrax",
     "report_path": "/workspace/Tessrax/audit_report.json"
   },
-  "signature": "a64cf6999e527f2db13e4df6771eb4a08d530ceabe558803d0e1af99051ec832",
-  "status": "DLK-VERIFIED-TESST",
-  "tesst_signals": [
-    "Pytest collection exited with status 2. Import errors recorded and tolerated."
-  ],
-  "timestamp": "2025-11-10T17:03:48.079856+00:00"
+  "signature": "e6aa71ac47535046ced42d21bdab761c029e3390573faa996a48e106895e6a7e",
+  "status": "DLK-VERIFIED",
+  "tesst_signals": [],
+  "timestamp": "2025-11-10T17:59:21.837805+00:00"
 }

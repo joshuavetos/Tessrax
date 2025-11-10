@@ -200,9 +200,19 @@ def _classify_files(
     file_list = list(files)
     for file_path in file_list:
         rel_path = file_path.relative_to(repo_root).as_posix()
+        path_parts = rel_path.split("/")
+        stem = file_path.stem
         if rel_path.startswith("tests/"):
             test_only.append(rel_path)
-        elif any(module and f"/{module}" in rel_path for module in imported_modules):
+        elif any(
+            module
+            and (
+                module in path_parts
+                or module == stem
+                or module.replace("_", "-") in path_parts
+            )
+            for module in imported_modules
+        ):
             used.append(rel_path)
         elif rel_path in pytest_text:
             test_only.append(rel_path)
