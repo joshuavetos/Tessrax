@@ -23,3 +23,4 @@ out/Tessrax-v19-release.whl
 *.mov
 *.avi
 *.bin
+audits/run_receipts/
