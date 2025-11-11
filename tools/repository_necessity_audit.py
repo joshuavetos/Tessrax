@@ -116,20 +116,39 @@ def _gather_files(repo_root: Path) -> List[Path]:
 
     extensions = {".py", ".json", ".yaml", ".yml", ".md"}
     quarantine_root = repo_root / "data" / "quarantine"
-    files: List[Path] = [
-        path
-        for path in sorted(repo_root.rglob("*"))
-        if path.suffix in extensions
-        and path.is_file()
-        and not (
-            quarantine_root.exists()
-            and path.is_relative_to(quarantine_root)
+    try:
+        completed = subprocess.run(  # noqa: S603, S607 - trusted input
+            ["git", "ls-files"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
         )
-        and not (
-            RUN_RECEIPT_DIR.exists()
-            and path.is_relative_to(RUN_RECEIPT_DIR)
+    except (OSError, subprocess.SubprocessError) as exc:  # pragma: no cover -
+        raise AuditError(
+            "AEP-001 violation: git ls-files could not be executed to enumerate tracked artefacts."
+        ) from exc
+    if completed.returncode != 0:
+        raise AuditError(
+            "AEP-001 violation: git ls-files returned a non-zero status while enumerating tracked artefacts."
         )
-    ]
+
+    files: List[Path] = []
+    for relative_path in sorted(filter(None, completed.stdout.splitlines())):
+        path = repo_root / relative_path
+        if (
+            path.suffix in extensions
+            and path.is_file()
+            and not (
+                quarantine_root.exists()
+                and path.is_relative_to(quarantine_root)
+            )
+            and not (
+                RUN_RECEIPT_DIR.exists()
+                and path.is_relative_to(RUN_RECEIPT_DIR)
+            )
+        ):
+            files.append(path)
     if not files:
         raise AuditError(
             "RVC-001 violation: file enumeration returned no artefacts; check "
