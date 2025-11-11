@@ -205,7 +205,13 @@ def _scan_path_references(files: Iterable[Path], repo_root: Path) -> Mapping[str
 
     path_pattern = re.compile(r"(?:[A-Za-z0-9_.-]+/)+[A-Za-z0-9_.-]+\.(?:py|json|ya?ml|md)")
     references: DefaultDict[str, Set[str]] = defaultdict(set)
+    audit_outputs = {
+        REPORT_PATH.resolve(),
+        RECEIPT_PATH.resolve(),
+    }
     for candidate in files:
+        if candidate.resolve() in audit_outputs:
+            continue
         try:
             text = candidate.read_text(encoding="utf-8")
         except UnicodeDecodeError:
