@@ -1,0 +1,110 @@
+{
+  "directive": "SANITY_PROTOCOL_V1",
+  "phase": "Phase 2",
+  "generated_at": "2025-11-14T02:43:05.569450+00:00",
+  "merges": [
+    {
+      "category": "non_canonical",
+      "target": "tessrax/metrics",
+      "sources": [
+        "metrics"
+      ],
+      "merge_reason": "Deduplicate epistemic metric helpers under the audited tessrax.metrics package.",
+      "conflicts": [],
+      "dependency_notes": [
+        "automation/meta_launcher/hooks/auto_append_metrics.py imports tessrax.metrics",
+        "tests/test_metric_schema.py exercises tessrax.metrics"
+      ],
+      "final_expected_structure": [
+        "tessrax/metrics/__init__.py",
+        "tessrax/metrics/epistemic_health.py"
+      ]
+    },
+    {
+      "category": "legacy_cluster",
+      "target": "tessrax/core",
+      "sources": [
+        "core"
+      ],
+      "merge_reason": "Legacy v15 governance facades to be reconciled with tessrax.core services.",
+      "conflicts": [
+        "core.merge_conflict_notes.txt"
+      ],
+      "dependency_notes": [
+        "legacy clients still import core.ContradictionEngine",
+        "tessrax/core/governance_kernel remains source of truth"
+      ],
+      "final_expected_structure": [
+        "tessrax/core/",
+        "core.merge_conflict_notes.txt"
+      ]
+    },
+    {
+      "category": "deprecated",
+      "target": "docker",
+      "sources": [
+        "charts"
+      ],
+      "merge_reason": "Docker stack supersedes Helm deployment for canonical runtime.",
+      "conflicts": [
+        "charts.merge_conflict_notes.txt"
+      ],
+      "dependency_notes": [
+        "deployment now orchestrated by docker/compose stack",
+        "charts referenced only in legacy documentation"
+      ],
+      "final_expected_structure": [
+        "docker/compose.yml",
+        "charts.merge_conflict_notes.txt"
+      ]
+    },
+    {
+      "category": "deprecated",
+      "target": "tessrax_truth_api",
+      "sources": [
+        "server"
+      ],
+      "merge_reason": "Retired empty server shim; tessrax_truth_api provides the canonical governance service endpoints.",
+      "conflicts": [],
+      "dependency_notes": [
+        "Existing clients route traffic through tessrax_truth_api FastAPI application",
+        "server package only exposed a docstring placeholder"
+      ],
+      "final_expected_structure": [
+        "tessrax_truth_api/"
+      ]
+    }
+  ],
+  "tip_manifest_updates": [
+    {
+      "path": "ledger/.well-known/tip.json",
+      "status": "added",
+      "module_id": "tip://ledger"
+    },
+    {
+      "path": "tests/.well-known/tip.json",
+      "status": "added",
+      "module_id": "tip://tests/governance-suite"
+    },
+    {
+      "path": "tessrax/core/ledger/.well-known/tip.json",
+      "status": "added",
+      "module_id": "tip://tessrax/core/ledger"
+    }
+  ],
+  "deprecated_subsystems_phase3": [
+    "charts",
+    "core",
+    "server"
+  ],
+  "governance_receipt": {
+    "auditor": "Tessrax Governance Kernel v16",
+    "clauses": [
+      "AEP-001",
+      "POST-AUDIT-001",
+      "RVC-001",
+      "EAC-001"
+    ],
+    "status": "pending-validation"
+  }
+}

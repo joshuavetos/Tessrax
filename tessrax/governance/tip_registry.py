@@ -213,7 +213,8 @@ def _append_missing_records(
     existing_hashes = _load_existing_manifest_hashes(target_path)
     appended: list[Dict] = []
 
-    for entry in registry.values():
+    for module_id in sorted(registry):
+        entry = registry[module_id]
         manifest_hash = _hash_manifest(entry.manifest)
         if manifest_hash in existing_hashes:
             continue

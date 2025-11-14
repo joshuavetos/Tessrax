@@ -1,0 +1,4 @@
+Helm deployment templates diverge from the Docker Compose topology that replaced
+them in TIP-registered runtime flows. Chart templating relies on legacy values
+files and Kubernetes annotations that are no longer validated. Migration requires
+a manual mapping of secrets and ingress rules before decommissioning.

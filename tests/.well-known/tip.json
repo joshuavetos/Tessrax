@@ -1,0 +1,66 @@
+{
+  "module_id": "tip://tests/governance-suite",
+  "version": "1.0.0",
+  "description": "Pytest governance regression suite validating TIP contracts and receipts.",
+  "endpoints": [
+    {
+      "name": "run-suite",
+      "method": "POST",
+      "route": "/governance/tests/run",
+      "io_schema_hash": "e84e8980de3c3881b7b887218537f051353e0537cfa2dbbab3f920ee34fdec9e"
+    }
+  ],
+  "cli_entrypoints": [
+    "pytest",
+    "python -m pytest tests"
+  ],
+  "dependencies": [
+    "tessrax.core.ledger",
+    "tessrax.core.metabolism",
+    "tessrax_truth_api"
+  ],
+  "health": {
+    "readiness": "http://localhost:8080/governance/tests/healthz",
+    "liveness": "http://localhost:8080/governance/tests/live",
+    "last_checked": "2025-11-14T02:43:55.856513Z"
+  },
+  "telemetry_topics": [
+    "tessrax.tests.results"
+  ],
+  "governance": {
+    "signing_key_id": "governance-key::tip://tests/governance-suite",
+    "signature": {
+      "algorithm": "SHA256",
+      "value": "ea5cf2f06161c47574db940f5646c18e5a42e53a34db03dc7f242fc060ec382d",
+      "signed_at": "2025-11-14T02:43:55.856513Z"
+    }
+  },
+  "governance_bus": {
+    "ingest": "/governance/tests/receipts",
+    "emit": "/governance/tests/events",
+    "status_broadcast": "/governance/tests/status"
+  },
+  "ledger_refs": [
+    {
+      "path": "ledger/verifier_integration_ledger.jsonl",
+      "hash": "d009c849a1ed5ea768f82ef3234749e56424cf9861084b3bd5179aa18231504a",
+      "merkle_anchor": "urn:merkle:tests@v1"
+    }
+  ],
+  "federation_profile": {
+    "integrity_score": 0.92,
+    "reliability": {
+      "uptime_24h": 0.98,
+      "error_budget_consumed": 0.05
+    },
+    "compliance": {
+      "aep_001": true,
+      "rvc_001": true,
+      "post_audit_001": true,
+      "eac_001": true
+    },
+    "scar_register": [],
+    "status": "ready",
+    "last_self_audit": "2025-11-14T02:43:55.856513Z"
+  }
+}
