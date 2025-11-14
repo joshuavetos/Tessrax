@@ -38,6 +38,8 @@
 - sdk
 - server
 - streamlit
+- tessrax
+- tessrax/core
 - tessrax/core/contracts
 - tessrax/core/ethics
 - tessrax/core/federation
