@@ -274,13 +274,13 @@
     {
       "path": "tessrax",
       "classification": "canonical",
-      "tip_manifest": "exists",
-      "tip_path": "tessrax/core/metabolism/.well-known/tip.json",
+      "tip_manifest": "missing",
+      "tip_path": null,
       "entry_point": "tessrax/__main__.py",
       "imports": [
         "ledger"
       ],
-      "notes": "Primary Python package exporting governance engines and CLI entry points (python -m tessrax)."
+      "notes": "Primary Python package exporting governance engines and CLI entry points (python -m tessrax); publishes no TIP manifest yet."
     },
     {
       "path": "tessrax_truth_api",
@@ -336,14 +336,14 @@
     {
       "path": "tessrax/core",
       "classification": "canonical",
-      "tip_manifest": "exists",
-      "tip_path": "tessrax/core/metabolism/.well-known/tip.json",
+      "tip_manifest": "missing",
+      "tip_path": null,
       "entry_point": "tessrax/core/anchor_service.py",
       "imports": [
         "ledger",
         "tessrax"
       ],
-      "notes": "Canonical core package bootstrapping ledger paths and vendored audit kernel support."
+      "notes": "Canonical core package bootstrapping ledger paths and vendored audit kernel support; TIP manifest not yet published."
     },
     {
       "path": "tessrax/core/contracts",
