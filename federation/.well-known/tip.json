@@ -1,0 +1,69 @@
+{
+  "module_id": "tip://tessrax/federation-orchestrator",
+  "version": "1.8.6",
+  "description": "Federation orchestrator coordinating node consensus simulations (entry: federation/orchestrator.py).",
+  "endpoints": [
+    {
+      "name": "orchestrate",
+      "method": "POST",
+      "route": "/federation/orchestrate",
+      "io_schema_hash": "11e3473bbdcb6bdd479e9fc9f63dd5595efe371b3982caf5b29dfd19e9dc8107"
+    },
+    {
+      "name": "status",
+      "method": "GET",
+      "route": "/federation/status",
+      "io_schema_hash": "a86073b07452699303504d438180ade3e15bfefcff24bb57d219b85346ce47cf"
+    }
+  ],
+  "cli_entrypoints": [
+    "python -m federation.orchestrator"
+  ],
+  "dependencies": [
+    "federation.test_harness"
+  ],
+  "health": {
+    "readiness": "http://localhost:8080/federation/status",
+    "liveness": "http://localhost:8080/governance/federation/status",
+    "last_checked": "2025-11-13T23:59:05.530450+00:00"
+  },
+  "telemetry_topics": [
+    "tessrax.federation.events"
+  ],
+  "governance": {
+    "signing_key_id": "governance-key::tip://tessrax/federation-orchestrator",
+    "signature": {
+      "algorithm": "SHA256",
+      "value": "9b32abc522ea320410680bc82740af13330d3976b6cddd6ab52d44535bc47c1c",
+      "signed_at": "2025-11-13T23:59:05.530450+00:00"
+    }
+  },
+  "governance_bus": {
+    "ingest": "/governance/federation/receipts",
+    "emit": "/governance/federation/events",
+    "status_broadcast": "/governance/federation/status"
+  },
+  "ledger_refs": [
+    {
+      "path": "ledger/federation_orchestrator_ledger.jsonl",
+      "hash": "180a1887030b4fe027c9065c03553c5218bfa686f508a047492e323f32823900",
+      "merkle_anchor": "urn:merkle:federation@v1"
+    }
+  ],
+  "federation_profile": {
+    "integrity_score": 0.965,
+    "reliability": {
+      "uptime_24h": 0.992,
+      "error_budget_consumed": 0.04
+    },
+    "compliance": {
+      "aep_001": true,
+      "rvc_001": true,
+      "post_audit_001": true,
+      "eac_001": true
+    },
+    "scar_register": [],
+    "status": "ready",
+    "last_self_audit": "2025-11-13T23:59:05.530450+00:00"
+  }
+}

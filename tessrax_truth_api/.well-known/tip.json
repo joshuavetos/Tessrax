@@ -1,0 +1,76 @@
+{
+  "module_id": "tip://tessrax/truth-api",
+  "version": "2.0.0",
+  "description": "Tessrax Truth API exposing contradiction detection services (entry: tessrax_truth_api/main.py).",
+  "endpoints": [
+    {
+      "name": "healthz",
+      "method": "GET",
+      "route": "/healthz",
+      "io_schema_hash": "0186374f5c3fcf2d03d0c17451383ec892c3c9c1a2227ded0edf88852a1dd7d2"
+    },
+    {
+      "name": "detect",
+      "method": "POST",
+      "route": "/detect",
+      "io_schema_hash": "cda3807a1fa4d8104d528dde5d8dc8c9ee6e928b5615894fcb78828b513d7b51"
+    }
+  ],
+  "cli_entrypoints": [
+    "uvicorn tessrax_truth_api.main:app"
+  ],
+  "dependencies": [
+    "config_loader",
+    "tessrax.api.human_feedback",
+    "tessrax.ledger",
+    "tessrax.logging",
+    "tessrax.metabolism.async_detector",
+    "tessrax.tessrax_engine",
+    "tessrax.types"
+  ],
+  "health": {
+    "readiness": "http://localhost:8080/healthz",
+    "liveness": "http://localhost:8080/governance/truth/status",
+    "last_checked": "2025-11-13T23:59:05.530450+00:00"
+  },
+  "telemetry_topics": [
+    "tessrax.truth.events",
+    "tessrax.truth.billing"
+  ],
+  "governance": {
+    "signing_key_id": "governance-key::tip://tessrax/truth-api",
+    "signature": {
+      "algorithm": "SHA256",
+      "value": "2cfc2fc026292f62f8ad42d51cb92223bae3c3d7c771236e60a296fadde624ed",
+      "signed_at": "2025-11-13T23:59:05.530450+00:00"
+    }
+  },
+  "governance_bus": {
+    "ingest": "/governance/truth/receipts",
+    "emit": "/governance/truth/events",
+    "status_broadcast": "/governance/truth/status"
+  },
+  "ledger_refs": [
+    {
+      "path": "ledger/truth_api.jsonl",
+      "hash": "37daf3bf001b4cfb9998099ba8b07953d127dd50611c075c4851114f8a6b7dc9",
+      "merkle_anchor": "urn:merkle:truth-api@v1"
+    }
+  ],
+  "federation_profile": {
+    "integrity_score": 0.965,
+    "reliability": {
+      "uptime_24h": 0.999,
+      "error_budget_consumed": 0.02
+    },
+    "compliance": {
+      "aep_001": true,
+      "rvc_001": true,
+      "post_audit_001": true,
+      "eac_001": true
+    },
+    "scar_register": [],
+    "status": "ready",
+    "last_self_audit": "2025-11-13T23:59:05.530450+00:00"
+  }
+}

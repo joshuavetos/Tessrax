@@ -40,9 +40,28 @@ def validate_manifest(manifest_path: Path) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     """Entry point for TIP manifest validation CLI."""
-    parser = argparse.ArgumentParser(description="Validate a TIP manifest")
-    parser.add_argument("manifest", help="Path to manifest JSON file")
+    parser = argparse.ArgumentParser(description="Validate TIP manifests")
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Validate all registered manifests discovered in the repository",
+    )
+    parser.add_argument("manifest", nargs="?", help="Path to manifest JSON file")
     args = parser.parse_args(argv)
+
+    exit_code = 0
+
+    if args.all:
+        registry, _ = tip_registry.sync_registry()
+        for entry in registry.values():
+            try:
+                validate_manifest(entry.path)
+            except Exception:
+                exit_code = 1
+        return exit_code
+
+    if not args.manifest:
+        parser.error("manifest path is required unless --all is provided")
 
     manifest_path = Path(args.manifest)
     try:

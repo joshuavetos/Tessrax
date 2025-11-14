@@ -1,0 +1,76 @@
+{
+  "module_id": "tip://tessrax/dashboard",
+  "version": "1.5.0",
+  "description": "Streamlit governance dashboard with FastAPI bridge (entry: dashboard/app.py).",
+  "endpoints": [
+    {
+      "name": "ledger",
+      "method": "GET",
+      "route": "/dashboard/api/ledger",
+      "io_schema_hash": "afd3807178128442e2fb2caeaa29802f2c67a8bbc1c1464d249de203fea7cf51"
+    },
+    {
+      "name": "summary",
+      "method": "GET",
+      "route": "/dashboard/api/summary",
+      "io_schema_hash": "012a9c744b7669c6bb7058c8c78371b4ef97e029ec6c9e32a8afabd7554fc983"
+    },
+    {
+      "name": "metrics",
+      "method": "GET",
+      "route": "/dashboard/api/metrics",
+      "io_schema_hash": "ece6b937e7e3fdb1a8f2488dde4f3063eb5e0350d00c2e295fb1c31fd6853e53"
+    }
+  ],
+  "cli_entrypoints": [
+    "streamlit run dashboard/app.py"
+  ],
+  "dependencies": [
+    "config_loader",
+    "tessrax.tessrax_engine"
+  ],
+  "health": {
+    "readiness": "http://localhost:8080/dashboard/api/metrics",
+    "liveness": "http://localhost:8080/governance/dashboard/status",
+    "last_checked": "2025-11-13T23:59:05.530450+00:00"
+  },
+  "telemetry_topics": [
+    "tessrax.dashboard.telemetry"
+  ],
+  "governance": {
+    "signing_key_id": "governance-key::tip://tessrax/dashboard",
+    "signature": {
+      "algorithm": "SHA256",
+      "value": "ed93753c73ab5f0360e49596446e26ea323b6fae7c1a886ff2b937beac9ce291",
+      "signed_at": "2025-11-13T23:59:05.530450+00:00"
+    }
+  },
+  "governance_bus": {
+    "ingest": "/governance/dashboard/receipts",
+    "emit": "/governance/dashboard/events",
+    "status_broadcast": "/governance/dashboard/status"
+  },
+  "ledger_refs": [
+    {
+      "path": "ledger/dashboard.jsonl",
+      "hash": "8f957ffe76b992609aaaaef74f35cba237b264260e8915f62a27fedc04e4849c",
+      "merkle_anchor": "urn:merkle:dashboard@v1"
+    }
+  ],
+  "federation_profile": {
+    "integrity_score": 0.965,
+    "reliability": {
+      "uptime_24h": 0.995,
+      "error_budget_consumed": 0.05
+    },
+    "compliance": {
+      "aep_001": true,
+      "rvc_001": true,
+      "post_audit_001": true,
+      "eac_001": true
+    },
+    "scar_register": [],
+    "status": "ready",
+    "last_self_audit": "2025-11-13T23:59:05.530450+00:00"
+  }
+}

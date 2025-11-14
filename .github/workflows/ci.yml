@@ -30,5 +30,7 @@ jobs:
       - name: Verify lock-file consistency
         run: diff <(pip freeze | sort) <(sort requirements-lock.txt)
         shell: bash
+      - name: Validate TIP Registry
+        run: python -m tessrax.governance.tip_validate --all
       - name: Run Epistemic Meta-Tests
         run: pytest -q tests/test_meta_audit.py

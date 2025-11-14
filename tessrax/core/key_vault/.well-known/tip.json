@@ -1,0 +1,69 @@
+{
+  "module_id": "tip://tessrax/core/key-vault",
+  "version": "1.1.0",
+  "description": "Deterministic Ed25519 key rotation service for Tessrax (entry: tessrax/core/key_vault/__init__.py).",
+  "endpoints": [
+    {
+      "name": "rotate-key",
+      "method": "POST",
+      "route": "/core/key-vault/rotate",
+      "io_schema_hash": "2d1a9e9c7030c5db3c895278350f4ad398139a8add931a678e42896c13fd0032"
+    },
+    {
+      "name": "current-key",
+      "method": "GET",
+      "route": "/core/key-vault/current",
+      "io_schema_hash": "6d15bfe812b644c21835bea006a79467aa2caac9fa38ba969f29d1c71fa77995"
+    }
+  ],
+  "cli_entrypoints": [
+    "python -c 'from tessrax.core.key_vault import KeyVault'"
+  ],
+  "dependencies": [
+    "tessrax.core.ledger"
+  ],
+  "health": {
+    "readiness": "http://localhost:8080/core/key-vault/healthz",
+    "liveness": "http://localhost:8080/governance/key-vault/status",
+    "last_checked": "2025-11-13T23:59:05.530450+00:00"
+  },
+  "telemetry_topics": [
+    "tessrax.core.key-vault.rotations"
+  ],
+  "governance": {
+    "signing_key_id": "governance-key::tip://tessrax/core/key-vault",
+    "signature": {
+      "algorithm": "SHA256",
+      "value": "84c2164b03a55f2b989d2ccf55b130606d82b82aed664eb531f1895e65f99506",
+      "signed_at": "2025-11-13T23:59:05.530450+00:00"
+    }
+  },
+  "governance_bus": {
+    "ingest": "/governance/key-vault/receipts",
+    "emit": "/governance/key-vault/events",
+    "status_broadcast": "/governance/key-vault/status"
+  },
+  "ledger_refs": [
+    {
+      "path": "ledger/key_vault.jsonl",
+      "hash": "08446d1da7b4ecadf2c585a0fb907a23da59058dc77d01ee2e625cee0edce058",
+      "merkle_anchor": "urn:merkle:key-vault@v1"
+    }
+  ],
+  "federation_profile": {
+    "integrity_score": 0.965,
+    "reliability": {
+      "uptime_24h": 0.999,
+      "error_budget_consumed": 0.01
+    },
+    "compliance": {
+      "aep_001": true,
+      "rvc_001": true,
+      "post_audit_001": true,
+      "eac_001": true
+    },
+    "scar_register": [],
+    "status": "ready",
+    "last_self_audit": "2025-11-13T23:59:05.530450+00:00"
+  }
+}

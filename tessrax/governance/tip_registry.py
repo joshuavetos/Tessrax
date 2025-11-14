@@ -12,15 +12,27 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from dataclasses import dataclass
 from typing import Dict, Iterable, List
 
 import jsonschema
+
+from tessrax.core import PROJECT_ROOT
 
 SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"
 TIP_MANIFEST_SCHEMA = json.loads((SCHEMA_DIR / "tip_manifest.schema.json").read_text(encoding="utf-8"))
 TIP_RECEIPT_SCHEMA = json.loads((SCHEMA_DIR / "tip_receipt.schema.json").read_text(encoding="utf-8"))
 
-LEDGER_PATH = Path(__file__).resolve().parents[1] / "ledger" / "tip_manifests.jsonl"
+LEDGER_PATH = PROJECT_ROOT / "ledger" / "tip_manifests.jsonl"
+
+
+@dataclass(frozen=True)
+class RegisteredManifest:
+    """Container describing a verified manifest and its source path."""
+
+    module_id: str
+    path: Path
+    manifest: Dict
 
 
 def _canonical_json(data: Dict) -> str:
@@ -42,6 +54,30 @@ def load_tip_manifest(path: str) -> Dict:
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     jsonschema.validate(instance=data, schema=TIP_MANIFEST_SCHEMA)
     return data
+
+
+def load_registered_manifests(root: Path | None = None) -> Dict[str, RegisteredManifest]:
+    """Discover, validate, and return manifests beneath the provided root."""
+
+    search_root = root or PROJECT_ROOT
+    if not search_root.exists():
+        raise FileNotFoundError(f"Manifest search root does not exist: {search_root}")
+
+    registry: Dict[str, RegisteredManifest] = {}
+    for manifest_path in _discover_manifests(search_root):
+        manifest = load_tip_manifest(str(manifest_path))
+        verify_tip_manifest(manifest)
+        module_id = manifest.get("module_id")
+        if not module_id:
+            raise ValueError(f"Manifest missing module_id: {manifest_path}")
+        if module_id in registry:
+            raise ValueError(f"Duplicate manifest for module_id {module_id!r}")
+        registry[module_id] = RegisteredManifest(
+            module_id=module_id,
+            path=manifest_path.resolve(),
+            manifest=manifest,
+        )
+    return registry
 
 
 def _hash_manifest(manifest: Dict) -> str:
@@ -146,6 +182,48 @@ def register_module(manifest: Dict, ledger_path: Path | None = None) -> Dict:
     return record
 
 
+def _load_existing_manifest_hashes(ledger_path: Path) -> set[str]:
+    """Load manifest hashes already present in the ledger for idempotency."""
+
+    if not ledger_path.exists():
+        return set()
+
+    hashes: set[str] = set()
+    with ledger_path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            digest = payload.get("manifest_hash")
+            if isinstance(digest, str):
+                hashes.add(digest)
+    return hashes
+
+
+def _append_missing_records(
+    registry: Dict[str, RegisteredManifest], ledger_path: Path | None = None
+) -> list[Dict]:
+    """Register manifests not yet represented in the ledger."""
+
+    target_path = ledger_path or LEDGER_PATH
+    existing_hashes = _load_existing_manifest_hashes(target_path)
+    appended: list[Dict] = []
+
+    for entry in registry.values():
+        manifest_hash = _hash_manifest(entry.manifest)
+        if manifest_hash in existing_hashes:
+            continue
+        record = register_module(entry.manifest, ledger_path=target_path)
+        appended.append(record)
+        existing_hashes.add(manifest_hash)
+
+    return appended
+
+
 def _discover_manifests(directory: Path) -> Iterable[Path]:
     """Yield manifest paths from .well-known/tip.json under directory."""
     for manifest_path in directory.rglob(".well-known/tip.json"):
@@ -197,6 +275,19 @@ def discover_manifests(directory: Path) -> List[Dict]:
                 "ready_for_federation": False,
             })
     return readiness
+
+
+def sync_registry(
+    root: Path | None = None, ledger_path: Path | None = None
+) -> tuple[Dict[str, RegisteredManifest], list[Dict]]:
+    """Synchronise manifest registry with the ledger records."""
+
+    registry = load_registered_manifests(root)
+    appended = _append_missing_records(registry, ledger_path)
+    return registry, appended
+
+
+REGISTERED_MANIFESTS, REGISTERED_LEDGER_RECORDS = sync_registry()
 
 
 def _print_readiness_map(entries: List[Dict]) -> None:
