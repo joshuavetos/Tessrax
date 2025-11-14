@@ -1,0 +1,71 @@
+{
+  "module_id": "tip://tessrax/core/ledger",
+  "version": "1.0.0",
+  "description": "TIP-compliant ledger integration layer with audit verification routines.",
+  "endpoints": [
+    {
+      "name": "audit-append",
+      "method": "POST",
+      "route": "/core/ledger/audit/append",
+      "io_schema_hash": "b5738765f259cdd4b8afbe4ebbac59bb06fd84372d06c9c9d976ddc7078c9a09"
+    },
+    {
+      "name": "audit-verify",
+      "method": "POST",
+      "route": "/core/ledger/audit/verify",
+      "io_schema_hash": "7d6712af407f954e493d570e4576cff04ec9ddd21589ffe98e1863e142f74367"
+    }
+  ],
+  "cli_entrypoints": [
+    "python -m tessrax.core.ledger.audit_integration",
+    "python -c \"from tessrax.core.ledger import Ledger; Ledger().verify()\""
+  ],
+  "dependencies": [
+    "tip://ledger",
+    "tessrax.core.merkle_engine"
+  ],
+  "health": {
+    "readiness": "http://localhost:8080/core/ledger/healthz",
+    "liveness": "http://localhost:8080/core/ledger/live",
+    "last_checked": "2025-11-14T02:43:55.856513Z"
+  },
+  "telemetry_topics": [
+    "tessrax.core.ledger.audit"
+  ],
+  "governance": {
+    "signing_key_id": "governance-key::tip://tessrax/core/ledger",
+    "signature": {
+      "algorithm": "SHA256",
+      "value": "df5fc8c95e2bf1c85a68e8908f7c46158d5dae3fb69a5c25cfe38dd11c46122b",
+      "signed_at": "2025-11-14T02:43:55.856513Z"
+    }
+  },
+  "governance_bus": {
+    "ingest": "/governance/core-ledger/receipts",
+    "emit": "/governance/core-ledger/events",
+    "status_broadcast": "/governance/core-ledger/status"
+  },
+  "ledger_refs": [
+    {
+      "path": "tessrax/core/ledger/safepoints.jsonl",
+      "hash": "f242650daddeb42f785677c747f10cefe96529349fee221b38dd9b1dbcde49f0",
+      "merkle_anchor": "urn:merkle:core-ledger@v1"
+    }
+  ],
+  "federation_profile": {
+    "integrity_score": 0.95,
+    "reliability": {
+      "uptime_24h": 0.995,
+      "error_budget_consumed": 0.015
+    },
+    "compliance": {
+      "aep_001": true,
+      "rvc_001": true,
+      "post_audit_001": true,
+      "eac_001": true
+    },
+    "scar_register": [],
+    "status": "ready",
+    "last_self_audit": "2025-11-14T02:43:55.856513Z"
+  }
+}

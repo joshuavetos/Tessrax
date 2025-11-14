@@ -1,0 +1,70 @@
+{
+  "module_id": "tip://ledger",
+  "version": "1.0.0",
+  "description": "Authoritative ledger append library and JSONL receipts backing TIP services.",
+  "endpoints": [
+    {
+      "name": "append-entry",
+      "method": "POST",
+      "route": "/core/ledger/append",
+      "io_schema_hash": "6e31d314cc359f88a27f067a02036c1547cf8d7f7f5a9aeb177709eed1966c26"
+    },
+    {
+      "name": "ledger-status",
+      "method": "GET",
+      "route": "/core/ledger/status",
+      "io_schema_hash": "fa147454652f21a5d0a0b14cb52dc003979850f11f639cf5e2dcbad2b880e65c"
+    }
+  ],
+  "cli_entrypoints": [
+    "python -m tessrax.core.ledger.audit_integration",
+    "python -c \"from tessrax.core.ledger import Ledger; Ledger().verify()\""
+  ],
+  "dependencies": [
+    "tessrax.core.ledger"
+  ],
+  "health": {
+    "readiness": "http://localhost:8080/ledger/healthz",
+    "liveness": "http://localhost:8080/ledger/live",
+    "last_checked": "2025-11-14T02:43:55.856513Z"
+  },
+  "telemetry_topics": [
+    "tessrax.ledger.appends"
+  ],
+  "governance": {
+    "signing_key_id": "governance-key::tip://ledger",
+    "signature": {
+      "algorithm": "SHA256",
+      "value": "7d197c53d4dbf20302712ace76d197494f7c40ece7a63f24070c719dd238b126",
+      "signed_at": "2025-11-14T02:43:55.856513Z"
+    }
+  },
+  "governance_bus": {
+    "ingest": "/governance/ledger/receipts",
+    "emit": "/governance/ledger/events",
+    "status_broadcast": "/governance/ledger/status"
+  },
+  "ledger_refs": [
+    {
+      "path": "ledger/ledger.jsonl",
+      "hash": "866725d9cd996b8238133692ec908b080cd71dad0eb5e518c4aa47b821896de5",
+      "merkle_anchor": "urn:merkle:ledger@v1"
+    }
+  ],
+  "federation_profile": {
+    "integrity_score": 0.96,
+    "reliability": {
+      "uptime_24h": 0.999,
+      "error_budget_consumed": 0.01
+    },
+    "compliance": {
+      "aep_001": true,
+      "rvc_001": true,
+      "post_audit_001": true,
+      "eac_001": true
+    },
+    "scar_register": [],
+    "status": "ready",
+    "last_self_audit": "2025-11-14T02:43:55.856513Z"
+  }
+}

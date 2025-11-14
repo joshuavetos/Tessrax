@@ -1,0 +1,3 @@
+Legacy tessrax core package retains ContradictionEngine and GovernanceKernel
+interfaces required by v15 clients. Canonical tessrax/core already exposes the
+Phase 2 implementations. Full merge blocked pending downstream client migration.
