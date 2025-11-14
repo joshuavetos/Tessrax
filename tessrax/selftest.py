@@ -33,6 +33,8 @@ def _module_name_from_path(base: str, package_path: Path, py_file: Path) -> str:
     parts = relative.with_suffix("").parts
     if not parts:
         return base
+    if parts == ("__init__",):
+        return base
     return ".".join((base, *parts))
 
 
