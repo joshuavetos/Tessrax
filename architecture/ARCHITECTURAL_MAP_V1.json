@@ -1,0 +1,503 @@
+{
+  "timestamp": "2025-11-14T02:15:35.064829Z",
+  "directive": "SANITY_PROTOCOL_V1",
+  "subsystems": [
+    {
+      "path": ".keys",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Holds three governed Ed25519 key JSON files that api/key_vault_service.py loads to enforce quorum rotation."
+    },
+    {
+      "path": "ai_skills",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "ai_skills/prompting/cli.py",
+      "imports": [],
+      "notes": "Provides the ai-skills CLI (prompt rendering, scoring, and receipt streaming) for training integrations."
+    },
+    {
+      "path": "aion",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "aion/aiond/audit_engine.py",
+      "imports": [],
+      "notes": "Contains the AION audit engine that produces DLK-verified receipts for repo integrity checks."
+    },
+    {
+      "path": "analytics",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "analytics/frienthropy_decay.py",
+      "imports": [],
+      "notes": "Hosts frienthropy_decay.py, a matplotlib/pandas analytics report generator for corporate trust decay."
+    },
+    {
+      "path": "api",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [
+        "ledger",
+        "tessrax"
+      ],
+      "notes": "Exposes the FastAPI key_vault_service with quorum signature verification and ledger writes."
+    },
+    {
+      "path": "audits",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Stores governance audit receipts such as premerge_integrity_v17_6.json for compliance evidence."
+    },
+    {
+      "path": "automation",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "automation/k8s_autoscaler.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Includes k8s_autoscaler.py and meta_launcher hooks for generating scaling manifests and enforcing sync guards."
+    },
+    {
+      "path": "charts",
+      "classification": "deprecated",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Legacy Helm chart (appVersion 19.6) for the stack; superseded by Docker and TIP-registered services."
+    },
+    {
+      "path": "config",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Configuration payloads (e.g., docker.json, k8s_autoscaler.yml) consumed by automation and deployment scripts."
+    },
+    {
+      "path": "core",
+      "classification": "legacy_cluster",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "core/epistemic_metrics.py",
+      "imports": [
+        "ledger",
+        "tessrax"
+      ],
+      "notes": "Legacy compatibility layer exporting ContradictionEngine and GovernanceKernel for v15 clients."
+    },
+    {
+      "path": "dashboard",
+      "classification": "canonical",
+      "tip_manifest": "exists",
+      "tip_path": "dashboard/.well-known/tip.json",
+      "entry_point": "dashboard/app.py",
+      "imports": [
+        "streamlit",
+        "tessrax"
+      ],
+      "notes": "Streamlit dashboard with TIP manifest and FastAPI routes for ledger, metrics, and subscription views."
+    },
+    {
+      "path": "docker",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Multi-node docker-compose stack wiring config/docker.json into replicated governance nodes."
+    },
+    {
+      "path": "docs",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Architecture and governance documentation, including the mermaid system overview and policy guidance."
+    },
+    {
+      "path": "examples",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "examples/dashboard_snapshot.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Hands-on demos such as minimal_detect.py using the Tessrax API to illustrate contradiction detection."
+    },
+    {
+      "path": "federation",
+      "classification": "canonical",
+      "tip_manifest": "exists",
+      "tip_path": "federation/.well-known/tip.json",
+      "entry_point": "federation/demo_federation.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Federation orchestrator package with TIP manifest coordinating consensus simulations."
+    },
+    {
+      "path": "grafana",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Provisioned Grafana dashboards targeting receipt latency, queue depth, and key rotation metrics."
+    },
+    {
+      "path": "ledger",
+      "classification": "canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Authoritative ledger package plus JSONL receipts referenced by canonical modules and TIP manifests."
+    },
+    {
+      "path": "metrics",
+      "classification": "orphaned",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "metrics/epistemic_health.py",
+      "imports": [],
+      "notes": "Outdated local metrics stub (epistemic_health.py) with no remaining imports in active packages."
+    },
+    {
+      "path": "ops",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Alerting and runbook assets defining Prometheus alert rules for integrity, queue depth, and key rotation."
+    },
+    {
+      "path": "out",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Generated governance receipts and audit artefacts such as dashboard_receipt.json and integrity snapshots."
+    },
+    {
+      "path": "packages/audit-kernel",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Vendored audit_kernel distribution used by tessrax/core/audit_kernel.py for offline environments."
+    },
+    {
+      "path": "prometheus",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Prometheus scrape configuration targeting tessrax metrics endpoints for operations."
+    },
+    {
+      "path": "sandbox",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Ethical drift simulator emitting receipts for sandbox experiments referenced by tests and docs."
+    },
+    {
+      "path": "schemas",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "JSON schemas including tip.schema.json that validate TIP handshakes across services."
+    },
+    {
+      "path": "scripts",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "scripts/etl_public_health.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Operational scripts (run_selftests.py, package_release.py) enforcing repository verification."
+    },
+    {
+      "path": "sdk",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Language SDKs and tessrax_client.py for interacting with the Truth API over HTTP."
+    },
+    {
+      "path": "server",
+      "classification": "deprecated",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "Deprecated placeholder server package with no runtime beyond a docstring marker."
+    },
+    {
+      "path": "streamlit",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "streamlit/__main__.py",
+      "imports": [],
+      "notes": "Wrapper module delegating to streamlit.__main__ with timeout guards for CI environments."
+    },
+    {
+      "path": "tessrax",
+      "classification": "canonical",
+      "tip_manifest": "exists",
+      "tip_path": "tessrax/core/metabolism/.well-known/tip.json",
+      "entry_point": "tessrax/__main__.py",
+      "imports": [
+        "ledger"
+      ],
+      "notes": "Primary Python package exporting governance engines and CLI entry points (python -m tessrax)."
+    },
+    {
+      "path": "tessrax_truth_api",
+      "classification": "canonical",
+      "tip_manifest": "exists",
+      "tip_path": "tessrax_truth_api/.well-known/tip.json",
+      "entry_point": "tessrax_truth_api/main.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "TIP-registered FastAPI service exposing contradiction detection endpoints and billing hooks."
+    },
+    {
+      "path": "tests",
+      "classification": "canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "tests/test_monetization.py",
+      "imports": [
+        "ai_skills",
+        "api",
+        "automation",
+        "core",
+        "dashboard",
+        "federation",
+        "sandbox",
+        "scripts",
+        "tessrax",
+        "tessrax_truth_api",
+        "tools",
+        "verifier"
+      ],
+      "notes": "Comprehensive pytest suites validating TIP schema, governance metrics, sandbox safety, and integration receipts."
+    },
+    {
+      "path": "tools",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "tools/compare_env_snapshot.py",
+      "imports": [],
+      "notes": "Developer tools such as sync_guard and generate_env_snapshot for dependency and environment auditing."
+    },
+    {
+      "path": "verifier",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [],
+      "notes": "FastAPI verifier microservice validating ledger receipts and emitting audit records."
+    },
+    {
+      "path": "tessrax/core",
+      "classification": "canonical",
+      "tip_manifest": "exists",
+      "tip_path": "tessrax/core/metabolism/.well-known/tip.json",
+      "entry_point": "tessrax/core/anchor_service.py",
+      "imports": [
+        "ledger",
+        "tessrax"
+      ],
+      "notes": "Canonical core package bootstrapping ledger paths and vendored audit kernel support."
+    },
+    {
+      "path": "tessrax/core/contracts",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "License/token helpers embedding SPDX metadata into the ledger for contract events."
+    },
+    {
+      "path": "tessrax/core/ethics",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "tessrax/core/ethics/value_drift_monitor.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Value drift monitor that writes receipts when policy keywords shift."
+    },
+    {
+      "path": "tessrax/core/federation",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": null,
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Async simulation primitives (Node, TokenBank, simulate_cluster) underpinning federation tests."
+    },
+    {
+      "path": "tessrax/core/governance",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "tessrax/core/governance/policy_compiler.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Policy compiler utilities generating receipts for compiled Iron Laws."
+    },
+    {
+      "path": "tessrax/core/governance_kernel",
+      "classification": "canonical",
+      "tip_manifest": "exists",
+      "tip_path": "tessrax/core/governance_kernel/.well-known/tip.json",
+      "entry_point": null,
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "TIP-registered governance kernel integration glue for key vault, ledger, and integrity monitor."
+    },
+    {
+      "path": "tessrax/core/key_vault",
+      "classification": "canonical",
+      "tip_manifest": "exists",
+      "tip_path": "tessrax/core/key_vault/.well-known/tip.json",
+      "entry_point": null,
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "TIP-registered key vault managing Ed25519 rotations backed by ledger receipts."
+    },
+    {
+      "path": "tessrax/core/ledger",
+      "classification": "canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "tessrax/core/ledger/audit_integration.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Core ledger append/verify routines producing Merkle hashes and receipts."
+    },
+    {
+      "path": "tessrax/core/memory",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "tessrax/core/memory/temporal_compressor.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Temporal compressor summarising receipts and emitting Merkle roots."
+    },
+    {
+      "path": "tessrax/core/merkle_engine",
+      "classification": "canonical",
+      "tip_manifest": "exists",
+      "tip_path": "tessrax/core/merkle_engine/.well-known/tip.json",
+      "entry_point": "tessrax/core/merkle_engine/__init__.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "TIP-registered Merkle engine for hashing and verification endpoints."
+    },
+    {
+      "path": "tessrax/core/metabolism",
+      "classification": "canonical",
+      "tip_manifest": "exists",
+      "tip_path": "tessrax/core/metabolism/.well-known/tip.json",
+      "entry_point": "tessrax/core/metabolism/contradiction_economy.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "TIP-registered metabolism engine maintaining contradiction energy ledgers."
+    },
+    {
+      "path": "tessrax/core/multimodal",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "tessrax/core/multimodal/verifier.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Multimodal verifier computing cross-modal consistency scores and receipts."
+    },
+    {
+      "path": "tessrax/core/predictive",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "tessrax/core/predictive/causal_forecaster.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Causal forecaster predicting contradiction likelihoods with runtime verification receipts."
+    },
+    {
+      "path": "tessrax/core/protocols",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "tessrax/core/protocols/tex_protocol.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "TIP-compatible protocol helpers validating and signing governance messages."
+    },
+    {
+      "path": "tessrax/core/sandbox",
+      "classification": "non_canonical",
+      "tip_manifest": "missing",
+      "tip_path": null,
+      "entry_point": "tessrax/core/sandbox/adversarial_sim.py",
+      "imports": [
+        "tessrax"
+      ],
+      "notes": "Adversarial sandbox that injects deterministic ledger corruption for testing receipts."
+    }
+  ]
+}
