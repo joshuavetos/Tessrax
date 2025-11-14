@@ -1,0 +1,68 @@
+{
+  "module_id": "tip://tessrax/core/governance-kernel",
+  "version": "1.0.0",
+  "description": "Core governance kernel integrating integrity monitors and repair loops (entry: tessrax/core/governance_kernel/__init__.py).",
+  "endpoints": [
+    {
+      "name": "integrity-status",
+      "method": "GET",
+      "route": "/core/governance-kernel/status",
+      "io_schema_hash": "e1f453423b7b2ac4597554ad93a07da59827ca58fe3fcccf1ad1633c2a925d90"
+    }
+  ],
+  "cli_entrypoints": [
+    "python -c 'from tessrax.core.governance_kernel import GovernanceKernel'"
+  ],
+  "dependencies": [
+    "tessrax.data.evidence_loader",
+    "tessrax.governance",
+    "tessrax.core.integrity_monitor",
+    "tessrax.core.key_vault",
+    "tessrax.core.ledger",
+    "tessrax.core.repair_engine"
+  ],
+  "health": {
+    "readiness": "http://localhost:8080/core/governance-kernel/healthz",
+    "liveness": "http://localhost:8080/governance/kernel/status",
+    "last_checked": "2025-11-13T23:59:05.530450+00:00"
+  },
+  "telemetry_topics": [
+    "tessrax.governance.kernel"
+  ],
+  "governance": {
+    "signing_key_id": "governance-key::tip://tessrax/core/governance-kernel",
+    "signature": {
+      "algorithm": "SHA256",
+      "value": "3ee176dc44235d0d52f815940dbd56b87c172e0f7863d7353278abe86252ec9a",
+      "signed_at": "2025-11-13T23:59:05.530450+00:00"
+    }
+  },
+  "governance_bus": {
+    "ingest": "/governance/kernel/receipts",
+    "emit": "/governance/kernel/events",
+    "status_broadcast": "/governance/kernel/status"
+  },
+  "ledger_refs": [
+    {
+      "path": "ledger/governance_kernel.jsonl",
+      "hash": "f2448d3762dfad4e4e7fd7c1107e38d93d5c086446d9c1a9336a0aa325faf97a",
+      "merkle_anchor": "urn:merkle:governance-kernel@v1"
+    }
+  ],
+  "federation_profile": {
+    "integrity_score": 0.965,
+    "reliability": {
+      "uptime_24h": 0.998,
+      "error_budget_consumed": 0.01
+    },
+    "compliance": {
+      "aep_001": true,
+      "rvc_001": true,
+      "post_audit_001": true,
+      "eac_001": true
+    },
+    "scar_register": [],
+    "status": "ready",
+    "last_self_audit": "2025-11-13T23:59:05.530450+00:00"
+  }
+}

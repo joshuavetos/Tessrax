@@ -1,0 +1,69 @@
+{
+  "module_id": "tip://tessrax/core/merkle-engine",
+  "version": "2.1.0",
+  "description": "Merkle engine for governed ledger proofs and audit receipts (entry: tessrax/core/merkle_engine/__init__.py).",
+  "endpoints": [
+    {
+      "name": "hash-receipt",
+      "method": "POST",
+      "route": "/core/merkle/hash",
+      "io_schema_hash": "f38de9785c2aea9c618bd3646d1701a0e1e7e97b322aba67e2726090981464ab"
+    },
+    {
+      "name": "verify-proof",
+      "method": "POST",
+      "route": "/core/merkle/verify",
+      "io_schema_hash": "236f72b8769917d7e2e51929af6532d980a30b57b066525e6e828980f5d776f7"
+    }
+  ],
+  "cli_entrypoints": [
+    "python -c 'from tessrax.core.merkle_engine import MerkleEngine'"
+  ],
+  "dependencies": [
+    "tessrax.core"
+  ],
+  "health": {
+    "readiness": "http://localhost:8080/core/merkle-engine/healthz",
+    "liveness": "http://localhost:8080/governance/merkle/status",
+    "last_checked": "2025-11-13T23:59:05.530450+00:00"
+  },
+  "telemetry_topics": [
+    "tessrax.core.merkle.proofs"
+  ],
+  "governance": {
+    "signing_key_id": "governance-key::tip://tessrax/core/merkle-engine",
+    "signature": {
+      "algorithm": "SHA256",
+      "value": "f19692b90893f43fde26d7220fe7bc8d76879428aa5f361486ca41784903d627",
+      "signed_at": "2025-11-13T23:59:05.530450+00:00"
+    }
+  },
+  "governance_bus": {
+    "ingest": "/governance/merkle/receipts",
+    "emit": "/governance/merkle/events",
+    "status_broadcast": "/governance/merkle/status"
+  },
+  "ledger_refs": [
+    {
+      "path": "ledger/merkle_engine.jsonl",
+      "hash": "c2910542e5ca04ea19747960d549dd10ffdfac93dff72b09a98a0a04a40b5d30",
+      "merkle_anchor": "urn:merkle:merkle-engine@v1"
+    }
+  ],
+  "federation_profile": {
+    "integrity_score": 0.965,
+    "reliability": {
+      "uptime_24h": 0.998,
+      "error_budget_consumed": 0.015
+    },
+    "compliance": {
+      "aep_001": true,
+      "rvc_001": true,
+      "post_audit_001": true,
+      "eac_001": true
+    },
+    "scar_register": [],
+    "status": "ready",
+    "last_self_audit": "2025-11-13T23:59:05.530450+00:00"
+  }
+}

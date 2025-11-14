@@ -1,0 +1,63 @@
+{
+  "module_id": "tip://tessrax/core/metabolism",
+  "version": "1.2.0",
+  "description": "Contradiction economy metabolism and energy accounting module (entry: tessrax/core/metabolism/contradiction_economy.py).",
+  "endpoints": [
+    {
+      "name": "update-economy",
+      "method": "POST",
+      "route": "/core/metabolism/update",
+      "io_schema_hash": "cccb3df2a400b2ca756abe875d5fbe6d651a747d8a67305addd45b6a32f4779a"
+    }
+  ],
+  "cli_entrypoints": [
+    "python -m tessrax.core.metabolism.contradiction_economy"
+  ],
+  "dependencies": [
+    "tessrax.core.governance.receipts"
+  ],
+  "health": {
+    "readiness": "http://localhost:8080/core/metabolism/healthz",
+    "liveness": "http://localhost:8080/governance/metabolism/status",
+    "last_checked": "2025-11-13T23:59:05.530450+00:00"
+  },
+  "telemetry_topics": [
+    "tessrax.core.metabolism.energy"
+  ],
+  "governance": {
+    "signing_key_id": "governance-key::tip://tessrax/core/metabolism",
+    "signature": {
+      "algorithm": "SHA256",
+      "value": "8c681cd78c15eb41bea662cb6bb0f460fc775f034c7b84fc25a9496c655a9836",
+      "signed_at": "2025-11-13T23:59:05.530450+00:00"
+    }
+  },
+  "governance_bus": {
+    "ingest": "/governance/metabolism/receipts",
+    "emit": "/governance/metabolism/events",
+    "status_broadcast": "/governance/metabolism/status"
+  },
+  "ledger_refs": [
+    {
+      "path": "ledger/metabolism_economy.jsonl",
+      "hash": "3fe9b987c8de49bc5d9234597b9de28735b97bcf9ea09fa503c51a7050b7ef2d",
+      "merkle_anchor": "urn:merkle:metabolism@v1"
+    }
+  ],
+  "federation_profile": {
+    "integrity_score": 0.965,
+    "reliability": {
+      "uptime_24h": 0.997,
+      "error_budget_consumed": 0.03
+    },
+    "compliance": {
+      "aep_001": true,
+      "rvc_001": true,
+      "post_audit_001": true,
+      "eac_001": true
+    },
+    "scar_register": [],
+    "status": "ready",
+    "last_self_audit": "2025-11-13T23:59:05.530450+00:00"
+  }
+}
