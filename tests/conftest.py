@@ -23,12 +23,12 @@ def _missing_dependencies() -> Iterable[str]:
 _MISSING = tuple(_missing_dependencies())
 
 
-def pytest_ignore_collect(path, config):  # type: ignore[override]
+def pytest_ignore_collect(collection_path: Path, config):  # type: ignore[override]
     """Skip collection for non-hermetic tests when optional dependencies are absent."""
 
     if not _MISSING:
         return False
-    path_obj = Path(str(path))
+    path_obj = collection_path if isinstance(collection_path, Path) else Path(str(collection_path))
     if "tests/ai_skills" in path_obj.as_posix():
         return False
     if path_obj.suffix == ".py":

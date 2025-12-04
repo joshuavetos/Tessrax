@@ -45,12 +45,13 @@ class ProvenanceTracer:
     key_path: Path = field(default_factory=lambda: DEFAULT_KEY_PATH)
     receipt_path: Path = field(default_factory=lambda: DEFAULT_RECEIPT_PATH)
     ledger_sink: Callable[[dict[str, Any]], dict[str, Any]] = ledger_append
+    _signing_key: signing.SigningKey = field(init=False, repr=False)
+    _last_hash: str | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.key_path.parent.mkdir(parents=True, exist_ok=True)
         self.receipt_path.parent.mkdir(parents=True, exist_ok=True)
         self._signing_key = self._load_signing_key()
-        self._last_hash: str | None = None
 
     def _load_signing_key(self) -> signing.SigningKey:
         if self.key_path.exists():
