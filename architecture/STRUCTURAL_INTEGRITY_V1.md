@@ -6,8 +6,8 @@
 
 ## Merge Conflicts & Deferred Actions
 
-- `core` → `tessrax/core`: merge blocked because v15 clients still depend on `core.ContradictionEngine`; see `core.merge_conflict_notes.txt` for mitigation steps.
-- `charts` → `docker`: Helm assets diverge from Docker Compose topology; see `charts.merge_conflict_notes.txt` for required mapping of secrets and ingress rules prior to removal.
+- `core` → `tessrax/core`: merge blocked because v15 clients still depend on `core.ContradictionEngine`; migration remains gated on partner upgrades.
+- `charts` → `docker`: Helm assets diverge from Docker Compose topology; ingress and secret mappings must be reconciled before decommissioning Helm.
 
 ## Deprecated Subsystems Scheduled for Phase 3 Deletion
 

@@ -27,16 +27,13 @@
         "core"
       ],
       "merge_reason": "Legacy v15 governance facades to be reconciled with tessrax.core services.",
-      "conflicts": [
-        "core.merge_conflict_notes.txt"
-      ],
+      "conflicts": [],
       "dependency_notes": [
         "legacy clients still import core.ContradictionEngine",
         "tessrax/core/governance_kernel remains source of truth"
       ],
       "final_expected_structure": [
-        "tessrax/core/",
-        "core.merge_conflict_notes.txt"
+        "tessrax/core/"
       ]
     },
     {
@@ -46,16 +43,13 @@
         "charts"
       ],
       "merge_reason": "Docker stack supersedes Helm deployment for canonical runtime.",
-      "conflicts": [
-        "charts.merge_conflict_notes.txt"
-      ],
+      "conflicts": [],
       "dependency_notes": [
         "deployment now orchestrated by docker/compose stack",
         "charts referenced only in legacy documentation"
       ],
       "final_expected_structure": [
-        "docker/compose.yml",
-        "charts.merge_conflict_notes.txt"
+        "docker/compose.yml"
       ]
     },
     {
