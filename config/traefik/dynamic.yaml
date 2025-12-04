@@ -1,0 +1,23 @@
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/certs/local.crt
+        keyFile: /etc/certs/local.key
+
+# Import Middleware
+http:
+  routers:
+    api-secure:
+      entryPoints: ["websecure"]
+      rule: "Host(`api.localhost`)"
+      service: "api@docker"
+      middlewares: ["rate-limit", "security-headers", "compress"]
+      tls: {}
+    
+    console-secure:
+      entryPoints: ["websecure"]
+      rule: "Host(`console.localhost`)"
+      service: "console@docker"
+      middlewares: ["security-headers", "compress"]
+      tls: {}

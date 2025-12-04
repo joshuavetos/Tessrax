@@ -1,0 +1,30 @@
+http:
+  middlewares:
+    # 1. Rate Limiting (DDoS Protection)
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+
+    # 2. Security Headers (HSTS, XSS, Frame Deny)
+    security-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - OPTIONS
+          - PUT
+          - POST
+        accessControlMaxAge: 100
+        addVaryHeader: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        frameDeny: true
+        sslRedirect: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+
+    # 3. Compression (Performance)
+    compress:
+      compress: {}
