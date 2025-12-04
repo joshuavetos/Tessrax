@@ -9,6 +9,14 @@ from typing import Any
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 from pydantic import BaseModel, Field
 
 from config_loader import load_config as load_core_config
@@ -43,7 +51,6 @@ from tessrax_truth_api.services.subscription_service import SubscriptionService
 from tessrax_truth_api.services.validation_service import ValidationService
 from tessrax_truth_api.services.webhook_service import WebhookService
 from tessrax_truth_api.utils import (
-    encode_metrics,
     hmac_signature,
     issue_jwt,
     load_config,
@@ -106,6 +113,38 @@ def create_app() -> FastAPI:
     core_config = load_core_config()
     app = FastAPI(title="Tessrax Truth API", version="2.0.0")
 
+    metrics_registry = CollectorRegistry()
+    requests_total = Counter(
+        "tessrax_requests_total",
+        "Total Tessrax Truth API requests",
+        registry=metrics_registry,
+    )
+    errors_total = Counter(
+        "tessrax_errors_total",
+        "Total Tessrax Truth API error responses",
+        registry=metrics_registry,
+    )
+    latency_histogram = Histogram(
+        "tessrax_latency_seconds",
+        "Tessrax Truth API latency in seconds",
+        registry=metrics_registry,
+    )
+    integrity_gauge = Gauge(
+        "truth_api_integrity",
+        "Current integrity calibration value",
+        registry=metrics_registry,
+    )
+    drift_gauge = Gauge(
+        "truth_api_drift",
+        "Current drift calibration value",
+        registry=metrics_registry,
+    )
+    severity_gauge = Gauge(
+        "truth_api_severity",
+        "Current severity calibration value",
+        registry=metrics_registry,
+    )
+
     ledger_path = Path(core_config.logging.ledger_path)
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -152,6 +191,15 @@ def create_app() -> FastAPI:
     app.include_router(human_feedback_router)
 
     app.add_middleware(TruthLockMiddleware)
+
+    @app.middleware("http")
+    async def prometheus_middleware(request: Request, call_next):
+        requests_total.inc()
+        with latency_histogram.time():
+            response = await call_next(request)
+        if response.status_code >= 400:
+            errors_total.inc()
+        return response
 
     @app.on_event("startup")
     async def startup_event() -> None:
@@ -342,12 +390,13 @@ def create_app() -> FastAPI:
 
     @app.get("/metrics")
     async def metrics() -> Response:
-        metrics_data = calibrator.metrics().__dict__
-        metrics_payload: dict[str, float] = {
-            k: float(v) for k, v in metrics_data.items()
-        }
-        content = encode_metrics(metrics_payload)
-        return Response(content=content, media_type="text/plain; version=0.0.4")
+        calibration_metrics = calibrator.metrics()
+        integrity_gauge.set(float(calibration_metrics.integrity))
+        drift_gauge.set(float(calibration_metrics.drift))
+        severity_gauge.set(float(calibration_metrics.severity))
+
+        content = generate_latest(metrics_registry)
+        return Response(content=content, media_type=CONTENT_TYPE_LATEST)
 
     @app.get("/self_test", response_model=SelfTestSummary)
     async def self_test() -> SelfTestSummary:

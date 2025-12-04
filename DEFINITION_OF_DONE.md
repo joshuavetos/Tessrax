@@ -1,21 +1,39 @@
-# Tessrax v33.0 + Ops Pack: Definition of Done
+# Tessrax v33.1 — Definition of Done
 
-## 1. Architectural Integrity
-- [x] **Sovereignty:** No external runtime dependencies.
-- [x] **Identity:** Keycloak OIDC fully integrated.
-- [x] **Secrets:** Vault encrypted storage.
-- [x] **Math:** Deterministic Vector Orthogonality.
+## definition_of_done
 
-## 2. Operational Viability
-- [x] **Ingress:** Traefik handles TLS, HSTS, and Rate Limiting.
-- [x] **Persistence:** Automated Backup/Restore scripts active.
-- [x] **Observability:** Prometheus/Grafana monitoring Golden Signals.
-- [x] **Maintenance:** Logs rotate automatically.
+### architecture
+- all endpoints type-checked
+- AFCG validation required
+- CMD contradiction routes defined
+- governance receipts enabled
 
-## 3. The "Missing" Delta
-Any further additions fall into specific categories:
-- **Compliance:** SOC2/HIPAA specific controls (Policy).
-- **Scale:** Kubernetes/Cloud-Native sharding (Infrastructure).
-- **Features:** New AI models or UI widgets (Product).
+### infrastructure
+- Traefik security headers enabled
+- Rate limiting enabled
+- TLS store configured
+- Docker daemon hardened
+- Logs rotate under 50MB
 
-**THE SYSTEM IS COMPLETE.**
+### data
+- backups run daily
+- retention enforced (14 days)
+- restore validated weekly
+- ledger replicated air-gapped
+
+### observability
+- Prometheus metrics enabled
+- Grafana dashboard linked
+- error rate < 2% threshold
+- latency P95 < 400ms
+
+### security
+- trivy scan passes (no critical issues)
+- no unencrypted secrets
+- kill switch: SAFEPOINT_AFCG_001
+
+### governance
+- AFCG: pass
+- CMD: contradictions resolved
+- GOV: audit trail complete
+- ECSL: active & reporting

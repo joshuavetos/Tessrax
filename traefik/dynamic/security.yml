@@ -1,0 +1,27 @@
+http:
+  middlewares:
+
+    tessrax-secure-headers:
+      headers:
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: "strict-origin"
+        browserXssFilter: true
+
+    tessrax-ratelimit:
+      rateLimit:
+        average: 50
+        burst: 100
+
+    tessrax-compress:
+      compress: {}
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: "/certs/tls.crt"
+        keyFile: "/certs/tls.key"

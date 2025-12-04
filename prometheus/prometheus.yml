@@ -3,7 +3,14 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'tessrax'
-    metrics_path: /metrics
+  - job_name: "tessrax-api"
     static_configs:
-      - targets: ['tessrax:8080']
+      - targets: ["api:8000"]
+
+  - job_name: "tessrax-worker"
+    static_configs:
+      - targets: ["worker:9100"]
+
+  - job_name: "traefik"
+    static_configs:
+      - targets: ["traefik:8082"]
