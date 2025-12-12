@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -20,6 +21,36 @@ except ImportError:  # pragma: no cover - fallback when moto absent
         mock_s3 = None
 
 from config_loader import CloudLoggingConfig
+
+
+class _InMemoryS3Client:
+    """Lightweight in-memory stand-in for S3 when moto is unavailable."""
+
+    def __init__(self) -> None:
+        self._buckets: Dict[str, Dict[str, bytes]] = {}
+
+    @staticmethod
+    def _error(code: str, message: str, operation: str) -> ClientError:
+        return ClientError({"Error": {"Code": code, "Message": message}}, operation)
+
+    def head_bucket(self, Bucket: str) -> None:  # noqa: N802 - boto style
+        if Bucket not in self._buckets:
+            raise self._error("404", "Bucket does not exist", "HeadBucket")
+
+    def create_bucket(self, Bucket: str) -> None:  # noqa: N802 - boto style
+        self._buckets.setdefault(Bucket, {})
+
+    def get_object(self, Bucket: str, Key: str) -> dict[str, Any]:  # noqa: N802 - boto style
+        if Bucket not in self._buckets:
+            raise self._error("404", "Bucket does not exist", "GetObject")
+        bucket = self._buckets[Bucket]
+        if Key not in bucket:
+            raise self._error("NoSuchKey", "The specified key does not exist", "GetObject")
+        return {"Body": BytesIO(bucket[Key])}
+
+    def put_object(self, Bucket: str, Key: str, Body: bytes) -> None:  # noqa: N802 - boto style
+        bucket = self._buckets.setdefault(Bucket, {})
+        bucket[Key] = Body
 
 
 @dataclass
@@ -58,19 +89,32 @@ class S3LedgerWriter:
                 except ImportError:
                     try:
                         from moto import mock_aws as moto_mock_s3  # type: ignore
-                    except ImportError as exc:  # pragma: no cover - installation guard
-                        raise RuntimeError(
-                            "moto is required for mock S3 logging but is not installed"
-                        ) from exc
-                mock_s3 = moto_mock_s3
-            mock_ctx = mock_s3()
-            mock_ctx.start()
-        session = boto3.session.Session()
-        client = session.client(
-            "s3",
-            region_name=config.region,
-            endpoint_url=config.endpoint_url,
-        )
+                    except ImportError:
+                        client = _InMemoryS3Client()
+                    else:
+                        mock_s3 = moto_mock_s3
+                else:
+                    mock_s3 = moto_mock_s3
+            if mock_s3 is not None:
+                mock_ctx = mock_s3()
+                mock_ctx.start()
+                session = boto3.session.Session()
+                client = session.client(
+                    "s3",
+                    region_name=config.region,
+                    endpoint_url=config.endpoint_url,
+                )
+            elif not isinstance(client, _InMemoryS3Client):  # pragma: no cover - defensive
+                raise RuntimeError(
+                    "Unable to initialise mock S3 client for cloud logging"
+                )
+        else:
+            session = boto3.session.Session()
+            client = session.client(
+                "s3",
+                region_name=config.region,
+                endpoint_url=config.endpoint_url,
+            )
         runtime = _S3Runtime(client=client, bucket=config.bucket, key_prefix=key_prefix, mock_ctx=mock_ctx)
         S3LedgerWriter._ensure_bucket(runtime)
         return runtime
