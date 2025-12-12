@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from audit_kernel import audit_confidence
+from tessrax.core import audit_kernel
 
 from tessrax.types import ContradictionRecord
 
@@ -45,7 +45,7 @@ class AuditKernel:
             "completeness": self._completeness_metric(contradiction),
             "falsifiability": self._falsifiability_metric(contradiction),
         }
-        kernel_score = audit_confidence(metrics)
+        kernel_score = audit_kernel.audit_confidence(metrics)
         base = self._severity_prior.get(contradiction.severity.lower(), 0.5)
         delta_term = min(max(abs(contradiction.delta), 0.0), 1.0)
         severity_component = max(0.0, min(base + self.delta_weight * delta_term, 1.0))
