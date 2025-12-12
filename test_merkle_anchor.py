@@ -12,20 +12,25 @@ from pathlib import Path
 import pytest
 
 MODULE_ROOT = Path(__file__).resolve().parent
-
-
-def _ensure_package(package: str, location: Path) -> None:
+def _load_package(package: str, init_file: Path) -> types.ModuleType:
     if package in sys.modules:
-        return
-    module = types.ModuleType(package)
-    module.__path__ = [str(location)]
+        return sys.modules[package]
+    spec = importlib.util.spec_from_file_location(
+        package, init_file, submodule_search_locations=[str(init_file.parent)]
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load package {package} from {init_file}")
+    module = importlib.util.module_from_spec(spec)
     sys.modules[package] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def _load(module_name: str, relative: str):
     pkg_root = MODULE_ROOT / "tessrax"
-    _ensure_package("tessrax", pkg_root)
-    _ensure_package("tessrax.core", pkg_root / "core")
+    core_init = pkg_root / "core" / "__init__.py"
+    _load_package("tessrax", pkg_root / "__init__.py")
+    _load_package("tessrax.core", core_init)
     target = MODULE_ROOT / relative
     spec = importlib.util.spec_from_file_location(module_name, target)
     if spec is None or spec.loader is None:
@@ -37,7 +42,9 @@ def _load(module_name: str, relative: str):
 
 
 anchor_service = _load("tessrax.core.anchor_service", "tessrax/core/anchor_service.py")
-merkle_engine = _load("tessrax.core.merkle_engine", "tessrax/core/merkle_engine.py")
+merkle_engine = _load(
+    "tessrax.core.merkle_engine", "tessrax/core/merkle_engine/__init__.py"
+)
 
 
 @pytest.fixture()
