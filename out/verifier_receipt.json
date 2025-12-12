@@ -1,8 +1,0 @@
-{
-  "directive": "SAFEPOINT_EXTERNAL_VERIFIER_V17_8",
-  "integrity": 0.96,
-  "legitimacy": 0.92,
-  "status": "PASS",
-  "timestamp": "2025-11-06T10:00-06:00",
-  "governance_clauses": ["AEP-001","RVC-001","EAC-001","POST-AUDIT-001","DLK-001"]
-}
