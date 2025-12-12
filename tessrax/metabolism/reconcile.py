@@ -305,6 +305,7 @@ def build_cli() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "input",
+        nargs="?",
         type=Path,
         help="Path to a JSON file containing contradiction records",
     )
@@ -314,6 +315,11 @@ def build_cli() -> argparse.ArgumentParser:
         type=Path,
         help="Optional path to write the generated ledger receipts as JSONL",
     )
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="Run a built-in reconciliation cycle using sample contradictions",
+    )
     return parser
 
 
@@ -321,9 +327,66 @@ def _emit_ledger(ledger: Ledger, path: Path) -> None:
     ledger.export(path)
 
 
+def _run_self_test() -> None:
+    """Execute a minimal reconciliation cycle to validate dependencies."""
+
+    timestamp = datetime.now(timezone.utc)
+    claim_one = Claim(
+        claim_id="c-001",
+        subject="grid",
+        metric="voltage",
+        value=118.4,
+        unit="V",
+        timestamp=timestamp,
+        source="sensor_a",
+        context={"region": "north"},
+    )
+    claim_two = Claim(
+        claim_id="c-002",
+        subject="grid",
+        metric="voltage",
+        value=123.9,
+        unit="V",
+        timestamp=timestamp,
+        source="sensor_b",
+        context={"region": "north"},
+    )
+    record = ContradictionRecord(
+        claim_a=claim_one,
+        claim_b=claim_two,
+        severity="medium",
+        delta=0.08,
+        reasoning="Voltage readings diverged across sensors",
+    )
+
+    engine = ReconciliationEngine(AuditKernel())
+    statements = engine.reconcile([record])
+    if not statements:
+        raise RuntimeError("Self-test failed to generate clarity statements")
+
+    receipts = engine.ledger.receipts()
+    print(
+        json.dumps(
+            {
+                "clarity_statement": statements[0].to_receipt(),
+                "ledger_receipts": [receipt.to_json() for receipt in receipts],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     parser = build_cli()
     args = parser.parse_args(argv)
+
+    if args.self_test:
+        _run_self_test()
+        return
+
+    if args.input is None:
+        parser.error("the following arguments are required: input")
 
     contradictions = load_contradictions(args.input)
     engine = ReconciliationEngine(AuditKernel())
