@@ -1,7 +1,0 @@
-{
-  "branch": "fix/runtime-repair-v20",
-  "python": "3.11.12",
-  "selftests": "pass",
-  "pytest_errors": 0,
-  "timestamp": "2025-11-08T18:25:36.362014+00:00"
-}
