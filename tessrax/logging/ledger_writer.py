@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -20,12 +21,18 @@ except ImportError:  # pragma: no cover - fallback when moto absent
     except ImportError:  # pragma: no cover - fallback when moto absent
         mock_s3 = None
 
-from config_loader import CloudLoggingConfig
+# Internal project imports
+try:
+    from config_loader import CloudLoggingConfig
+except ImportError:
+    class CloudLoggingConfig:
+        def __init__(self):
+            self.s3_bucket = None
+            self.local_path = "./ledger_storage"
 
-
+@dataclass
 class _InMemoryS3Client:
     """Lightweight in-memory stand-in for S3 when moto is unavailable."""
-
     def __init__(self) -> None:
         self._buckets: Dict[str, Dict[str, bytes]] = {}
 
@@ -33,14 +40,14 @@ class _InMemoryS3Client:
     def _error(code: str, message: str, operation: str) -> ClientError:
         return ClientError({"Error": {"Code": code, "Message": message}}, operation)
 
-    def head_bucket(self, Bucket: str) -> None:  # noqa: N802 - boto style
+    def head_bucket(self, Bucket: str) -> None:
         if Bucket not in self._buckets:
             raise self._error("404", "Bucket does not exist", "HeadBucket")
 
-    def create_bucket(self, Bucket: str) -> None:  # noqa: N802 - boto style
+    def create_bucket(self, Bucket: str) -> None:
         self._buckets.setdefault(Bucket, {})
 
-    def get_object(self, Bucket: str, Key: str) -> dict[str, Any]:  # noqa: N802 - boto style
+    def get_object(self, Bucket: str, Key: str) -> dict[str, Any]:
         if Bucket not in self._buckets:
             raise self._error("404", "Bucket does not exist", "GetObject")
         bucket = self._buckets[Bucket]
@@ -48,147 +55,85 @@ class _InMemoryS3Client:
             raise self._error("NoSuchKey", "The specified key does not exist", "GetObject")
         return {"Body": BytesIO(bucket[Key])}
 
-    def put_object(self, Bucket: str, Key: str, Body: bytes) -> None:  # noqa: N802 - boto style
+    def put_object(self, Bucket: str, Key: str, Body: bytes) -> None:
         bucket = self._buckets.setdefault(Bucket, {})
         bucket[Key] = Body
 
+class Ledger:
+    """
+    Persistence layer for Tessrax governance receipts.
+    Supports local filesystem and optional S3 cloud replication.
+    """
+    def __init__(self, config: Optional[CloudLoggingConfig] = None):
+        self.config = config or CloudLoggingConfig()
+        self.logger = logging.getLogger("tessrax.ledger")
+        self.local_dir = Path(getattr(self.config, 'local_path', './ledger'))
+        self.local_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize S3 if configured
+        self.s3_client = None
+        if hasattr(self.config, 's3_bucket') and self.config.s3_bucket:
+            try:
+                self.s3_client = boto3.client('s3')
+            except (BotoCoreError, ClientError) as e:
+                self.logger.warning(f"Failed to init S3, falling back to local: {e}")
 
-@dataclass
-class _S3Runtime:
-    """Internal runtime state for mockable S3 writers."""
+    def write_receipt(self, receipt: Dict[str, Any]) -> str:
+        """
+        Persists a reconciliation receipt to the ledger.
+        Ensures dictionary data is serialized to JSON.
+        """
+        receipt_id = receipt.get("dispute_id", f"rcpt_{int(datetime.now().timestamp())}")
+        filename = f"{receipt_id}.json"
+        
+        # Ensure timestamp is present
+        if "resolved_at" not in receipt:
+            receipt["resolved_at"] = datetime.now(timezone.utc).isoformat()
 
-    client: Any
-    bucket: str
-    key_prefix: str
-    mock_ctx: Any | None = None
+        content = json.dumps(receipt, indent=2)
+        
+        # 1. Local Write
+        local_path = self.local_dir / filename
+        with open(local_path, "w") as f:
+            f.write(content)
 
-
-class S3LedgerWriter:
-    """Replicate ledger entries to an S3 bucket or moto-backed mock."""
-
-    def __init__(
-        self,
-        config: CloudLoggingConfig,
-        key_prefix: str = "ledger",
-    ) -> None:
-        if config.provider.lower() != "s3":
-            raise ValueError("S3LedgerWriter requires provider to be 's3'")
-        self._config = config
-        self._runtime = self._initialise_runtime(config, key_prefix)
-
-    @staticmethod
-    def _initialise_runtime(
-        config: CloudLoggingConfig, key_prefix: str
-    ) -> _S3Runtime:
-        mock_ctx = None
-        if config.use_mock:
-            global mock_s3  # type: ignore[global-statement]
-            if mock_s3 is None:
-                try:
-                    from moto import mock_s3 as moto_mock_s3  # type: ignore
-                except ImportError:
-                    try:
-                        from moto import mock_aws as moto_mock_s3  # type: ignore
-                    except ImportError:
-                        client = _InMemoryS3Client()
-                    else:
-                        mock_s3 = moto_mock_s3
-                else:
-                    mock_s3 = moto_mock_s3
-            if mock_s3 is not None:
-                mock_ctx = mock_s3()
-                mock_ctx.start()
-                session = boto3.session.Session()
-                client = session.client(
-                    "s3",
-                    region_name=config.region,
-                    endpoint_url=config.endpoint_url,
+        # 2. Optional Cloud Replication
+        if self.s3_client and self.config.s3_bucket:
+            try:
+                self.s3_client.put_object(
+                    Bucket=self.config.s3_bucket,
+                    Key=f"receipts/{filename}",
+                    Body=content.encode('utf-8')
                 )
-            elif not isinstance(client, _InMemoryS3Client):  # pragma: no cover - defensive
-                raise RuntimeError(
-                    "Unable to initialise mock S3 client for cloud logging"
-                )
-        else:
-            session = boto3.session.Session()
-            client = session.client(
-                "s3",
-                region_name=config.region,
-                endpoint_url=config.endpoint_url,
-            )
-        runtime = _S3Runtime(client=client, bucket=config.bucket, key_prefix=key_prefix, mock_ctx=mock_ctx)
-        S3LedgerWriter._ensure_bucket(runtime)
-        return runtime
+            except (BotoCoreError, ClientError) as e:
+                self.logger.error(f"Cloud replication failed for {receipt_id}: {e}")
 
-    @staticmethod
-    def _ensure_bucket(runtime: _S3Runtime) -> None:
+        return str(local_path)
+
+    def verify_integrity(self, receipt_id: str) -> bool:
+        """
+        Placeholder for cryptographic verification.
+        Checks if the receipt exists and is valid JSON.
+        """
+        local_path = self.local_dir / f"{receipt_id}.json"
+        if not local_path.exists():
+            return False
+        
         try:
-            runtime.client.head_bucket(Bucket=runtime.bucket)
-        except ClientError as exc:
-            error_code = exc.response.get("Error", {}).get("Code", "")
-            if error_code in {"404", "NoSuchBucket"}:
-                runtime.client.create_bucket(Bucket=runtime.bucket)
-            else:  # pragma: no cover - defensive branch
-                raise
+            with open(local_path, "r") as f:
+                json.load(f)
+            return True
+        except json.JSONDecodeError:
+            return False
 
-    def close(self) -> None:
-        if self._runtime.mock_ctx is not None:
-            self._runtime.mock_ctx.stop()
-            self._runtime.mock_ctx = None
+if __name__ == "__main__":
+    # Basic sanity test
+    ledger = Ledger()
+    test_receipt = {
+        "dispute_id": "test_001",
+        "final_value": 42.0,
+        "status": "reconciled"
+    }
+    path = ledger.write_receipt(test_receipt)
+    print(f"Receipt written to: {path}")
 
-    def append_line(self, payload: str) -> None:
-        if not isinstance(payload, str):
-            raise TypeError("Payload must be a JSON-encoded string")
-        key = self._build_key()
-        try:
-            response = self._runtime.client.get_object(
-                Bucket=self._runtime.bucket, Key=key
-            )
-            existing = response["Body"].read().decode("utf-8")
-        except ClientError as exc:
-            error_code = exc.response.get("Error", {}).get("Code", "")
-            if error_code not in {"404", "NoSuchKey"}:
-                raise
-            existing = ""
-        body = existing + (payload if payload.endswith("\n") else payload + "\n")
-        try:
-            self._runtime.client.put_object(
-                Bucket=self._runtime.bucket,
-                Key=key,
-                Body=body.encode("utf-8"),
-            )
-        except (ClientError, BotoCoreError) as exc:
-            raise RuntimeError(f"Failed to write ledger payload to S3: {exc}")
-
-    def _build_key(self) -> str:
-        now = datetime.now(timezone.utc)
-        return f"{self._runtime.key_prefix}/{now:%Y/%m/%d}.jsonl"
-
-
-class LedgerWriter:
-    """Persist ledger entries locally and optionally replicate to S3."""
-
-    def __init__(
-        self,
-        ledger_path: Path,
-        cloud_writer: S3LedgerWriter | None = None,
-    ) -> None:
-        self.ledger_path = ledger_path
-        self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
-        self._cloud_writer = cloud_writer
-
-    def append(self, record: dict[str, Any]) -> dict[str, Any]:
-        if not isinstance(record, dict):
-            raise TypeError("Ledger record must be a dictionary")
-        payload = json.dumps(record, sort_keys=True)
-        with self.ledger_path.open("a", encoding="utf-8") as handle:
-            handle.write(payload + "\n")
-        if self._cloud_writer is not None:
-            self._cloud_writer.append_line(payload)
-        return record
-
-    def close(self) -> None:
-        if self._cloud_writer is not None:
-            self._cloud_writer.close()
-
-
-__all__ = ["LedgerWriter", "S3LedgerWriter"]
