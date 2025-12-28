@@ -89,5 +89,5 @@ class ReconciliationEngine:
 # --- Keep existing CLI boilerplate if needed for your environment ---
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Tessrax Reconciliation CLI")
-    parser.add_name = "reconcile"
+parser.prog = "reconcile"
     # CLI logic would follow here...
