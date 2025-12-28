@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
 
-from config_loader import load_config
+from tessrax.config_loader import load_config
 from tessrax.contradiction import ContradictionEngine
 from tessrax.types import Claim, ContradictionRecord
 

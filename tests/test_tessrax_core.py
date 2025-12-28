@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config_loader import load_config
+from tessrax.config_loader import load_config
 from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
 
 

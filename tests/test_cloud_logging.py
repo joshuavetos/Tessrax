@@ -1,7 +1,7 @@
 from pathlib import Path
 from datetime import datetime, timezone
 
-from config_loader import CloudLoggingConfig
+from tessrax.config_loader import CloudLoggingConfig
 from tessrax.logging.ledger_writer import LedgerWriter, S3LedgerWriter
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config_loader import load_config
+from tessrax.config_loader import load_config
 
 _config = load_config()
 

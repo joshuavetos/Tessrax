@@ -19,7 +19,7 @@ from prometheus_client import (
 )
 from pydantic import BaseModel, Field
 
-from config_loader import load_config as load_core_config
+from tessrax.config_loader import load_config as load_core_config
 
 from tessrax.api.human_feedback import router as human_feedback_router
 from tessrax.ledger import Ledger

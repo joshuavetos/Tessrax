@@ -7,7 +7,7 @@ from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
 
-from config_loader import load_config
+from tessrax.config_loader import load_config
 from tessrax.tessrax_engine import calculate_stability, route_to_governance_lane
 
 

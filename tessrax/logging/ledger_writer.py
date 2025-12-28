@@ -20,7 +20,7 @@ except ImportError:  # pragma: no cover - fallback when moto absent
     except ImportError:  # pragma: no cover - fallback when moto absent
         mock_s3 = None
 
-from config_loader import CloudLoggingConfig
+from tessrax.config_loader import CloudLoggingConfig
 
 
 class _InMemoryS3Client:

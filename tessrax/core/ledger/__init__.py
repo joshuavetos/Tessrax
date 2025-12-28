@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping
 
-from ledger_persistence import append_entry as _root_append_entry
+from tessrax.core.ledger.persistence import append_entry as _root_append_entry
 
 DEFAULT_LEDGER_PATH = Path("ledger.jsonl")
 

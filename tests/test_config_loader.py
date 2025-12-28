@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from config_loader import (
+from tessrax.config_loader import (
     ConfigValidationError,
     LoggingConfig,
     TessraxConfig,
